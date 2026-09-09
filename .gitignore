@@ -1,0 +1,18 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+*.db-wal
+*.db-shm
+
+# Runtime noise and regenerable caches
+*.log
+*.pid
+backend/jjm_cache.json
+
+# Citizen evidence uploads: real photos of real places, never committed.
+backend/uploads/
+backend/data/india_health_facilities.geojson
+backend/data/lgd_villages_by_blocks.csv

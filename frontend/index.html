@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AwaazIQ — Development Intelligence</title>
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <button class="railtoggle" id="railToggle"
+            aria-label="Show or hide the priority ranking" aria-expanded="true">☰</button>
+    <div class="brand">
+      <span class="brand__name">AwaazIQ</span>
+      <span class="brand__tag">From Citizen Voice to Intelligent Action</span>
+    </div>
+    <span class="role role--admin">Officials</span>
+    <div class="topbar__spacer"></div>
+    <span class="eyebrow">Development Intelligence Engine</span>
+    <div class="coverage">
+      <span class="coverage__dot"></span>
+      <span id="coverageText">Pilot coverage — 2 districts</span>
+    </div>
+    <a class="rolelink" href="report.html" id="citizenLink">File a complaint&nbsp;&rsaquo;</a>
+    <button class="btn btn--primary" id="btnRecompute" style="flex:0 0 auto;padding:9px 16px">
+      RUN CLUSTERING
+    </button>
+  </header>
+
+  <aside class="rail" id="rail">
+    <div class="rail__head">
+      <div class="rail__title">
+        <span class="eyebrow">Priority ranking</span>
+        <span class="rail__count" id="railCount"></span>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="rail__list" id="railList"></div>
+    <div class="rail__foot">
+      <button class="btn" id="btnCompare" disabled>COMPARE (0/2)</button>
+      <button class="btn btn--primary" id="btnWhatIf">WHAT-IF</button>
+    </div>
+    <div class="rail__foot">
+      <button class="btn" id="btnInvest" style="flex:1">DEMAND vs INVESTMENT</button>
+    </div>
+  </aside>
+
+  <main class="stage" id="stage">
+
+    <svg id="map" role="img" aria-label="Zoomable map of India showing citizen demand clusters"></svg>
+
+    <nav class="breadcrumb" id="breadcrumb" aria-label="Map location"></nav>
+
+    <div class="status" id="status"></div>
+
+    <div class="legend">
+      <div class="eyebrow legend__title">Priority score</div>
+      <div class="legend__ramp"></div>
+      <div class="legend__scale"><span>30</span><span>50</span><span>70+</span></div>
+      <div class="legend__note" id="legendNote">
+        Bubble size = population affected. Colour = priority score.
+      </div>
+    </div>
+
+    <section class="dock" id="dock" aria-label="Cluster detail"></section>
+
+    <section class="sheet" id="sheet" aria-label="What-if budget simulation">
+      <div class="sheet__head">
+        <span class="sheet__title">What if this district got more money?</span>
+        <button class="sheet__close" id="sheetClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="sheet__controls">
+        <label class="field">
+          <span class="field__label">District</span>
+          <select id="wiDistrict"></select>
+        </label>
+        <div class="slider">
+          <input type="range" id="wiAmount" min="0" max="200" step="5" value="50" />
+          <span class="slider__val" id="wiVal">₹50 crore</span>
+        </div>
+        <button class="btn btn--primary" id="wiRun" style="flex:0 0 150px">RUN SIMULATION</button>
+      </div>
+      <div class="sheet__result" id="wiResult">
+        Extra budget raises what is <b>fundable</b> in a district — it does not change
+        what is broken, so clusters are re-scored but never re-clustered.
+      </div>
+    </section>
+
+    <section class="compare" id="compare" aria-label="Cluster comparison"></section>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+
+    <div class="tooltip" id="tooltip" role="status"></div>
+
+    <div class="loader" id="loader">
+      <div class="loader__inner">
+        <div class="eyebrow">Loading boundaries &amp; live clusters</div>
+        <div class="loader__bar"><div class="loader__fill"></div></div>
+      </div>
+    </div>
+
+    <div class="error" id="error" hidden>
+      <div class="error__card">
+        <h2>Can't reach the API</h2>
+        <p id="errorMsg">The dashboard loaded, but the backend didn't answer.</p>
+        <p>Start it from the <code>backend/</code> directory:</p>
+        <p><code>uvicorn main:app --reload --port 8001</code></p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="js/app.js?v=fix3"></script>
+<script src="js/panels.js?v=fix3"></script>
+</body>
+</html>

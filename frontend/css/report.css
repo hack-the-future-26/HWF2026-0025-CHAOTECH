@@ -1,0 +1,769 @@
+/* ===========================================================================
+   AwaazIQ — citizen complaint page
+
+   Loaded AFTER app.css, which supplies the design tokens and the shared
+   components (.btn, .steps, .kv, .result__banner, .eyebrow). Only what is
+   specific to the citizen role lives here.
+
+   The two roles are deliberately different shapes, not one page with a
+   toggle: the citizen page is a single scrolling column that works on a
+   phone, the officials' dashboard is a fixed three-pane desktop layout. A
+   citizen is doing one thing once; an official is comparing many things at
+   a glance.
+   =========================================================================== */
+
+/* app.css locks the viewport for the map with `html, body { height: 100%;
+   overflow: hidden }`. A complaint form has to scroll, and BOTH elements have
+   to be released: `overflow: hidden` on <html> alone clips the whole document
+   no matter what <body> says. Releasing only body left the page frozen at
+   scrollY 0, which also made the tracking result -- rendered near the bottom
+   -- permanently unreachable. Hence the class on <html> in report.html. */
+html.citizen,
+body.citizen { overflow: auto; height: auto; min-height: 100%; }
+
+/* ------------------------------------------------------------------ bar -- */
+
+.cbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 26px;
+  background: rgba(247, 244, 236, 0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.cbar .brand { text-decoration: none; color: inherit; }
+.cbar__spacer { flex: 1; }
+/* --------------------------------------------------------------- layout -- */
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 22px 70px;
+}
+
+.hero { margin-bottom: 26px; }
+.hero__title {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 11px;
+}
+.hero__lead { font-size: 14.5px; line-height: 1.6; color: var(--body); }
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(27, 42, 74, 0.04);
+}
+.card--quiet { background: transparent; box-shadow: none; border-style: dashed; }
+.card__head { margin-bottom: 13px; }
+.card__lead { font-size: 12.5px; color: var(--body); line-height: 1.55; margin-bottom: 13px; }
+
+.citizen textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--cream);
+  padding: 14px 15px;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--navy);
+  resize: vertical;
+}
+.citizen textarea:focus { outline: none; border-color: var(--amber); background: #fff; }
+
+.samples { display: flex; flex-wrap: wrap; gap: 7px; margin: 13px 0 18px; }
+
+.card__actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+.btn--lg { padding: 13px 26px; font-size: 12px; flex: 0 0 auto; }
+
+.filebtn {
+  flex: 1;
+  min-width: 200px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--body);
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+  transition: 0.16s var(--ease);
+}
+.filebtn:hover { border-color: var(--amber); color: var(--navy); background: var(--cream); }
+
+.fineprint {
+  margin-top: 15px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------- receipt -- */
+
+.receipt {
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+  padding: 17px 19px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  margin-bottom: 16px;
+}
+.receipt__num {
+  font-family: var(--serif);
+  font-size: 33px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+}
+.receipt__label { font-size: 12px; color: var(--body); line-height: 1.5; }
+
+.next { margin-top: 18px; }
+.next__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 9px;
+}
+.next ol { margin: 0; padding-left: 19px; }
+.next li { font-size: 12.5px; line-height: 1.65; color: var(--body); margin-bottom: 6px; }
+.next li b { color: var(--navy); }
+
+.done-actions { display: flex; gap: 9px; margin-top: 19px; flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------- track -- */
+
+.track { display: flex; gap: 9px; }
+.track input {
+  flex: 1;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  background: var(--paper);
+  padding: 11px 14px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--navy);
+}
+.track input:focus { outline: none; border-color: var(--amber); }
+
+.mine { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.mine__chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--body);
+  cursor: pointer;
+  transition: 0.16s var(--ease);
+}
+.mine__chip:hover { border-color: var(--amber); color: var(--navy); }
+
+.tstat {
+  margin-top: 16px;
+  padding: 17px 19px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--paper);
+}
+.tstat__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 9px;
+}
+.tstat__pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 5px;
+}
+.tstat__pill--ok   { background: var(--green-bg); color: var(--green); }
+.tstat__pill--wait { background: var(--amber-soft); color: #7a5a22; }
+.tstat__pill--bad  { background: var(--red-bg); color: var(--red); }
+.tstat__text { font-size: 12.5px; line-height: 1.6; color: var(--body); }
+.tstat__text b { color: var(--navy); }
+
+.rankbar {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.rankbar__num {
+  font-family: var(--serif);
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--amber);
+}
+.rankbar__of { font-size: 12px; color: var(--body); }
+
+.cfoot {
+  margin-top: 34px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ----------------------------------------------------------------- 600px -- */
+
+@media (max-width: 600px) {
+  .wrap { padding: 26px 15px 50px; }
+  .hero__title { font-size: 26px; }
+  .cbar { padding: 12px 15px; gap: 9px; }
+  .brand__tag { display: none; }
+  .card__actions { flex-direction: column; align-items: stretch; }
+  .btn--lg { width: 100%; }
+}
+
+/* ----------------------------------------------------------------- form -- */
+
+.req { color: var(--amber); font-weight: 700; }
+.opt {
+  font-family: var(--sans); font-size: 10px; font-weight: 600;
+  letter-spacing: 0; text-transform: none; color: var(--muted);
+}
+
+/* Two columns on a desktop, one on a phone. `f--wide` and `f--full` span
+   both, for fields where a cramped box would make the answer hard to read. */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.f--wide, .f--full { grid-column: 1 / -1; }
+.f--full { margin-top: 16px; }
+
+.f__label {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
+}
+.f__hint { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+
+.f input,
+.f select,
+.f textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  background: var(--cream);
+  padding: 11px 13px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--navy);
+}
+.f select { cursor: pointer; }
+.f textarea { line-height: 1.55; resize: vertical; }
+.f input:focus,
+.f select:focus,
+.f textarea:focus { outline: none; border-color: var(--amber); background: #fff; }
+.f input:disabled,
+.f select:disabled { opacity: 0.55; cursor: not-allowed; background: var(--cream-deep); }
+
+/* Marks the specific fields named in the error summary, so "3 things need
+   fixing" can be acted on without hunting for which three. */
+.f--bad input,
+.f--bad select,
+.f--bad textarea { border-color: var(--red); background: var(--red-bg); }
+
+.submitrow { display: flex; flex-direction: column; gap: 13px; margin-bottom: 6px; }
+
+.errors {
+  border: 1px solid var(--red);
+  background: var(--red-bg);
+  border-radius: 11px;
+  padding: 14px 17px;
+  color: var(--red);
+}
+.errors__head { font-size: 12.5px; font-weight: 700; margin-bottom: 6px; }
+.errors ul { margin: 0; padding-left: 18px; }
+.errors li { font-size: 12.5px; line-height: 1.6; }
+
+.files { display: flex; flex-direction: column; gap: 6px; margin-top: 11px; }
+.file {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 13px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 12px;
+}
+.file__name {
+  flex: 1; min-width: 0; color: var(--navy); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file__size { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.file__x {
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); font-size: 17px; line-height: 1; padding: 0 3px;
+}
+.file__x:hover { color: var(--red); }
+
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .f--wide { grid-column: auto; }
+}
+
+/* The upload labels now stand alone rather than sitting in a flex row, so
+   they need to claim the full width themselves -- a bare <label> is inline
+   and would shrink to its text. */
+.filebtn { display: block; }
+
+/* A submit button stretched across 720px reads as a banner, not a button. */
+.submitrow .btn--lg { align-self: flex-start; }
+@media (max-width: 600px) {
+  .submitrow .btn--lg { align-self: stretch; }
+}
+
+/* ===========================================================================
+   Auth Header & Controls
+   =========================================================================== */
+
+.cbar__auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-guest,
+.auth-logged {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn--auth {
+  padding: 6px 14px;
+  background: var(--navy);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--navy);
+  transition: all 0.15s ease;
+}
+.btn--auth:hover {
+  background: var(--navy-soft);
+  color: #fff;
+}
+
+.btn--auth-outline {
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn--auth-outline:hover {
+  background: var(--cream-deep);
+  border-color: var(--navy-soft);
+}
+
+.user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--cream-deep);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.badge-count {
+  display: inline-block;
+  background: var(--amber);
+  color: #fff;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 3px;
+}
+
+/* ===========================================================================
+   Auth Gate & Autofill Banners
+   =========================================================================== */
+
+.auth-gate-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff8eb;
+  border: 1.5px solid #e2c98d;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+.auth-gate-banner__icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.auth-gate-banner__text {
+  flex: 1;
+}
+.auth-gate-banner__text strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--navy);
+  margin-bottom: 3px;
+}
+.auth-gate-banner__text p {
+  font-size: 12px;
+  color: var(--body);
+  margin: 0;
+  line-height: 1.45;
+}
+.auth-gate-banner__btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.autofill-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green-bg);
+  border: 1px solid #b8dfc4;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--green);
+}
+.autofill-banner__icon {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ===========================================================================
+   Auth Modal
+   =========================================================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.modal[hidden] {
+  display: none !important;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(27, 42, 74, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal__card {
+  position: relative;
+  z-index: 2;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 36px rgba(27, 42, 74, 0.16);
+  padding: 24px;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.modal__close:hover {
+  background: var(--cream-deep);
+  color: var(--navy);
+}
+
+.modal__tabs {
+  display: flex;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 18px;
+  gap: 12px;
+}
+
+.modal__tab {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  position: relative;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s ease;
+}
+.modal__tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--amber);
+}
+
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.auth-panel[hidden] {
+  display: none !important;
+}
+
+.modal__intro {
+  font-size: 12px;
+  color: var(--body);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.modal__subtext {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.modal__subtext a {
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.btn--block {
+  width: 100%;
+  justify-content: center;
+  padding: 11px 16px;
+  font-size: 12.5px;
+}
+
+.auth-errors {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+/* ===========================================================================
+   My Filed Grievances Section
+   =========================================================================== */
+
+.card__head--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.my-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.my-report-item {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s ease;
+}
+.my-report-item:hover {
+  border-color: var(--amber);
+}
+
+.my-report-item__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.my-report-item__id {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--navy);
+}
+
+.my-report-item__date {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.my-report-item__body {
+  font-size: 13px;
+  color: var(--navy);
+  line-height: 1.45;
+}
+
+.my-report-item__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--body);
+}
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-tag--awaiting {
+  background: #fff3d6;
+  color: #8c5914;
+}
+.status-tag--clustered {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.status-tag--unresolved {
+  background: var(--cream-deep);
+  color: var(--muted);
+}
+
+/* ------------------------------------------- signed-in profile readout -- */
+
+/* What will actually be attached to the grievance. Shown rather than merely
+   promised: a citizen should be able to check the details being filed on
+   their behalf before they file. */
+.profile-readout {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid rgba(46, 107, 69, 0.25);
+  display: grid; gap: 3px;
+}
+.profile-readout__row { display: flex; gap: 12px; font-size: 12px; align-items: baseline; }
+.profile-readout__k {
+  flex: 0 0 84px; color: var(--muted);
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.profile-readout__v { color: var(--navy); font-weight: 600; }
+
+/* ===========================================================================
+   Sign-in page
+
+   Replaces the in-page modal. The modal depended on styles that were not
+   always loaded, and when they were missing it rendered as raw markup down
+   the length of the page -- a failure mode with no visible cause, where a
+   citizen cannot tell whether the form is broken or they are. A page cannot
+   fail that way, and it also behaves the way an account screen should: its
+   own URL, a working back button, and visible to a password manager.
+   =========================================================================== */
+
+.wrap--narrow { max-width: 760px; }
+
+.authtabs {
+  display: flex; gap: 6px;
+  margin: 0 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.authtab {
+  appearance: none; border: none; background: none; cursor: pointer;
+  padding: 10px 16px; margin-bottom: -1px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.authtab:hover { color: var(--navy); }
+.authtab.is-on { color: var(--navy); border-bottom-color: var(--amber); }
+
+.card__actions { margin-top: 16px; }
+
+/* A button that reads as a link, for switching halves without looking like a
+   second submit control competing with the real one. */
+.linklike {
+  appearance: none; border: none; background: none; padding: 0;
+  font: inherit; color: var(--amber); font-weight: 600;
+  text-decoration: underline; cursor: pointer;
+}
+.linklike:hover { color: var(--navy); }
+
+.signin-note {
+  flex: 1; min-width: 240px;
+  font-size: 12px; color: var(--body); line-height: 1.5; margin: 0;
+}
+
+/* ---------------------------------------------------------- coverage note -- */
+
+/* States the pilot boundary where a citizen actually hits it, rather than
+   letting them discover "only 2 options" in the district dropdown and
+   wonder if the page is broken. Amber, not red/green: this is a scope fact,
+   not an error and not a success. */
+.coverage-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--amber-soft);
+  border: 1px solid #e0c085;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.coverage-note__icon { font-size: 15px; line-height: 1.4; }
+.coverage-note__text { font-size: 12.5px; line-height: 1.5; color: #6b4d17; }
+.coverage-note__text strong { color: #3d2c0c; }
