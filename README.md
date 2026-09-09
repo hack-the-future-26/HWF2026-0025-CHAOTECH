@@ -1,3 +1,16 @@
+## 🏆 Hackathon Submission Note
+
+Due to the postponement of the hackathon, our team had already started and progressed with the project according to the original hackathon timeline. We maintained and regularly updated our work in a private Git repository throughout the development process.
+
+As discussed with a member of the official hackathon team, we are now consolidating and pushing the completed work together through this single PR to the official hackathon repository, with `main` as the base branch.
+
+For transparency and reference, screenshots of our private Git repository and the development progress have also been attached to this PR.
+
+![Private repo – main branch file structure](private_repo_main.png)
+![Private repo – branches overview](private_repo_branches.png)
+
+---
+
 # ComplainBox — P1 + P2 + P3
 
 Status against `Build-Plan-4-Person-Team.pdf`, covering **P1 (AI/NLP Intake Pipeline)**,
