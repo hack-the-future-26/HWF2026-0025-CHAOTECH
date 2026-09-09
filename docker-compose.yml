@@ -1,0 +1,12 @@
+# Local dev convenience only. For an actual Railway/Render deploy, see the
+# persistence warning in backend/DEPLOY.md before pushing -- SQLite on most
+# PaaS free tiers lives on ephemeral storage that resets on every redeploy.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/hackathon.db:/app/backend/hackathon.db

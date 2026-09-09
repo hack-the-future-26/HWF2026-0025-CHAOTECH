@@ -1,0 +1,9 @@
+**/__pycache__/
+**/*.pyc
+**/.venv/
+backend/*.db
+backend/*.db-wal
+backend/*.db-shm
+backend/.env
+.git/
+frontend-test/

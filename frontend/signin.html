@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" class="citizen">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AwaazIQ — Sign in</title>
+<link rel="stylesheet" href="css/app.css?v=auth4" />
+<link rel="stylesheet" href="css/report.css?v=auth4" />
+</head>
+<body class="citizen">
+
+<header class="cbar">
+  <a class="brand" href="report.html">
+    <span class="brand__name">AwaazIQ</span>
+    <span class="brand__tag">From Citizen Voice to Intelligent Action</span>
+  </a>
+  <span class="role role--citizen">Citizen</span>
+  <div class="cbar__spacer"></div>
+  <a class="rolelink" href="report.html">Back to the form&nbsp;&rsaquo;</a>
+</header>
+
+<main class="wrap wrap--narrow">
+
+  <section class="hero">
+    <h1 class="hero__title" id="pageTitle">Sign in to file a grievance</h1>
+    <p class="hero__lead" id="pageLead">
+      Your name, mobile, e-mail and address are held on your account, so you
+      give them once and never type them again. Every grievance you file is
+      then linked to you — which is what lets a department write back.
+    </p>
+  </section>
+
+  <div class="authtabs">
+    <button type="button" class="authtab is-on" id="tabLoginBtn">Sign in</button>
+    <button type="button" class="authtab" id="tabRegisterBtn">Create an account</button>
+  </div>
+
+  <!-- ----------------------------------------------------------- sign in -- -->
+  <section class="card" id="loginCard">
+    <form id="loginForm" novalidate>
+      <div class="grid">
+        <label class="f f--wide">
+          <span class="f__label">E-mail <b class="req">*</b></span>
+          <input type="email" id="loginEmail" placeholder="you@example.com"
+                 autocomplete="email" required />
+        </label>
+        <label class="f f--wide">
+          <span class="f__label">Password <b class="req">*</b></span>
+          <input type="password" id="loginPassword" placeholder="••••••••"
+                 autocomplete="current-password" required />
+        </label>
+      </div>
+      <div class="errors" id="loginErrors" hidden></div>
+      <div class="card__actions">
+        <button type="submit" class="btn btn--primary btn--lg" id="loginSubmitBtn">
+          SIGN IN
+        </button>
+      </div>
+      <p class="fineprint">
+        No account yet?
+        <button type="button" class="linklike" id="switchToRegister">Create one</button>
+        — it takes about a minute.
+      </p>
+    </form>
+  </section>
+
+  <!-- ---------------------------------------------------------- register -- -->
+  <section class="card" id="registerCard" hidden>
+    <p class="card__lead">
+      These details are used to contact you about your grievance and to make
+      sure the same problem reported by one person is not counted as several.
+      They are kept apart from the planning dashboard, which can see what was
+      reported and where, but never by whom.
+    </p>
+    <form id="registerForm" novalidate>
+      <div class="grid">
+        <label class="f f--wide">
+          <span class="f__label">Full name <b class="req">*</b></span>
+          <input type="text" id="regFullName" autocomplete="name" required />
+        </label>
+
+        <label class="f">
+          <span class="f__label">Gender <b class="req">*</b></span>
+          <select id="regGender" required>
+            <option value="">Select…</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="transgender">Transgender</option>
+          </select>
+        </label>
+
+        <label class="f">
+          <span class="f__label">Mobile number <b class="req">*</b></span>
+          <input type="tel" id="regMobile" maxlength="10" inputmode="numeric"
+                 placeholder="10 digits, starting 6-9" autocomplete="tel" required />
+        </label>
+
+        <label class="f">
+          <span class="f__label">E-mail <b class="req">*</b></span>
+          <input type="email" id="regEmail" placeholder="you@example.com"
+                 autocomplete="email" required />
+        </label>
+
+        <label class="f">
+          <span class="f__label">Password <b class="req">*</b></span>
+          <input type="password" id="regPassword" placeholder="At least 6 characters"
+                 autocomplete="new-password" required />
+        </label>
+
+        <label class="f">
+          <span class="f__label">Pincode <b class="req">*</b></span>
+          <input type="text" id="regPincode" maxlength="6" inputmode="numeric"
+                 placeholder="6 digits" autocomplete="postal-code" required />
+        </label>
+
+        <label class="f f--wide">
+          <span class="f__label">Address <b class="req">*</b></span>
+          <input type="text" id="regAddress" placeholder="House and street"
+                 autocomplete="street-address" required />
+        </label>
+      </div>
+      <div class="errors" id="regErrors" hidden></div>
+      <div class="card__actions">
+        <button type="submit" class="btn btn--primary btn--lg" id="regSubmitBtn">
+          CREATE ACCOUNT
+        </button>
+      </div>
+      <p class="fineprint">
+        Already registered?
+        <button type="button" class="linklike" id="switchToLogin">Sign in instead</button>.
+      </p>
+    </form>
+  </section>
+
+</main>
+
+<footer class="cfoot">AwaazIQ · pilot in Kolhapur &amp; Nashik districts, Maharashtra</footer>
+
+<script src="js/auth.js?v=auth4"></script>
+</body>
+</html>

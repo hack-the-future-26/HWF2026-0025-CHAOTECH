@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" class="citizen">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AwaazIQ — Report a problem</title>
+<link rel="stylesheet" href="css/app.css?v=auth4" />
+<link rel="stylesheet" href="css/report.css?v=coverage1" />
+</head>
+<body class="citizen">
+
+<header class="cbar">
+  <a class="brand" href="report.html">
+    <span class="brand__name">AwaazIQ</span>
+    <span class="brand__tag">From Citizen Voice to Intelligent Action</span>
+  </a>
+  <span class="role role--citizen">Citizen</span>
+  <div class="cbar__spacer"></div>
+
+  <!-- Citizen Auth Area -->
+  <div class="cbar__auth" id="headerAuth">
+    <div class="auth-guest" id="authGuest">
+      <a class="btn btn--auth" id="btnOpenLogin" href="signin.html">Sign In</a>
+      <a class="btn btn--auth-outline" id="btnOpenRegister" href="signin.html?tab=register">Register</a>
+    </div>
+    <div class="auth-logged" id="authLogged" hidden>
+      <div class="user-pill" id="userPill">
+        <span class="user-pill__avatar">👤</span>
+        <span class="user-pill__name" id="userNameLabel">Citizen</span>
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm" id="btnToggleMyReports">
+        My Grievances <span class="badge-count" id="myReportsCount">0</span>
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm" id="btnLogout">Sign Out</button>
+    </div>
+  </div>
+
+  <a class="rolelink" href="index.html" id="adminLink">Officials&nbsp;&rsaquo;</a>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1 class="hero__title">Report a problem in your area</h1>
+    <p class="hero__lead">
+      Describe the problem in Hindi, Marathi, English or a mix of them —
+      however you speak. Fields marked <b class="req">*</b> are required.
+    </p>
+  </section>
+
+  <form id="form" novalidate>
+
+    <!-- ------------------------------------------------------ location -- -->
+    <section class="card" data-step="1">
+      <div class="card__head">
+        <span class="eyebrow">1 — Where the problem is</span>
+      </div>
+      <p class="card__lead">
+        Choose the village from the list rather than typing it. Every village
+        here is one the system can already place on the map, so your report
+        can be grouped with your neighbours' instead of getting stuck.
+      </p>
+
+      <!-- Pilot boundary, stated where a citizen actually hits it. The old
+           "Pilot covers Maharashtra only" hint next to the state field was
+           worse than saying nothing: Mumbai and Pune are in Maharashtra too,
+           so it read as coverage that does not exist. This is built from the
+           live district list rather than a hardcoded name, so it can never
+           go stale if the pilot districts change. -->
+      <div class="coverage-note" id="coverageNote" hidden>
+        <span class="coverage-note__icon">📍</span>
+        <span class="coverage-note__text">
+          This pilot currently covers <strong id="coverageDistricts"></strong>
+          only. If your area is not in the list below, AwaazIQ cannot place
+          your report on the map yet — there is nowhere accurate to send it.
+        </span>
+      </div>
+
+      <div class="grid">
+        <label class="f">
+          <span class="f__label">State <b class="req">*</b></span>
+          <select id="state"><option value="Maharashtra">Maharashtra</option></select>
+        </label>
+
+        <label class="f">
+          <span class="f__label">District <b class="req">*</b></span>
+          <select id="district"><option value="">Loading…</option></select>
+        </label>
+
+        <label class="f">
+          <span class="f__label">Block / Taluka <b class="req">*</b></span>
+          <select id="block" disabled><option value="">Select a district first</option></select>
+        </label>
+
+        <label class="f">
+          <span class="f__label">Village <b class="req">*</b></span>
+          <select id="village" disabled><option value="">Select a block first</option></select>
+        </label>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------- problem -- -->
+    <section class="card" data-step="2">
+      <div class="card__head">
+        <span class="eyebrow">2 — What the problem is</span>
+      </div>
+
+      <div class="grid">
+        <label class="f">
+          <span class="f__label">Type of problem <b class="req">*</b></span>
+          <select id="category">
+            <option value="">Select…</option>
+            <option value="road">Road</option>
+            <option value="water">Water</option>
+            <option value="health">Health</option>
+            <option value="education">Education</option>
+          </select>
+        </label>
+
+        <label class="f">
+          <span class="f__label">Send to department <b class="req">*</b></span>
+          <select id="department" disabled>
+            <option value="">Select a problem type first</option>
+          </select>
+          <span class="f__hint" id="deptHint">The office that holds the budget for this</span>
+        </label>
+      </div>
+
+      <label class="f f--full">
+        <span class="f__label">Describe the problem <b class="req">*</b></span>
+        <textarea id="text" rows="4"
+          placeholder="e.g. hamare gaon mein sadak bahut kharab hai"></textarea>
+      </label>
+
+      <div class="samples" id="samples"></div>
+
+      <label class="filebtn">
+        <input type="file" id="audio" accept="audio/*" hidden />
+        <span id="audioLabel">🎙 Or record it and upload the audio instead</span>
+      </label>
+    </section>
+
+    <!-- ------------------------------------------------------ evidence -- -->
+    <section class="card" data-step="3">
+      <div class="card__head">
+        <span class="eyebrow">3 — Evidence <span class="opt">optional</span></span>
+      </div>
+      <p class="card__lead">
+        A photo of the broken road, the dry borewell, the shut clinic. Up to 5
+        files, 4 MB each. Photos or PDF.
+      </p>
+      <label class="filebtn">
+        <input type="file" id="attachments" accept="image/*,application/pdf" multiple hidden />
+        <span id="attachLabel">📎 Choose photos or PDFs</span>
+      </label>
+      <div class="files" id="fileList"></div>
+    </section>
+
+    <div class="submitrow">
+      <div class="errors" id="errors" hidden></div>
+      <p class="signin-note" id="signinNote" hidden>
+        <a class="linklike" href="signin.html">Sign in</a>
+        or
+        <a class="linklike" href="signin.html?tab=register">create an account</a>
+        to file this grievance. Your name and contact details come from your
+        account, so there is nothing here to fill in.
+      </p>
+      <button type="submit" class="btn btn--primary btn--lg" id="submit">SEND REPORT</button>
+    </div>
+
+    <p class="fineprint">
+      Your name, mobile, e-mail and address are stored so the department can
+      reply to you. They are kept apart from the analysis: the officials'
+      planning dashboard is built from what was reported and where, and cannot
+      read who reported it. Phone numbers and names written inside the
+      description itself are removed before it is stored.
+    </p>
+  </form>
+
+  <!-- -------------------------------------------------------- pipeline -- -->
+  <section class="card" id="runCard" hidden>
+    <div class="card__head"><span class="eyebrow">Reading your report</span></div>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <!-- --------------------------------------------------------- receipt -- -->
+  <section class="card" id="doneCard" hidden></section>
+
+  <!-- --------------------------------------------------- my grievances -- -->
+  <section class="card" id="myReportsCard" hidden>
+    <div class="card__head card__head--split">
+      <div>
+        <span class="eyebrow">My Filed Grievances</span>
+        <p class="card__lead" style="margin-bottom:0">Complaints linked to your citizen account</p>
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm" id="refreshMyReportsBtn">↻ Refresh</button>
+    </div>
+    <div id="myReportsList" class="my-reports-list"></div>
+  </section>
+
+  <!-- ----------------------------------------------------------- track -- -->
+  <section class="card card--quiet" id="trackCard">
+    <div class="card__head">
+      <span class="eyebrow">Track a report</span>
+    </div>
+    <p class="card__lead">
+      Already sent one? Enter its number to see what happened to it.
+    </p>
+    <div class="track">
+      <input type="text" id="trackId" inputmode="numeric" placeholder="Report number, e.g. 2014" />
+      <button class="btn" id="trackGo" style="flex:0 0 130px">CHECK</button>
+    </div>
+    <div class="mine" id="mine"></div>
+    <div id="trackResult"></div>
+  </section>
+
+  <footer class="cfoot">
+    <span>AwaazIQ · pilot in Kolhapur &amp; Nashik districts, Maharashtra</span>
+  </footer>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="js/report.js?v=coverage1"></script>
+</body>
+</html>

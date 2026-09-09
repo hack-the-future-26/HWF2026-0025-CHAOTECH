@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pipeline Test Console</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 28px; }
+  .panel { border: 1px solid #ddd; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; }
+  .panel.disabled { opacity: 0.55; }
+  input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+  input[type="file"] { margin-bottom: 10px; }
+  button { padding: 8px 16px; font-size: 14px; border: none; border-radius: 4px; background: #2f6feb; color: white; cursor: pointer; }
+  button:hover:not(:disabled) { background: #1f5fd9; }
+  button:disabled { background: #aaa; cursor: not-allowed; }
+  .hint { font-size: 12px; color: #666; margin: 6px 0 10px; line-height: 1.5; }
+  #asr-lang { margin-left: 6px; padding: 4px; font-size: 14px; }
+  .result { margin-top: 12px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 14px; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+  .result:empty::before { content: "(no result yet)"; color: #999; }
+  .spinner { display: none; margin-top: 10px; font-size: 13px; color: #666; }
+  .spinner.active { display: block; }
+  .error { color: #c0392b; }
+  #record-btn.recording { background: #c0392b; }
+  #record-status { margin-left: 10px; font-size: 13px; color: #666; }
+  .panel.primary { border-color: #2f6feb; border-width: 2px; }
+  .examples { font-size: 12px; color: #666; margin-bottom: 12px; }
+  .examples a { color: #2f6feb; text-decoration: none; }
+  .examples a:hover { text-decoration: underline; }
+  table.rec { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  table.rec td { padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  table.rec td.k { color: #666; width: 42%; }
+  table.rec td.v { font-weight: 600; }
+  .missing { color: #c0392b; font-weight: 400; }
+  .sect { margin-top: 16px; font-size: 12px; text-transform: uppercase;
+          letter-spacing: 0.04em; color: #888; border-bottom: 1px solid #ddd;
+          padding-bottom: 4px; }
+  .bar { height: 14px; background: #2f6feb; border-radius: 2px; display: inline-block;
+         vertical-align: middle; }
+  .bar.neg { background: #c0392b; }
+</style>
+</head>
+<body>
+  <h1>Pipeline Test Console</h1>
+  <div class="sub">Internal dev tool for testing backend pipeline functions. Backend must be running at http://localhost:8001.</div>
+
+  <div class="panel">
+    <h2>Language Detection</h2>
+    <input type="text" id="lang-input" placeholder="Type text to detect language (Marathi / Hindi / English)...">
+    <button id="lang-btn">Detect</button>
+    <div class="result" id="lang-result"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Speech to Text</h2>
+    <label for="asr-lang">Spoken language:</label>
+    <select id="asr-lang">
+      <option value="">Auto-detect (hi / mr / en only)</option>
+      <option value="hi">Hindi — force</option>
+      <option value="mr">Marathi — force</option>
+      <option value="en">English — force</option>
+    </select>
+    <p class="hint">
+      Forcing the language is more reliable than auto-detect on short clips.
+      Auto-detect is restricted to these three: unrestricted detection was
+      reading Hindi speech as English and translating it.
+    </p>
+    <button id="record-btn">Start Recording</button>
+    <span id="record-status"></span>
+    <div class="spinner" id="audio-spinner">Transcribing... this can take a few seconds.</div>
+    <div class="result" id="audio-result"></div>
+  </div>
+
+  <div class="panel primary">
+    <h2>Full Pipeline — complaint to structured record</h2>
+    <p class="hint">
+      This is the actual goal: raw complaint in, structured record out.
+      Language detection above is just one stage inside this.
+    </p>
+    <input type="text" id="pipe-input"
+           placeholder="e.g. हमारे गाँव में सड़क बहुत खराब है, Karvir ke paas">
+    <div class="examples">
+      Try:
+      <a href="#" class="ex">हमारे गाँव में सड़क बहुत खराब है, Karvir ke paas</a> ·
+      <a href="#" class="ex">आमच्या गावात पाणी येत नाही, Saravade जवळ</a> ·
+      <a href="#" class="ex">no doctor available near Kagal health center</a>
+    </div>
+    <button id="pipe-btn">Extract structured data</button>
+    <button id="cluster-btn" style="background:#555; margin-left:8px;">
+      Run clustering
+    </button>
+    <p class="hint">
+      Clustering is a batch job, not something that runs on every report — so a
+      brand-new report shows "not part of a cluster yet" until you run it.
+      Takes ~20s over 1,000 reports.
+    </p>
+    <div class="spinner" id="pipe-spinner">Running pipeline...</div>
+    <div id="pipe-result"></div>
+  </div>
+
+<script>
+const API_BASE = "http://localhost:8001";
+
+document.getElementById("lang-btn").addEventListener("click", async () => {
+  const text = document.getElementById("lang-input").value;
+  const resultEl = document.getElementById("lang-result");
+  resultEl.textContent = "...";
+  try {
+    const res = await fetch(`${API_BASE}/test/detect-language`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    resultEl.textContent = data.supported
+      ? `${data.language}  (supported)`
+      : `${data.language}  — detected, but NOT supported by the pipeline (no keyword dictionaries); the report would be flagged for human review`;
+    resultEl.classList.remove("error");
+  } catch (err) {
+    resultEl.textContent = `Error: ${err.message}`;
+    resultEl.classList.add("error");
+  }
+});
+
+const recordBtn = document.getElementById("record-btn");
+const recordStatus = document.getElementById("record-status");
+const audioResult = document.getElementById("audio-result");
+const audioSpinner = document.getElementById("audio-spinner");
+
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+recordBtn.addEventListener("click", async () => {
+  if (isRecording) {
+    mediaRecorder.stop();
+    return;
+  }
+
+  audioResult.textContent = "";
+  audioResult.classList.remove("error");
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    audioResult.textContent = `Microphone access denied or unavailable: ${err.message}`;
+    audioResult.classList.add("error");
+    return;
+  }
+
+  audioChunks = [];
+  mediaRecorder = new MediaRecorder(stream);
+
+  mediaRecorder.addEventListener("dataavailable", (e) => {
+    if (e.data.size > 0) audioChunks.push(e.data);
+  });
+
+  mediaRecorder.addEventListener("stop", async () => {
+    stream.getTracks().forEach((track) => track.stop());
+    isRecording = false;
+    recordBtn.textContent = "Start Recording";
+    recordBtn.classList.remove("recording");
+    recordStatus.textContent = "";
+
+    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+    await sendForTranscription(blob);
+  });
+
+  mediaRecorder.start();
+  isRecording = true;
+  recordBtn.textContent = "Stop Recording";
+  recordBtn.classList.add("recording");
+  recordStatus.textContent = "Recording... speak now";
+});
+
+async function sendForTranscription(blob) {
+  const ext = blob.type.includes("webm") ? "webm" : "wav";
+  const formData = new FormData();
+  formData.append("file", blob, `recording.${ext}`);
+
+  const forced = document.getElementById("asr-lang").value;
+  if (forced) formData.append("language", forced);
+
+  audioSpinner.classList.add("active");
+  try {
+    const res = await fetch(`${API_BASE}/test/transcribe`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const how = data.language_was_detected
+      ? `detected ${data.language} (p=${data.language_probability})`
+      : `forced ${data.language}`;
+    audioResult.textContent =
+      `[${how}]  ${data.transcription || "(empty transcription — nothing audible detected)"}`;
+  } catch (err) {
+    audioResult.textContent = `Error: ${err.message}`;
+    audioResult.classList.add("error");
+  } finally {
+    audioSpinner.classList.remove("active");
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Full pipeline: complaint text -> structured record -> cluster + score.
+   This is what the project is actually for; language detection is one stage
+   inside it, which is why seeing "hi-Deva" on its own looks like nothing.
+--------------------------------------------------------------------------- */
+
+const pipeInput = document.getElementById("pipe-input");
+const pipeBtn = document.getElementById("pipe-btn");
+const pipeSpinner = document.getElementById("pipe-spinner");
+const pipeResult = document.getElementById("pipe-result");
+
+document.querySelectorAll(".examples a.ex").forEach((a) => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    pipeInput.value = a.textContent.trim();
+    pipeInput.focus();
+  });
+});
+
+const esc = (s) =>
+  String(s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function row(label, value, { missing = "not found" } = {}) {
+  const empty = value === null || value === undefined || value === "";
+  const shown = empty
+    ? `<span class="missing">${esc(missing)}</span>`
+    : esc(value);
+  return `<tr><td class="k">${esc(label)}</td><td class="v">${shown}</td></tr>`;
+}
+
+pipeBtn.addEventListener("click", async () => {
+  const text = pipeInput.value.trim();
+  pipeResult.innerHTML = "";
+  if (!text) {
+    pipeResult.innerHTML = `<div class="result error">Type a complaint first.</div>`;
+    return;
+  }
+
+  pipeSpinner.classList.add("active");
+  pipeBtn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/citizen-report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} — ${await res.text()}`);
+    const r = await res.json();
+
+    const place = [r.village, r.block, r.district].filter(Boolean).join(", ");
+    const coords =
+      r.latitude != null && r.longitude != null
+        ? `${r.latitude.toFixed(5)}, ${r.longitude.toFixed(5)}`
+        : "";
+
+    let html = `
+      <div class="sect">What the citizen said</div>
+      <table class="rec">
+        ${row("Stored text (PII removed)", r.raw_text)}
+        ${row("Language detected", r.language_detected)}
+      </table>
+
+      <div class="sect">What the AI extracted</div>
+      <table class="rec">
+        ${row("Issue category", r.issue_category, { missing: "could not classify" })}
+        ${row("Severity", r.severity)}
+        ${row("Location mentioned", r.location_raw, { missing: "no place name found" })}
+        ${row("Resolved to", place, { missing: "could not geocode" })}
+        ${row("Coordinates", coords, { missing: "none" })}
+        ${row("Extraction confidence", r.confidence)}
+        ${row("Record id", r.id)}
+      </table>`;
+
+    // If P3 has already clustered this location, show what it feeds into.
+    let cluster = null;
+    if (r.cluster_id) {
+      const cres = await fetch(`${API_BASE}/clusters/${r.cluster_id}`);
+      if (cres.ok) cluster = await cres.json();
+    }
+
+    if (cluster) {
+      const bd = cluster.priority_breakdown || {};
+      const max = Math.max(...Object.values(bd).map((v) => Math.abs(v)), 1);
+      const bars = Object.entries(bd)
+        .map(([k, v]) => {
+          const w = Math.round((Math.abs(v) / max) * 160);
+          return `<tr><td class="k">${esc(k)}</td><td class="v">
+            <span class="bar ${v < 0 ? "neg" : ""}" style="width:${w}px"></span>
+            &nbsp;${v}</td></tr>`;
+        })
+        .join("");
+
+      html += `
+        <div class="sect">What it contributes to</div>
+        <table class="rec">
+          ${row("Demand cluster", `#${cluster.id} — ${cluster.issue_category}`)}
+          ${row("Reports in this cluster", cluster.report_count)}
+          ${row("People affected", (cluster.population_affected || 0).toLocaleString())}
+          ${row("Priority score", `${cluster.priority_score} / 100`)}
+        </table>
+        <div class="sect">Why that score (every term, summing to the total)</div>
+        <table class="rec">${bars}</table>`;
+    } else {
+      html += `
+        <div class="sect">What it contributes to</div>
+        <div class="result">Not part of a demand cluster yet. A single report is
+        not a demand signal — it needs corroborating reports nearby before the
+        engine will rank it. Run <code>POST /recompute-scores</code> after
+        seeding more reports in this area.</div>`;
+    }
+
+    pipeResult.innerHTML = html;
+  } catch (err) {
+    pipeResult.innerHTML = `<div class="result error">Error: ${esc(err.message)}</div>`;
+  } finally {
+    pipeSpinner.classList.remove("active");
+    pipeBtn.disabled = false;
+  }
+});
+
+pipeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") pipeBtn.click();
+});
+
+/* Clustering is a batch job (P3 Step 10), so a freshly submitted report has
+   no cluster until it runs. This button triggers it, then re-renders the
+   last report so the cluster + score section appears. */
+const clusterBtn = document.getElementById("cluster-btn");
+clusterBtn.addEventListener("click", async () => {
+  clusterBtn.disabled = true;
+  pipeBtn.disabled = true;
+  const original = clusterBtn.textContent;
+  clusterBtn.textContent = "Clustering... (~20s)";
+  try {
+    const res = await fetch(`${API_BASE}/recompute-scores`, { method: "POST" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const s = await res.json();
+    clusterBtn.textContent = `Done — ${s.clusters_created} clusters`;
+    // Re-run the last complaint so its cluster and score now show.
+    if (pipeInput.value.trim()) pipeBtn.click();
+  } catch (err) {
+    pipeResult.innerHTML =
+      `<div class="result error">Clustering failed: ${esc(err.message)}</div>`;
+    clusterBtn.textContent = original;
+  } finally {
+    clusterBtn.disabled = false;
+    pipeBtn.disabled = false;
+    setTimeout(() => (clusterBtn.textContent = original), 4000);
+  }
+});
+</script>
+</body>
+</html>
