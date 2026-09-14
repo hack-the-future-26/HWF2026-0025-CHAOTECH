@@ -22,6 +22,9 @@ ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "department": "TEXT",
         # Registered citizen who filed the report.
         "user_id": "INTEGER",
+        # GPS pin from the citizen intake form's map control.
+        "precise_lat": "FLOAT",
+        "precise_lon": "FLOAT",
     },
     "demand_cluster": {
         "district": "TEXT",
@@ -46,6 +49,8 @@ ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "asset_source": "TEXT",
         "asset_external_id": "TEXT",
         "asset_candidates": "TEXT",
+        # Whether work group position comes from citizen GPS pins or centroids.
+        "location_basis": "TEXT",
     },
     "priority_score": {
         # The working behind each score term, so a number can be interrogated

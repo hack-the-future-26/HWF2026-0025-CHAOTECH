@@ -27,6 +27,15 @@ class CitizenRequest(Base):
     village = Column(Text)
     latitude = Column(Float)
     longitude = Column(Float)
+    # Citizen-supplied GPS pin from the intake form's map control.  When
+    # present, these are the coordinates the citizen actually stood at or
+    # tapped on, rather than the village centroid the gazetteer resolves to.
+    # Nullable: the pin is optional, and every report filed before this
+    # feature exists has no pin.  The existing latitude/longitude columns
+    # stay the village-resolved fallback and continue to be set exactly as
+    # before.
+    precise_lat = Column(Float, nullable=True)
+    precise_lon = Column(Float, nullable=True)
     confidence = Column(Float)
     is_synthetic = Column(Boolean, default=False)
     # Which line department the complaint is routed to -- our equivalent of
@@ -410,6 +419,9 @@ class WorkGroup(Base):
     asset_source = Column(Text)              # "udise", "pmgsy"
     asset_external_id = Column(Text)         # UDISE code, PMGSY work id
     asset_candidates = Column(Text)          # JSON: the ranked shortlist
+    # Whether this group's position comes from citizen GPS pins, village
+    # centroids, or a mix.  Lets the dashboard mark which pins are exact.
+    location_basis = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

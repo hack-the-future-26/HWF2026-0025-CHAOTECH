@@ -301,3 +301,16 @@ NO_REAL_DATA_CONFIDENCE_FACTOR = 0.85
 WHATIF_POINTS_PER_CRORE = 0.4
 WHATIF_MAX_POINTS = 12.0
 RUPEES_PER_CRORE = 10_000_000
+
+
+# ---------------------------------------------------------------------------
+# Feature 3 -- precise report location
+# ---------------------------------------------------------------------------
+
+# Maximum distance (km) a citizen-supplied GPS pin may sit from the picked
+# village's centroid.  Beyond this the pin is more likely a GPS glitch, a
+# phone left on a previous location, or a deliberate spoof than a genuine
+# position.  5 km is generous: the largest village extents in Kolhapur/Nashik
+# are roughly 2-3 km, and a citizen reporting a problem on the outskirts of
+# a neighbouring village would still be within this.
+PIN_MAX_DISTANCE_KM = 5.0
