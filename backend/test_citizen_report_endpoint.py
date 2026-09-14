@@ -301,6 +301,10 @@ def run():
 
         print()
 
+    fac_passed, fac_total = test_facility_id_intake(client, token)
+    passed += fac_passed
+    total += fac_total
+
     va_passed, va_total = test_village_and_asset_endpoints(client)
     passed += va_passed
     total += va_total
@@ -308,6 +312,129 @@ def run():
     print(f"Result: {passed}/{total} checks passed")
     if passed != total:
         sys.exit(1)
+
+
+def test_facility_id_intake(client: HttpClient, token: str) -> tuple[int, int]:
+    print("=== Feature 5: Facility ID intake validation tests ===")
+    passed = 0
+    total = 0
+    auth_header = {"Authorization": f"Bearer {token}"}
+
+    def assert_check(name: str, cond: bool, fail_msg: str = ""):
+        nonlocal passed, total
+        total += 1
+        if cond:
+            print(f"PASS: {name}")
+            passed += 1
+        else:
+            print(f"FAIL: {name} - {fail_msg}")
+
+    # Case 1: Valid pick saved (facility 343 is a school near Ajara, education)
+    form_valid = {
+        "district": "Kolhapur",
+        "block": "Ajra",
+        "village": "Ajara",
+        "department": "zp-education",
+        "category": "education",
+        "text": "School roof is leaking badly",
+        "facility_id": "343",
+    }
+    resp = client.post("/citizen-report", data=form_valid, headers=auth_header)
+    assert_check("valid facility: POST succeeds", resp.status_code == 200, f"got {resp.status_code}")
+    if resp.status_code == 200:
+        data = resp.json()
+        assert_check("valid facility: facility_id echoed in POST response", data.get("facility_id") == 343, f"got {data.get('facility_id')}")
+        stored_req, _ = fetch_rows(data["id"])
+        assert_check("valid facility: facility_id saved in DB", stored_req and stored_req.get("facility_id") == 343, f"got {stored_req.get('facility_id') if stored_req else None}")
+        # Also check GET /citizen-report/{id} does NOT leak facility_id in public view
+        get_resp = client.get(f"/citizen-report/{data['id']}")
+        if get_resp.status_code == 200:
+            rep = get_resp.json().get("report", {})
+            assert_check("privacy: facility_id not leaked in public serialize_citizen_request()", "facility_id" not in rep)
+
+    # Case 2: Wrong category dropped (9507 is a health center near Ajara, submitted for education)
+    form_wrong_cat = {
+        "district": "Kolhapur",
+        "block": "Ajra",
+        "village": "Ajara",
+        "department": "zp-education",
+        "category": "education",
+        "text": "School roof is leaking badly",
+        "facility_id": "9507",
+    }
+    resp = client.post("/citizen-report", data=form_wrong_cat, headers=auth_header)
+    assert_check("wrong category: POST succeeds", resp.status_code == 200, f"got {resp.status_code}")
+    if resp.status_code == 200:
+        data = resp.json()
+        assert_check("wrong category: facility_id dropped (None in response)", data.get("facility_id") is None, f"got {data.get('facility_id')}")
+        stored_req, _ = fetch_rows(data["id"])
+        assert_check("wrong category: facility_id dropped (None in DB)", stored_req and stored_req.get("facility_id") is None, f"got {stored_req.get('facility_id') if stored_req else None}")
+
+    # Case 3: Distant facility dropped (facility 1 is ~40km away from Ajara)
+    form_distant = {
+        "district": "Kolhapur",
+        "block": "Ajra",
+        "village": "Ajara",
+        "department": "zp-education",
+        "category": "education",
+        "text": "School roof is leaking badly",
+        "facility_id": "1",
+    }
+    resp = client.post("/citizen-report", data=form_distant, headers=auth_header)
+    assert_check("distant facility: POST succeeds", resp.status_code == 200, f"got {resp.status_code}")
+    if resp.status_code == 200:
+        data = resp.json()
+        assert_check("distant facility: facility_id dropped (None in response)", data.get("facility_id") is None, f"got {data.get('facility_id')}")
+        stored_req, _ = fetch_rows(data["id"])
+        assert_check("distant facility: facility_id dropped (None in DB)", stored_req and stored_req.get("facility_id") is None, f"got {stored_req.get('facility_id') if stored_req else None}")
+
+    # Case 4: Nonexistent facility dropped (99999999)
+    form_nonexistent = {
+        "district": "Kolhapur",
+        "block": "Ajra",
+        "village": "Ajara",
+        "department": "zp-education",
+        "category": "education",
+        "text": "School roof is leaking badly",
+        "facility_id": "99999999",
+    }
+    resp = client.post("/citizen-report", data=form_nonexistent, headers=auth_header)
+    assert_check("nonexistent facility: POST succeeds", resp.status_code == 200, f"got {resp.status_code}")
+    if resp.status_code == 200:
+        data = resp.json()
+        assert_check("nonexistent facility: facility_id dropped (None in response)", data.get("facility_id") is None, f"got {data.get('facility_id')}")
+        stored_req, _ = fetch_rows(data["id"])
+        assert_check("nonexistent facility: facility_id dropped (None in DB)", stored_req and stored_req.get("facility_id") is None, f"got {stored_req.get('facility_id') if stored_req else None}")
+
+    # Case 5: Non-numeric facility dropped ("abc")
+    form_non_num = {
+        "district": "Kolhapur",
+        "block": "Ajra",
+        "village": "Ajara",
+        "department": "zp-education",
+        "category": "education",
+        "text": "School roof is leaking badly",
+        "facility_id": "abc",
+    }
+    resp = client.post("/citizen-report", data=form_non_num, headers=auth_header)
+    assert_check("non-numeric facility: POST succeeds", resp.status_code == 200, f"got {resp.status_code}")
+    if resp.status_code == 200:
+        data = resp.json()
+        assert_check("non-numeric facility: facility_id dropped (None in response)", data.get("facility_id") is None, f"got {data.get('facility_id')}")
+        stored_req, _ = fetch_rows(data["id"])
+        assert_check("non-numeric facility: facility_id dropped (None in DB)", stored_req and stored_req.get("facility_id") is None, f"got {stored_req.get('facility_id') if stored_req else None}")
+
+    # Case 6: JSON path unaffected (POST json with facility_id: 343 ignores facility_id)
+    resp_json = client.post("/citizen-report", json={"text": "School problem in Ajara", "facility_id": 343})
+    assert_check("JSON path: POST succeeds", resp_json.status_code == 200, f"got {resp_json.status_code}")
+    if resp_json.status_code == 200:
+        data = resp_json.json()
+        assert_check("JSON path: facility_id is None in response", data.get("facility_id") is None, f"got {data.get('facility_id')}")
+        stored_req, _ = fetch_rows(data["id"])
+        assert_check("JSON path: facility_id is None in DB", stored_req and stored_req.get("facility_id") is None, f"got {stored_req.get('facility_id') if stored_req else None}")
+
+    print()
+    return passed, total
 
 
 def test_village_and_asset_endpoints(client) -> tuple[int, int]:

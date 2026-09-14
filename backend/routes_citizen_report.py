@@ -42,10 +42,13 @@ from models import (  # noqa: E402
     CitizenRequest,
     CitizenRequestRaw,
     Gazetteer,
+    PublicFacility,
     ReportAttachment,
 )
 from routes_auth import get_current_user_from_token  # noqa: E402
 from routes_gazetteer import PILOT_STATE, valid_department  # noqa: E402
+from intelligence import config  # noqa: E402
+from intelligence.clustering import haversine_km  # noqa: E402
 
 router = APIRouter()
 
@@ -517,6 +520,24 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
                 )
                 if precise_lat is not None and precise_lon is not None:
                     pin_source = "citizen_gps"
+            # Parse and validate optional citizen-selected facility (intake path only).
+            facility_id = None
+            raw_fac = _clean(form, "facility_id")
+            if raw_fac is not None:
+                try:
+                    parsed_fid = int(raw_fac)
+                    fac = db.query(PublicFacility).filter(PublicFacility.id == parsed_fid).first()
+                    if fac and fac.category == result["issue_category"]:
+                        max_km = getattr(config, "FACILITY_MAX_DISTANCE_KM", 10.0)
+                        v_lat = location_resolved.get("lat")
+                        v_lon = location_resolved.get("lon")
+                        if v_lat is not None and v_lon is not None and fac.latitude is not None and fac.longitude is not None:
+                            dist_km = haversine_km(v_lat, v_lon, fac.latitude, fac.longitude)
+                            if dist_km <= max_km:
+                                facility_id = fac.id
+                except (ValueError, TypeError):
+                    facility_id = None
+
             # The picked village replaces whatever the extractor scraped out
             # of the sentence. Left as-is, a complaint that never named a
             # place stored fragments like "din se, bahut samasya" as its
@@ -543,6 +564,7 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             precise_lat=precise_lat,
             precise_lon=precise_lon,
             pin_source=pin_source,
+            facility_id=facility_id if intake else None,
             confidence=confidence,
             is_synthetic=result["is_synthetic"],
             department=intake["department"] if intake else None,
@@ -584,6 +606,8 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
         # public dashboard. serialize_citizen_request() deliberately omits it.
         payload["precise_lat"] = citizen_request.precise_lat
         payload["precise_lon"] = citizen_request.precise_lon
+        # Echo chosen facility id to citizen only, omitted from serialize_citizen_request
+        payload["facility_id"] = citizen_request.facility_id
         payload["attachments"] = [
             {
                 "id": a.id,

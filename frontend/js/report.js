@@ -202,6 +202,50 @@
     el("deptHint").textContent = "The office that holds the budget for this";
   }
 
+  /* ------------------------------------------------------ facilities -- */
+
+  async function loadFacilities() {
+    const field = el("facilityField");
+    const select = el("facility");
+    if (!field || !select) return;
+
+    const district = val("district");
+    const block = val("block");
+    const village = val("village");
+    const category = val("category");
+
+    if (!village || (category !== "education" && category !== "health")) {
+      field.hidden = true;
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+      return;
+    }
+
+    field.hidden = false;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading facilities…</option>';
+
+    try {
+      const facilities = await getJSON(
+        `/gazetteer/facilities?district=${encodeURIComponent(district)}` +
+        `&block=${encodeURIComponent(block)}` +
+        `&village=${encodeURIComponent(village)}` +
+        `&category=${encodeURIComponent(category)}`
+      );
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+      facilities.forEach((f) => {
+        const o = document.createElement("option");
+        o.value = f.id;
+        const distStr = f.distance_m != null ? ` (${Math.round(f.distance_m)}m away)` : "";
+        const subStr = f.sub_type ? ` · ${f.sub_type}` : "";
+        o.textContent = `${f.name}${subStr}${distStr}`;
+        select.appendChild(o);
+      });
+    } catch {
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+    }
+    select.disabled = false;
+  }
+
   /* --------------------------------------------------------- pin map -- */
 
   function initPinMap() {
@@ -292,6 +336,11 @@
     if (reportLat != null && reportLon != null) {
       data.report_lat = reportLat;
       data.report_lon = reportLon;
+    }
+    // Citizen-picked specific school or hospital (optional)
+    const facVal = val("facility");
+    if (facVal) {
+      data.facility_id = parseInt(facVal, 10);
     }
 
     if (!session) {
@@ -490,6 +539,8 @@
     el("submit").disabled = false;
     showErrors([]);
     clearPin();
+    if (el("facility")) el("facility").value = "";
+    if (el("facilityField")) el("facilityField").hidden = true;
     show("doneCard", false);
     show("runCard", false);
     show("form", true);
@@ -694,6 +745,7 @@
       pinMap.invalidateSize();
       pinMap.setView([coords.lat, coords.lon], 15);
     }, 120);
+    loadFacilities();
   });
   el("btnGeolocate").addEventListener("click", () => {
     if (!navigator.geolocation) return;
@@ -703,7 +755,10 @@
     );
   });
   el("btnClearPin").addEventListener("click", clearPin);
-  el("category").addEventListener("change", (e) => fillDepartments(e.target.value));
+  el("category").addEventListener("change", (e) => {
+    fillDepartments(e.target.value);
+    loadFacilities();
+  });
   el("department").addEventListener("change", (e) => {
     const opt = e.target.selectedOptions[0];
     el("deptHint").textContent =
