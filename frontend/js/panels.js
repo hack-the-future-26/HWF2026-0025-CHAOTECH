@@ -39,7 +39,88 @@
     });
   }
 
+  function renderVillagesList() {
+    const el = d3.select("#railList");
+    el.selectAll("*").remove();
+
+    if (!A.nav.district) {
+      d3.select("#railCount").text("statewide");
+      el.append("div")
+        .style("font-size", "12px").style("color", "var(--body)")
+        .style("padding", "14px 8px").style("line-height", "1.5")
+        .text("Select a district on the map to see its ranked villages.");
+      return;
+    }
+
+    let list = A.getDistrictVillages ? A.getDistrictVillages(A.nav.district) : [];
+    if (!list || !list.length) {
+      if (A.fetchDistrictVillages) {
+        A.fetchDistrictVillages(A.nav.district).then((vList) => {
+          if (A.getMode && A.getMode() === "villages" && A.nav.district) {
+            renderVillagesList();
+          }
+        });
+      }
+      d3.select("#railCount").text(`in ${A.nav.district}`);
+      el.append("div")
+        .style("font-size", "12px").style("color", "var(--muted)")
+        .style("padding", "14px 8px").style("line-height", "1.5")
+        .text("Loading villages…");
+      return;
+    }
+
+    if (filter !== "all") {
+      list = list.filter((v) => v.counts_by_category && (v.counts_by_category[filter] || 0) > 0);
+    }
+    list = list.slice().sort((a, b) => (b.priority_score ?? -1) - (a.priority_score ?? -1));
+
+    d3.select("#railCount").text(`${list.length} in ${A.nav.district}`);
+
+    if (!list.length) {
+      el.append("div")
+        .style("font-size", "12px").style("color", "var(--body)")
+        .style("padding", "14px 8px").style("line-height", "1.5")
+        .text("No villages match this filter.");
+      return;
+    }
+
+    list.forEach((v, i) => {
+      const isActive = A.nav.village && (A.nav.village.gazetteer_id === v.gazetteer_id || A.nav.village.name === v.name);
+      const row = el.append("div")
+        .attr("class", `row${isActive ? " row--active" : ""}`)
+        .on("click", () => {
+          A.navigate("village", { village: v, state: "Maharashtra", district: v.district });
+        });
+
+      row.append("div").attr("class", "row__rank").text(`#${v.rank_in_district || i + 1}`);
+
+      const main = row.append("div").attr("class", "row__main");
+      const nameEl = main.append("div").attr("class", "row__name");
+      nameEl.text(`${v.name} (${v.block})`);
+      if (v.is_demo) {
+        nameEl.append("span").attr("class", "badge--demo").style("margin-left", "6px").text("demo");
+      }
+
+      const counts = v.counts_by_category || {};
+      const cParts = [];
+      if (counts.road) cParts.push(`${counts.road} road`);
+      if (counts.education) cParts.push(`${counts.education} school`);
+      if (counts.health) cParts.push(`${counts.health} health`);
+      if (counts.water) cParts.push(`${counts.water} water`);
+      const metaText = `${v.report_count} reports${cParts.length ? " · " + cParts.join(", ") : ""}`;
+      main.append("div").attr("class", "row__meta").text(metaText);
+
+      const right = row.append("div");
+      right.append("div").attr("class", "row__score")
+        .text((v.priority_score ?? 0).toFixed(1));
+    });
+  }
+
   function renderList() {
+    if (A.getMode && A.getMode() === "villages") {
+      renderVillagesList();
+      return;
+    }
     const list = scopedClusters();
     const el = d3.select("#railList");
     el.selectAll("*").remove();
