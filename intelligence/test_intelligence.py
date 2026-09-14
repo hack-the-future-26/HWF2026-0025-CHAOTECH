@@ -19,7 +19,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from intelligence import config
+from intelligence import config, realdata
 from intelligence.clustering import build_distance_matrix, haversine_km
 from intelligence.population import population_in_catchment
 from intelligence.scoring import (
@@ -346,6 +346,31 @@ def test_precise_coords_split_work_groups() -> None:
           f"got {groups_centroid[0].get('location_basis')}")
 
 
+def test_nwdp_groundwater_lookup() -> None:
+    # 1. Fallback / CSV loader
+    stations = realdata.load_groundwater_index(db=None)
+    check("NWDP stations loaded from snapshot", len(stations) >= 9, f"got {len(stations)}")
+
+    # 2. Near station lookup (Hatkanangale coords: 16.7444, 74.4258)
+    near_st, evidence = realdata.lookup_groundwater(16.74, 74.42, stations, max_distance_km=25.0)
+    check("found station within 25km radius", near_st is not None)
+    check("matched Hatkanangale station", near_st.get("station_name") == "Hatkanangale" if near_st else False)
+    check(
+        "evidence matches expected bgl format and trend",
+        evidence == "groundwater level in this area: 1.7m bgl, trend: falling",
+        f"got {evidence}",
+    )
+
+    # 3. Distant point beyond threshold (Delhi)
+    far_st, far_ev = realdata.lookup_groundwater(28.61, 77.20, stations, max_distance_km=25.0)
+    check("distant point returns no station", far_st is None)
+    check("distant point returns no evidence", far_ev is None)
+
+    # 4. Empty stations list
+    none_st, none_ev = realdata.lookup_groundwater(16.74, 74.42, [], max_distance_km=25.0)
+    check("empty stations list returns None", none_st is None and none_ev is None)
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -367,6 +392,7 @@ def main() -> None:
         test_weights_sum_to_one,
         test_apply_precise_coords,
         test_precise_coords_split_work_groups,
+        test_nwdp_groundwater_lookup,
     ]:
         test()
 

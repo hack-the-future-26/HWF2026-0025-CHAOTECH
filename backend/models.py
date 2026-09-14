@@ -548,3 +548,27 @@ class MosdacRainfall(Base):
     window_hours = Column(Float, default=72.0)
     recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class NwdpGroundwater(Base):
+    """
+    Groundwater telemetry stations and recent water levels from India's
+    National Water Data Portal (NWDP / NWIC, Maharashtra Ground Water Dept).
+
+    Used as an objective hydrological corroboration signal for water scarcity
+    and drought complaints ("pani nahi aata").
+    """
+
+    __tablename__ = "nwdp_groundwater"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    station_name = Column(Text, index=True)
+    district = Column(Text, index=True)
+    tehsil = Column(Text)
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+    current_level_m = Column(Float)
+    previous_level_m = Column(Float, nullable=True)
+    trend = Column(Text)  # "falling", "rising", "stable"
+    recorded_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

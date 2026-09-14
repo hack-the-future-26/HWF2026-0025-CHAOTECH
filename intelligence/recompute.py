@@ -299,6 +299,7 @@ def recompute(db, verbose: bool = True) -> dict:
     # back to its proxy -- the engine degrades rather than failing.
     amenity_index = realdata.load_amenity_index(db)
     works_index = realdata.load_works_index(db)
+    gw_stations = realdata.load_groundwater_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -325,7 +326,8 @@ def recompute(db, verbose: bool = True) -> dict:
     with_records = sum(1 for v in amenity_index if v.get("has_real_data"))
     log(
         f"real data: {with_records}/{len(amenity_index)} villages with government "
-        f"records, {len(works_index)} sanctioned works pinned to a village"
+        f"records, {len(works_index)} sanctioned works pinned to a village, "
+        f"{len(gw_stations)} groundwater telemetry stations"
     )
 
     # --- Steps 1-3: embed, gate, cluster -----------------------------------
@@ -412,6 +414,13 @@ def recompute(db, verbose: bool = True) -> dict:
         infra_value, infra_evidence = realdata.real_infra_deficit(
             category, nearby_villages, works_index, population_affected
         )
+        gw_station, gw_text = None, None
+        if category == "water":
+            gw_station, gw_text = realdata.lookup_groundwater(
+                centroid_lat, centroid_lon, gw_stations
+            )
+            if gw_text:
+                infra_evidence["groundwater_corroboration"] = gw_text
         vulnerability_value, vulnerability_evidence = realdata.real_vulnerability(
             nearby_villages
         )
@@ -482,6 +491,8 @@ def recompute(db, verbose: bool = True) -> dict:
             "work_groups": len(groups),
             "villages_examined": len(nearby_villages),
         }
+        if category == "water" and gw_text:
+            result["evidence"]["groundwater"] = gw_text
         scored.append((cluster, result))
 
     db.commit()

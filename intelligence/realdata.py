@@ -40,7 +40,9 @@ MEASURED LIMITS OF THE UNDERLYING DATA (see REAL_DATA_RESEARCH.md §5.5)
 
 from __future__ import annotations
 
+import csv
 import math
+from pathlib import Path
 
 from . import config
 
@@ -725,3 +727,122 @@ def name_work_group(
         result["external_id"] = facility["external_id"]
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# NWDP Groundwater Telemetry (Feature corroboration for water scarcity)
+# ---------------------------------------------------------------------------
+
+DEFAULT_GROUNDWATER_MAX_DISTANCE_KM = 25.0
+
+
+def load_groundwater_index(db=None) -> list[dict]:
+    """
+    Groundwater telemetry stations from NWDP (National Water Data Portal).
+
+    Reads from the database if available, otherwise falls back to the
+    snapshot CSV in backend/data/nwdp_groundwater_stations.csv.
+    """
+    stations: list[dict] = []
+    if db is not None:
+        try:
+            from models import NwdpGroundwater
+
+            for row in db.query(NwdpGroundwater).all():
+                if row.latitude is None or row.longitude is None:
+                    continue
+                stations.append(
+                    {
+                        "station_name": row.station_name,
+                        "district": row.district,
+                        "tehsil": row.tehsil,
+                        "lat": row.latitude,
+                        "lon": row.longitude,
+                        "current_level_m": row.current_level_m,
+                        "previous_level_m": row.previous_level_m,
+                        "trend": row.trend or "stable",
+                        "recorded_at": row.recorded_at,
+                    }
+                )
+        except Exception:
+            stations = []
+
+    if not stations:
+        csv_path = (
+            Path(__file__).resolve().parents[1]
+            / "backend"
+            / "data"
+            / "nwdp_groundwater_stations.csv"
+        )
+        if csv_path.exists():
+            with open(csv_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        lat = float(row["latitude"])
+                        lon = float(row["longitude"])
+                        curr = float(row["current_level_m"])
+                        prev = (
+                            float(row["previous_level_m"])
+                            if row.get("previous_level_m")
+                            else None
+                        )
+                        stations.append(
+                            {
+                                "station_name": row.get("station_name"),
+                                "district": row.get("district"),
+                                "tehsil": row.get("tehsil"),
+                                "lat": lat,
+                                "lon": lon,
+                                "current_level_m": curr,
+                                "previous_level_m": prev,
+                                "trend": row.get("trend") or "stable",
+                                "recorded_at": row.get("recorded_at"),
+                            }
+                        )
+                    except (ValueError, TypeError, KeyError):
+                        continue
+
+    return stations
+
+
+def lookup_groundwater(
+    lat: float,
+    lon: float,
+    stations: list[dict],
+    max_distance_km: float = DEFAULT_GROUNDWATER_MAX_DISTANCE_KM,
+) -> tuple[dict | None, str | None]:
+    """
+    Find the nearest NWDP groundwater telemetry station within max_distance_km.
+
+    Returns (station_dict, evidence_str).
+    If no station is within max_distance_km or stations list is empty,
+    returns (None, None).
+    """
+    if not stations:
+        return None, None
+
+    nearest = None
+    min_dist = float("inf")
+
+    for s in stations:
+        dist = haversine_km(lat, lon, s["lat"], s["lon"])
+        if dist < min_dist:
+            min_dist = dist
+            nearest = s
+
+    if nearest is None or min_dist > max_distance_km:
+        return None, None
+
+    level = nearest.get("current_level_m")
+    trend = nearest.get("trend") or "stable"
+    if level is None:
+        return None, None
+
+    # Level format: NWDP telemetry is meters below ground level (recorded as negative).
+    # e.g., "groundwater level in this area: 1.7m bgl, trend: falling"
+    evidence_text = f"groundwater level in this area: {abs(level):.1f}m bgl, trend: {trend}"
+    result = dict(nearest)
+    result["distance_km"] = round(min_dist, 1)
+    return result, evidence_text
+
