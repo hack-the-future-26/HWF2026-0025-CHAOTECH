@@ -657,6 +657,133 @@ def test_pmgsy_road_segment_lookup() -> None:
     check("load_road_segment_index: parses points list", len(loaded[0]["points"]) == 2)
 
 
+def test_pmgsy_road_segment_asset_matching() -> None:
+    import json
+
+    gazetteer = [
+        {"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200},
+    ]
+    fake_segment_named = {
+        "id": 101,
+        "external_id": "SEG101",
+        "district": "Kolhapur",
+        "block": "Karvir",
+        "drrp_road_code": "VR 18",
+        "road_name": "Girgaon Link Road",
+        "road_category": "VR",
+        "road_owner": "ZP",
+        "start_lat": 16.699,
+        "start_lon": 74.200,
+        "end_lat": 16.701,
+        "end_lon": 74.200,
+        "points": [[16.699, 74.200], [16.701, 74.200]],
+        "point_count": 2,
+        "min_lat": 16.699,
+        "max_lat": 16.701,
+        "min_lon": 74.200,
+        "max_lon": 74.200,
+    }
+    fake_segment_code_only = {
+        "id": 102,
+        "external_id": "SEG102",
+        "district": "Kolhapur",
+        "block": "Karvir",
+        "drrp_road_code": "VR 99",
+        "road_name": None,
+        "road_category": "VR",
+        "road_owner": "ZP",
+        "start_lat": 16.699,
+        "start_lon": 74.200,
+        "end_lat": 16.701,
+        "end_lon": 74.200,
+        "points": [[16.699, 74.200], [16.701, 74.200]],
+        "point_count": 2,
+        "min_lat": 16.699,
+        "max_lat": 16.701,
+        "min_lon": 74.200,
+        "max_lon": 74.200,
+    }
+    works_by_village = {
+        "Girgaon": [{"name": "Girgaon to Phata Road", "external_id": "P1", "status": "completed", "cost_lakh": 25.0, "year": 2022}]
+    }
+
+    # 1. Road group within 150m of fake_segment_named -> geosadak_segment with road_name
+    r_near = [{
+        "id": 1, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+        "latitude": 16.7001, "longitude": 74.2001, "raw_text": "Potholes on link road", "severity": "medium", "confidence": 0.9,
+    }]
+    assets_named = _build_assets(
+        r_near,
+        facilities_by_category={},
+        works_by_village=works_by_village,
+        gazetteer=gazetteer,
+        amenity_index=[],
+        works_index=[],
+        gw_stations=[],
+        road_segment_index=[fake_segment_named],
+    )
+    check("matched segment: name_basis is geosadak_segment", assets_named[0].name_basis == "geosadak_segment")
+    check("matched segment: uses road_name", assets_named[0].name == "Girgaon Link Road")
+    ev_named = json.loads(assets_named[0].evidence)
+    check("matched segment: road_geometry in evidence", "road_geometry" in ev_named)
+    check("matched segment: segment_id matches", ev_named["road_geometry"]["segment_id"] == 101)
+    check("matched segment: points has 2 pairs", len(ev_named["road_geometry"]["points"]) == 2)
+    check("matched segment: distance_m < 150", ev_named["road_geometry"]["distance_m"] < 150)
+
+    # 2. Road_name is None -> fallback to drrp_road_code
+    assets_code = _build_assets(
+        r_near,
+        facilities_by_category={},
+        works_by_village=works_by_village,
+        gazetteer=gazetteer,
+        amenity_index=[],
+        works_index=[],
+        gw_stations=[],
+        road_segment_index=[fake_segment_code_only],
+    )
+    check("code-only segment: name_basis is geosadak_segment", assets_code[0].name_basis == "geosadak_segment")
+    check("code-only segment: falls back to drrp_road_code", assets_code[0].name == "VR 99")
+    ev_code = json.loads(assets_code[0].evidence)
+    check("code-only segment: road_geometry in evidence", "road_geometry" in ev_code)
+    check("code-only segment: drrp_road_code in evidence", ev_code["road_geometry"]["drrp_road_code"] == "VR 99")
+
+    # 3. Road group far from any segment (>150m) -> fallback to pmgsy_work
+    r_far = [{
+        "id": 2, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+        "latitude": 16.800, "longitude": 74.300, "raw_text": "Distant road potholes", "severity": "medium", "confidence": 0.9,
+    }]
+    assets_far_work = _build_assets(
+        r_far,
+        facilities_by_category={},
+        works_by_village=works_by_village,
+        gazetteer=gazetteer,
+        amenity_index=[],
+        works_index=[],
+        gw_stations=[],
+        road_segment_index=[fake_segment_named],
+    )
+    check("distant road: falls back to pmgsy_work", assets_far_work[0].name_basis == "pmgsy_work")
+    check("distant road: names pmgsy work", assets_far_work[0].name == "Girgaon to Phata Road")
+    ev_far_work = json.loads(assets_far_work[0].evidence)
+    check("distant road: road_geometry absent in evidence", "road_geometry" not in ev_far_work)
+
+    # 4. Distant road without pmgsy_work -> fallback to unnamed_pin
+    assets_far_unnamed = _build_assets(
+        r_far,
+        facilities_by_category={},
+        works_by_village={},
+        gazetteer=gazetteer,
+        amenity_index=[],
+        works_index=[],
+        gw_stations=[],
+        road_segment_index=[fake_segment_named],
+    )
+    check("distant road no work: falls back to unnamed_pin", assets_far_unnamed[0].name_basis == "unnamed_pin")
+    check("distant road no work: Road near Girgaon", assets_far_unnamed[0].name == "Road near Girgaon")
+    ev_far_unnamed = json.loads(assets_far_unnamed[0].evidence)
+    check("distant road no work: road_geometry absent", "road_geometry" not in ev_far_unnamed)
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -688,6 +815,7 @@ def main() -> None:
         test_candidate_list_sorted_and_capped,
         test_road_pins_clustering_distance,
         test_pmgsy_road_segment_lookup,
+        test_pmgsy_road_segment_asset_matching,
     ]:
         test()
 
