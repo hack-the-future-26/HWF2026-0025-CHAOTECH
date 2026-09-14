@@ -19,9 +19,11 @@ Status: ✅ done · 🔨 being built · 📝 designed, not started · ⏸ parked
 | 6 | **Fake-complaint defence** (see below) | 📝 Designed; build prompt not written yet | `PHOTO_VERIFICATION_RESEARCH.md` |
 | 7 | **Emergency urgency** (owner's definition, see below) | 📝 Needs one decision | this file, below |
 | 8 | **Stale-record discount (trust-blend)**: trust an old government record less when a burst of recent reports contradicts it | 📝 Unblocked (half-life = 10 years decided) | `STALE_INFRA_DEFICIT_RESEARCH.md` §2 |
-| 9 | **Fresher or live government data** | 📝 UDISE+, CWC and SACHET confirmed scrapable; JJM water quality likely; eMARG blocked by CAPTCHA | `LIVE_GOV_DATA_RESEARCH.md` §4A |
+| 9 | **Fresher or live government data**: JJM water testing, CWC river levels, SACHET alerts loaded; wired into evidence 2026-09-15 | ✅ Loaded (Tasks 1-3, commits 4b880f2/ea4cd95/aac9de9) + wired as evidence-only corroboration (see below); UDISE+ still finishing in the background (6,650+/9,352); eMARG blocked by CAPTCHA; **JJM scheme money (Task 4) was never attempted** — no commit, no table, not reported either way | `BUILD_PROMPT_DATA_PIPELINES_REMAINING.md` |
 | 10 | **Satellite confirmation (Planet Labs)**, disasters only | ⛔ Needs the Planet Education & Research application (university email) | `STALE_INFRA_DEFICIT_RESEARCH.md` §2A |
 | 11 | **Silent Need Detector** (equity term): flag villages that likely need help but under-report, instead of the current flat BharatNet-only proxy | 📝 Designed; not in Workstream B yet, no build prompt written | `SILENT_NEED_DETECTOR_RESEARCH.md` |
+| 12 | **District-level GPDP investment totals** (panchayats, approved activities, ₹ outlay, popular/under-picked activities) | ✅ Loaded (99f97e4), real, tested. Deliberately **not** wired into scoring — a district total can't be honestly split to a village or asset. No UI/API shows it yet: there is no district-level view to put it in (see #15 in "Ruled out" below) | `BUILD_PROMPT_GPDP_DISTRICT_SUMMARY.md` |
+| 13 | **Whole-village GPDP budget plan** (per-village works, sector, cost — CAPTCHA, human-assisted) | 🔨 Capture tool built (5064c7f) but never run: `village_budget_plan` has 0 rows. **The tool also skipped the prompt's required Step 0** (test whether one captcha covers many villages or only one) — it does a fresh `page.goto()` before every village, so it silently assumes the worst case (441 solves) without ever checking the cheaper alternative | `BUILD_PROMPT_DATA_PIPELINES_REMAINING.md` Task 5 |
 
 ## The project's white space (research PDF §9), checked against the code 2026-09-14
 
@@ -193,6 +195,68 @@ Scraping check results, 2026-09-14 (see `LIVE_GOV_DATA_RESEARCH.md` §4A):
    coverage, FY 2026-27, AES method; see the section above).
 5. **eMARG**: ❌ behind a CAPTCHA, so not scrapable. It needs a formal
    data request to NRIDA.
+
+### Data loaded 2026-09-14/15, verified and wired 2026-09-15
+
+The build prompt for Tasks 1-3 explicitly said "don't touch `scoring.py`
+or `recompute.py`" so a human would review the wiring — this is that
+review, done directly rather than handed to another agent.
+
+- **Checked real row counts before trusting the completion report**:
+  `water_testing` 9,250 rows, `river_reading` 11, `hazard_alert` 10,
+  `gpdp_district_summary` 4. `jjm_scheme` (Task 4) — **table doesn't
+  exist**; it was never attempted, not "found, not confirmed" as the
+  prompt's ground rules required if it turned out not to work.
+- **water_testing's 65% unmatched `gazetteer_id` is real, not a bug**:
+  JJM tracks 2,850 distinct habitation names against a 1,042-row village
+  gazetteer — many are hamlets below the gazetteer's granularity (spot
+  checked 15, none existed under any spelling). Correctly stored as
+  `NULL`, never guessed.
+- **Test-suite bug, same pattern as before**: the three new test
+  functions (`test_water_testing_evidence`, `test_hazard_near`,
+  `test_gpdp_district_evidence`) were stapled to the bottom of
+  `test_intelligence.py` as bare module-level calls, after `main()`.
+  They ran and passed, but weren't in the counted total, and — worse — a
+  failure in them would **not** have flipped the exit code, so CI would
+  have reported green regardless. Moved into `main()`'s list; 121 → 131
+  counted tests, real ones this time.
+- **`hazard_near` queried the database live, once per cluster** — every
+  other real_* lookup in this file loads its index once per `recompute()`
+  call and passes it down as a plain list. Refactored to
+  `load_river_readings_index(db)` / `load_hazard_alerts_index(db)` +
+  `hazard_near(lat, lon, river_readings, hazard_alerts)`, matching the
+  groundwater pattern exactly.
+- **Real bug the refactor exposed**: comparing SQLite's naive
+  `observed_at`/`effective`/`expires` against `datetime.now(timezone.utc)`
+  raised `TypeError` the moment this ran against the real database instead
+  of mocks. Fixed with one normalization point (`_as_utc`), not per
+  comparison site.
+- **Wired in as evidence only, not score** — same as groundwater already
+  was: `water_testing_catchment_evidence` (new, aggregates JJM coverage
+  across a water cluster's whole catchment, honest about partial matches)
+  feeds `evidence.water_testing`; `hazard_near` feeds
+  `evidence.hazard_corroboration` for road and water clusters. Confirmed
+  on a real recompute: 210 of 218 water assets now carry real water-testing
+  evidence, 37 assets carry real hazard corroboration. **Neither moves the
+  priority score** — the urgency-term redesign that would actually score a
+  SACHET/CWC-corroborated emergency (#7) hasn't been built yet, so this is
+  visible in the evidence panel and nothing else changes yet.
+- **Known weakness, not fixed, worth knowing about**: `hazard_near` flags
+  "hazard" whenever *any* reading exists nearby in the time window — it
+  doesn't check whether the reading's value is actually unusual (a calm
+  river at normal level is treated the same as a flood level). This was
+  already true of the delivered code; the refactor didn't change it. Fine
+  for an evidence-only signal today; would need a real threshold before
+  it's allowed to move a score.
+- **GPDP capture tool (Task 5) skipped its own required Step 0**: the
+  prompt was explicit that the tool must first test whether one captcha
+  solve covers many villages or only one, and build accordingly.
+  `backend/capture_gpdp.py` does a fresh page load before every single
+  village regardless, so it silently assumes the expensive case (441
+  solves) without ever checking the cheaper one. Not fixed here — testing
+  it needs a human actually sitting with the browser open, which is the
+  next real step if the ~2.5-3 hour worst-case estimate is worth revisiting
+  before committing to it.
 
 ## Priority-score research status, all 9 terms (checked 2026-09-14)
 
