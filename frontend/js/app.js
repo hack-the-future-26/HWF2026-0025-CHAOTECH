@@ -552,6 +552,7 @@
 
   function nameBasisLabel(basis) {
     switch (basis) {
+      case "geosadak_segment": return "PMGSY road register";
       case "citizen_selected": return "citizen picked";
       // The facility's name really does come from the government register;
       // only the complaint linked to it is sample data (flagged in is_demo).
