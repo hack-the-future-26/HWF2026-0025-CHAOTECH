@@ -1012,6 +1012,79 @@ def test_gpdp_district_evidence():
     check("load_gpdp_district_summary_index: loads district", "kolhapur" in loaded)
     check("load_gpdp_district_summary_index: uses latest plan year", loaded["kolhapur"]["plan_year"] == "2026-27")
 
+
+def test_village_finance_evidence():
+    # 1. Missing gazetteer_id or empty index
+    row, text = realdata.village_finance_evidence(9999, {})
+    check("village finance evidence: empty index returns (None, None)", row is None and text is None)
+
+    sample_index = {
+        504: {
+            "id": 1,
+            "gazetteer_id": 504,
+            "village_name": "Ite",
+            "district": "Kolhapur",
+            "fin_year": "2025-2026",
+            "scheme_code": "3287",
+            "untied_opening_balance": 286897.0,
+            "untied_receipts": 64059.0,
+            "untied_payments": 32030.0,
+            "untied_closing_balance": 318926.0,
+            "tied_opening_balance": 228157.0,
+            "tied_receipts": 112086.0,
+            "tied_payments": 10000.0,
+            "tied_closing_balance": 330243.0,
+            "fetched_at": None,
+        }
+    }
+    row_miss, text_miss = realdata.village_finance_evidence(999, sample_index)
+    check("village finance evidence: missing id returns (None, None)", row_miss is None and text_miss is None)
+
+    # 2. Formatted sentence
+    row_ok, text_ok = realdata.village_finance_evidence(504, sample_index)
+    check("village finance evidence: returns row dict", row_ok is not None and row_ok["village_name"] == "Ite")
+    expected_sentence = "FY 2025-2026: untied grant ₹64,059 received, ₹32,030 spent (50% utilised); tied grant ₹112,086 received, ₹10,000 spent."
+    check("village finance evidence: sentence format matches specification", text_ok == expected_sentence)
+
+    # 3. Mock DB test for load_village_finance_index
+    class MockFinanceRow:
+        def __init__(self, id, gaz_id, fin_year):
+            self.id = id
+            self.gazetteer_id = gaz_id
+            self.village_name = "Test Village"
+            self.district = "Kolhapur"
+            self.fin_year = fin_year
+            self.scheme_code = "3287"
+            self.untied_opening_balance = 100000.0
+            self.untied_receipts = 50000.0
+            self.untied_payments = 25000.0
+            self.untied_closing_balance = 125000.0
+            self.tied_opening_balance = 100000.0
+            self.tied_receipts = 50000.0
+            self.tied_payments = 25000.0
+            self.tied_closing_balance = 125000.0
+            self.fetched_at = None
+
+    class MockFinanceQuery:
+        def filter(self, *args, **kwargs):
+            return self
+        def order_by(self, *args, **kwargs):
+            return self
+        def all(self):
+            return [
+                MockFinanceRow(1, 101, "2024-2025"),
+                MockFinanceRow(2, 101, "2025-2026"),
+            ]
+
+    class MockFinanceDB:
+        def query(self, model):
+            return MockFinanceQuery()
+
+    loaded = realdata.load_village_finance_index(MockFinanceDB())
+    check("load_village_finance_index: loads matched gazetteer id", 101 in loaded)
+    check("load_village_finance_index: uses latest fin_year", loaded[101]["fin_year"] == "2025-2026")
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -1048,6 +1121,7 @@ def main() -> None:
         test_water_testing_evidence,
         test_hazard_near,
         test_gpdp_district_evidence,
+        test_village_finance_evidence,
     ]:
         test()
 
@@ -1062,3 +1136,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

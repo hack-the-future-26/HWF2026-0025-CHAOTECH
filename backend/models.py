@@ -805,3 +805,32 @@ class GpdpDistrictSummary(Base):
     data_as_of = Column(Text, nullable=True)        # the page's own "Data as on ..." string
     fetch_failed = Column(Boolean, default=False)
     fetched_at = Column(DateTime, nullable=True)
+
+
+class VillagePanchayatFinance(Base):
+    """
+    Real per-village-panchayat receipts and expenditure from PRIASoft
+    (RecExpReportNew.do), the Ministry of Panchayati Raj's actual panchayat
+    accounting system -- not the GPDP planning tool. Tied/untied 15th
+    Finance Commission grant components tracked separately, matching the
+    source report's own structure.
+    """
+    __tablename__ = "village_panchayat_finance"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True, index=True)
+    village_name = Column(Text)          # as PRIASoft names it, for the fuzzy-match audit trail
+    district = Column(Text)
+    fin_year = Column(Text)
+    scheme_code = Column(Text)
+    untied_opening_balance = Column(Float, nullable=True)
+    untied_receipts = Column(Float, nullable=True)
+    untied_payments = Column(Float, nullable=True)
+    untied_closing_balance = Column(Float, nullable=True)
+    tied_opening_balance = Column(Float, nullable=True)
+    tied_receipts = Column(Float, nullable=True)
+    tied_payments = Column(Float, nullable=True)
+    tied_closing_balance = Column(Float, nullable=True)
+    raw_json = Column(Text, nullable=True)   # the full real row, for anything not modeled above
+    fetched_at = Column(DateTime, nullable=True)
+

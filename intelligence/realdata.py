@@ -1424,3 +1424,92 @@ def gpdp_district_evidence(district: str, index: dict[str, dict]) -> tuple[dict 
     sentence = f"{header_part} {'; '.join(parts)}{freshness}."
     return row, sentence
 
+
+# ---------------------------------------------------------------------------
+# PRIASoft Village Panchayat Finance (recExpVpNew.do)
+# ---------------------------------------------------------------------------
+
+
+def load_village_finance_index(db) -> dict[int, dict]:
+    """
+    gazetteer_id -> its most recent fin_year's row, as a plain dict.
+    Rows without gazetteer_id are excluded.
+    """
+    if db is None:
+        return {}
+    try:
+        from models import VillagePanchayatFinance
+
+        rows = (
+            db.query(VillagePanchayatFinance)
+            .filter(VillagePanchayatFinance.gazetteer_id.isnot(None))
+            .order_by(VillagePanchayatFinance.fin_year.asc())
+            .all()
+        )
+        result = {}
+        for r in rows:
+            # Ordered by fin_year.asc(), so newer years (e.g. 2025-2026 > 2024-2025) overwrite earlier ones
+            result[r.gazetteer_id] = {
+                "id": r.id,
+                "gazetteer_id": r.gazetteer_id,
+                "village_name": r.village_name,
+                "district": r.district,
+                "fin_year": r.fin_year,
+                "scheme_code": r.scheme_code,
+                "untied_opening_balance": r.untied_opening_balance,
+                "untied_receipts": r.untied_receipts,
+                "untied_payments": r.untied_payments,
+                "untied_closing_balance": r.untied_closing_balance,
+                "tied_opening_balance": r.tied_opening_balance,
+                "tied_receipts": r.tied_receipts,
+                "tied_payments": r.tied_payments,
+                "tied_closing_balance": r.tied_closing_balance,
+                "fetched_at": r.fetched_at,
+            }
+        return result
+    except Exception:
+        return {}
+
+
+def village_finance_evidence(gazetteer_id: int, index: dict[int, dict]) -> tuple[dict | None, str | None]:
+    """
+    Returns (raw_row_dict, a short human evidence sentence) or (None, None).
+    Example: "FY 2025-26: untied grant ₹64,059 received, ₹0 spent (0% utilised); tied grant ₹112,086 received, ₹0 spent."
+    """
+    if not gazetteer_id or not index:
+        return None, None
+
+    row = index.get(gazetteer_id)
+    if not row:
+        return None, None
+
+    fy = f"FY {row.get('fin_year')}:" if row.get("fin_year") else "PRIASoft finance:"
+    parts = []
+
+    # Untied component
+    u_rec = row.get("untied_receipts")
+    u_pay = row.get("untied_payments")
+    if u_rec is not None or u_pay is not None:
+        rec_str = f"₹{u_rec:,.0f}" if u_rec is not None else "₹0"
+        pay_str = f"₹{u_pay:,.0f}" if u_pay is not None else "₹0"
+        pct_str = ""
+        if u_rec and u_rec > 0 and u_pay is not None:
+            pct = min(100.0, (u_pay / u_rec) * 100.0)
+            pct_str = f" ({pct:.0f}% utilised)"
+        parts.append(f"untied grant {rec_str} received, {pay_str} spent{pct_str}")
+
+    # Tied component
+    t_rec = row.get("tied_receipts")
+    t_pay = row.get("tied_payments")
+    if t_rec is not None or t_pay is not None:
+        rec_str = f"₹{t_rec:,.0f}" if t_rec is not None else "₹0"
+        pay_str = f"₹{t_pay:,.0f}" if t_pay is not None else "₹0"
+        parts.append(f"tied grant {rec_str} received, {pay_str} spent")
+
+    if not parts:
+        return row, f"{fy} PRIASoft accounting records available."
+
+    sentence = f"{fy} {'; '.join(parts)}."
+    return row, sentence
+
+
