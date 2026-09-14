@@ -41,6 +41,7 @@
   const gReports = root.append("g");
   const gClusters = root.append("g");
   const gVillages = root.append("g");
+  const gRoadLines = root.append("g");
   const gAssets = root.append("g");
   const gLabels = root.append("g");
 
@@ -378,6 +379,7 @@
     udise: "UDISE school register",
     nic_healthgis: "NIC health facility register",
     pmgsy: "PMGSY works register",
+    pmgsy_geosadak: "PMGSY GeoSadak road register",
   };
 
   const EVIDENCE_KEY = {
@@ -557,6 +559,7 @@
       // only the complaint linked to it is sample data (flagged in is_demo).
       case "demo_assigned": return "facility register";
       case "nearest_register": return "nearest register — not confirmed";
+      case "geosadak_segment": return "PMGSY road register";
       case "pmgsy_work": return "PMGSY work";
       case "unnamed_pin": return "location only";
       case "unresolved_village": return "not specified";
@@ -1060,6 +1063,19 @@
       row.append("span").attr("class", "ev__k").text("Villages served");
       row.append("span").attr("class", "ev__v").text(aData.villages_served.join(", "));
     }
+    const road = (aData.evidence || {}).road_geometry;
+    if (road) {
+      [
+        ["DRRP road code", road.drrp_road_code],
+        ["Road category", road.road_category],
+        ["Road owner", road.road_owner],
+        ["Complaint to road", road.distance_m != null ? `${road.distance_m} m` : null],
+      ].filter(([, v]) => v).forEach(([k, v]) => {
+        const row = kvBox.append("div").attr("class", "ev");
+        row.append("span").attr("class", "ev__k").text(k);
+        row.append("span").attr("class", "ev__v").text(v);
+      });
+    }
 
     // Groundwater evidence for water assets
     const gwEv = (aData.evidence || {}).groundwater;
@@ -1255,11 +1271,33 @@
     sel.exit().transition().duration(240).attr("r", 0).remove();
   }
 
+  function clearAssets() {
+    gAssets.selectAll(".asset-pin").remove();
+    gRoadLines.selectAll("path").remove();
+  }
+
+  // The real PMGSY road a road asset sits on, drawn under the pins. Points
+  // arrive as [lat, lon]; d3 projections take [lon, lat].
+  function drawRoadLines(list) {
+    const roads = (list || []).filter(
+      (d) => d.road_geometry && Array.isArray(d.road_geometry.points) && d.road_geometry.points.length > 1);
+    const line = d3.line()
+      .x((p) => projection([p[1], p[0]])[0])
+      .y((p) => projection([p[1], p[0]])[1]);
+    const sel = gRoadLines.selectAll("path").data(roads, (d) => d.id);
+    sel.enter().append("path")
+      .attr("class", "road-line")
+      .merge(sel)
+      .attr("d", (d) => line(d.road_geometry.points));
+    sel.exit().remove();
+  }
+
   function drawAssets(list, villageName) {
     if (!list || !list.length) {
-      gAssets.selectAll(".asset-pin").remove();
+      clearAssets();
       return;
     }
+    drawRoadLines(list);
     // Spread pins that would sit on top of each other on screen. Several
     // assets can share almost the same coordinates (two colleges on one
     // campus, water points around the village centre); stacked pins hid each
@@ -1429,7 +1467,7 @@
       gDistricts.selectAll("path").remove();
       gReports.selectAll("circle").remove();
       gVillages.selectAll("circle").remove();
-      gAssets.selectAll(".asset-pin").remove();
+      clearAssets();
       drawOutline(null);
       view = fitTransform(india.statesMerged, 1.05);
       drawStates();
@@ -1449,7 +1487,7 @@
       gStates.selectAll("path").remove();
       gReports.selectAll("circle").remove();
       gVillages.selectAll("circle").remove();
-      gAssets.selectAll(".asset-pin").remove();
+      clearAssets();
       const feat = statesFC.features.find((f) => f.properties.st_nm === targetState);
       if (feat) {
         view = fitTransform(feat);
@@ -1475,7 +1513,7 @@
       const targetDistrict = opts.district || nav.district;
       Object.assign(nav, { level, state: targetState, district: targetDistrict, cluster: null, village: null, asset: null });
       gStates.selectAll("path").remove();
-      gAssets.selectAll(".asset-pin").remove();
+      clearAssets();
       const feat = districtsFC.features.find(
         (d) => d.properties.st_nm === targetState && d.properties.district === targetDistrict);
       if (feat) {
@@ -1558,6 +1596,13 @@
       if (vData) {
         currentVillageData = vData;
         drawAssets(vData.assets || [], vData.name);
+        // Back from an asset: nothing is selected any more.
+        gAssets.selectAll(".asset-pin")
+          .classed("asset-pin--faded", false)
+          .classed("asset-pin--selected", false);
+        gRoadLines.selectAll("path")
+          .classed("road-line--faded", false)
+          .classed("road-line--selected", false);
         applyZoomCompensation(view.k);
         renderVillagePanel(vData);
         d3.select("#legendNote").text(
@@ -1579,6 +1624,9 @@
       gAssets.selectAll(".asset-pin")
         .classed("asset-pin--faded", (d) => d.id !== a.id)
         .classed("asset-pin--selected", (d) => d.id === a.id);
+      gRoadLines.selectAll("path")
+        .classed("road-line--faded", (d) => d.id !== a.id)
+        .classed("road-line--selected", (d) => d.id === a.id);
 
       let aData = null;
       try {
@@ -1602,7 +1650,7 @@
       Object.assign(nav, { level, state: targetState, district: targetDistrict, cluster: c, village: null, asset: null });
       gStates.selectAll("path").remove();
       gVillages.selectAll("circle").remove();
-      gAssets.selectAll(".asset-pin").remove();
+      clearAssets();
 
       const districtFeat = districtsFC.features.find(
         (d) => d.properties.st_nm === targetState &&
@@ -1626,7 +1674,7 @@
       gVillages.selectAll("circle")
         .classed("village-bubble--faded", false)
         .classed("village-bubble--open", false);
-      gAssets.selectAll(".asset-pin").remove();
+      clearAssets();
     }
 
     updateModeToggleUI();
