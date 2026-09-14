@@ -705,3 +705,79 @@ class SchoolCondition(Base):
     fetched_at = Column(DateTime, nullable=True)
 
 
+class WaterTesting(Base):
+    """
+    Task 1: JJM Water Testing Data
+    """
+    __tablename__ = "water_testing"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fin_year = Column(Text)
+    district = Column(Text)
+    block = Column(Text)
+    gp_id = Column(Integer)
+    gp_name = Column(Text)
+    village_id = Column(Integer)
+    village_name = Column(Text)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True)
+    samples_tested = Column(Integer)
+    ph = Column(Integer)
+    frc = Column(Integer)
+    turbidity = Column(Integer)
+    tds = Column(Integer)
+    hardness = Column(Integer)
+    villages_not_tested = Column(Integer)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class RiverReading(Base):
+    """
+    Task 2: CWC River Levels Data
+    """
+    __tablename__ = "river_reading"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    station_code = Column(Text, index=True)
+    name = Column(Text)
+    lat = Column(Float)
+    lon = Column(Float)
+    datatype_code = Column(Text)
+    value = Column(Float)
+    observed_at = Column(DateTime)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class HazardAlert(Base):
+    """
+    Task 3: SACHET Disaster Alerts
+    """
+    __tablename__ = "hazard_alert"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    identifier = Column(Text, index=True, unique=True)
+    event = Column(Text)
+    severity = Column(Text)
+    urgency = Column(Text)
+    area_desc = Column(Text)
+    districts = Column(Text)  # Comma-separated list of mapped districts
+    effective = Column(DateTime)
+    expires = Column(DateTime)
+    sender = Column(Text)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class VillageBudgetPlan(Base):
+    """
+    Task 5: eGramSwaraj GPDP
+    """
+    __tablename__ = "village_budget_plan"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), index=True)
+    financial_year = Column(Text)
+    work_name = Column(Text)
+    sector = Column(Text)
+    estimated_cost = Column(Float)
+    status = Column(Text)
+    source = Column(Text, default="gpdp_manual_capture")
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+

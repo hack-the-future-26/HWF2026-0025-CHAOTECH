@@ -43,6 +43,8 @@ from __future__ import annotations
 import csv
 import math
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
+
 
 from . import config
 
@@ -1133,3 +1135,96 @@ def school_condition_evidence(facility_id: int, index: dict[int, dict]) -> tuple
 
 
 
+
+
+# ---------------------------------------------------------------------------
+# Task 1: JJM Water Testing Data
+# ---------------------------------------------------------------------------
+
+def load_water_testing_index(db) -> dict[int, dict]:
+    if db is None:
+        return {}
+    try:
+        from models import WaterTesting
+        rows = db.query(WaterTesting).filter(WaterTesting.gazetteer_id.isnot(None)).all()
+        return {r.gazetteer_id: {
+            "samples_tested": r.samples_tested,
+            "villages_not_tested": r.villages_not_tested,
+            "ph": r.ph,
+            "frc": r.frc,
+            "turbidity": r.turbidity,
+            "tds": r.tds,
+            "hardness": r.hardness
+        } for r in rows}
+    except Exception:
+        return {}
+
+def water_testing_evidence(gazetteer_id: int, index: dict[int, dict]) -> tuple[dict | None, str | None]:
+    if not index or gazetteer_id not in index:
+        return None, None
+    row = index[gazetteer_id]
+    samples = row.get("samples_tested", 0)
+    untested = row.get("villages_not_tested", 0)
+    sentence = f"{samples} samples tested this year, {untested} villages untested nearby"
+    return row, sentence
+
+# ---------------------------------------------------------------------------
+# Task 2 & 3: Hazard Near (CWC River Levels & SACHET Alerts)
+# ---------------------------------------------------------------------------
+
+def hazard_near(lat: float, lon: float, db, hours: int = 72) -> tuple[bool, dict]:
+    if db is None or lat is None or lon is None:
+        return False, {}
+
+    evidence = {}
+    is_hazard = False
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=hours)
+
+    try:
+        from models import RiverReading
+        from intelligence.clustering import haversine_km
+        readings = db.query(RiverReading).filter(RiverReading.observed_at >= cutoff).all()
+        near_readings = []
+        for r in readings:
+            if r.lat and r.lon:
+                dist = haversine_km(lat, lon, r.lat, r.lon)
+                if dist <= 25.0:
+                    near_readings.append(r)
+        
+        if near_readings:
+            is_hazard = True
+            evidence["cwc_river_warnings"] = len(near_readings)
+            evidence["cwc_nearest"] = f"{near_readings[0].name} ({near_readings[0].value} {near_readings[0].datatype_code})"
+    except Exception:
+        pass
+
+    try:
+        from models import HazardAlert
+        alerts = db.query(HazardAlert).filter(
+            HazardAlert.effective <= now,
+            HazardAlert.expires >= now
+        ).all()
+        
+        active_alerts = []
+        for a in alerts:
+            if not a.districts: continue
+            in_bounds = False
+            if "Kolhapur" in a.districts and (15.7 <= lat <= 17.1 and 73.7 <= lon <= 74.7):
+                in_bounds = True
+            if "Nashik" in a.districts and (19.6 <= lat <= 20.9 and 73.3 <= lon <= 75.0):
+                in_bounds = True
+                
+            if in_bounds:
+                active_alerts.append(a)
+                
+        if active_alerts:
+            is_hazard = True
+            evidence["sachet_alerts"] = len(active_alerts)
+            events = [a.event for a in active_alerts if a.event]
+            if events:
+                evidence["sachet_events"] = ", ".join(events)
+    except Exception:
+        pass
+
+    return is_hazard, evidence
