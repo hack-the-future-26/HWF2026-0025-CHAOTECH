@@ -637,6 +637,7 @@ def load_facility_index(db, category: str | None = None) -> list[dict]:
 
     return [
         {
+            "id": f.id,
             "name": f.name,
             "external_id": f.external_id,
             "source": f.source,

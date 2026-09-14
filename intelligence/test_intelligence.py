@@ -31,6 +31,12 @@ from intelligence.scoring import (
     score_cluster,
     vulnerability_term,
 )
+from intelligence.recompute import (
+    _build_assets,
+    _build_villages,
+    _find_school_candidates,
+    _group_by_radius,
+)
 from intelligence.whatif import budget_to_points
 
 _passed = 0
@@ -371,6 +377,188 @@ def test_nwdp_groundwater_lookup() -> None:
     check("empty stations list returns None", none_st is None and none_ev is None)
 
 
+# ---------------------------------------------------------------------------
+# Village & Asset Priority tests
+# ---------------------------------------------------------------------------
+
+def test_asset_identity_five_rules() -> None:
+    gazetteer = [
+        {"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200},
+    ]
+    facilities_by_category = {
+        "education": [
+            {"id": 10, "name": "Z.P. Primary School", "category": "education", "lat": 16.701, "lon": 74.201, "source": "udise", "external_id": "U10"},
+            {"id": 11, "name": "Vidyamandir School", "category": "education", "lat": 16.702, "lon": 74.202, "source": "udise", "external_id": "U11"},
+        ],
+        "health": [
+            {"id": 20, "name": "Primary Health Centre Girgaon", "category": "health", "lat": 16.705, "lon": 74.205, "source": "healthgis", "external_id": "H20"},
+        ],
+    }
+    works_by_village = {
+        "Girgaon": [{"name": "Girgaon to Phata Road", "external_id": "P1", "status": "completed", "cost_lakh": 25.0, "year": 2022}]
+    }
+
+    # 1. Rule 1: Citizen-selected facility
+    r1 = [{
+        "id": 1, "issue_category": "education", "facility_id": 11, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.700, "longitude": 74.200,
+        "raw_text": "Need repairs at Vidyamandir", "severity": "medium", "confidence": 0.9,
+    }]
+    assets_r1 = _build_assets(r1, facilities_by_category=facilities_by_category, works_by_village=works_by_village, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("rule 1 citizen-selected: creates 1 asset", len(assets_r1) == 1)
+    check("rule 1 citizen-selected: name_basis is citizen_selected", assets_r1[0].name_basis == "citizen_selected")
+    check("rule 1 citizen-selected: names the chosen facility", assets_r1[0].name == "Vidyamandir School")
+
+    # 2. Rule 2: Pin next to a facility (within ASSET_PIN_SNAP_M = 300m)
+    # 16.701, 74.201 is Z.P. Primary School. Pin at 16.7011, 74.2010 is ~11m away.
+    r2 = [{
+        "id": 2, "issue_category": "education", "facility_id": None, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.7011, "longitude": 74.2010,
+        "precise_lat": 16.7011, "precise_lon": 74.2010, "pin_source": "citizen_gps",
+        "raw_text": "Roof leaking", "severity": "high", "confidence": 0.95,
+    }]
+    assets_r2 = _build_assets(r2, facilities_by_category=facilities_by_category, works_by_village=works_by_village, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("rule 2 pin-snap: creates 1 asset", len(assets_r2) == 1)
+    check("rule 2 pin-snap: name_basis is nearest_register", assets_r2[0].name_basis == "nearest_register")
+    check("rule 2 pin-snap: snaps to nearest school", assets_r2[0].name == "Z.P. Primary School")
+
+    # 3. Rule 3: Health with no pin (nearest within 8km)
+    r3 = [{
+        "id": 3, "issue_category": "health", "facility_id": None, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.700, "longitude": 74.200,
+        "raw_text": "Doctor not present", "severity": "high", "confidence": 0.9,
+    }]
+    assets_r3 = _build_assets(r3, facilities_by_category=facilities_by_category, works_by_village=works_by_village, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("rule 3 health no pin: creates 1 asset", len(assets_r3) == 1)
+    check("rule 3 health no pin: name_basis is nearest_register", assets_r3[0].name_basis == "nearest_register")
+    check("rule 3 health no pin: names PHC", assets_r3[0].name == "Primary Health Centre Girgaon")
+
+    # 4. Rule 4: Education with no facility and no pin -> unresolved village school
+    r4 = [{
+        "id": 4, "issue_category": "education", "facility_id": None, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.700, "longitude": 74.200,
+        "raw_text": "Desks broken", "severity": "medium", "confidence": 0.8,
+    }]
+    assets_r4 = _build_assets(r4, facilities_by_category={"education": [], "health": []}, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("rule 4 education unresolved: creates 1 asset", len(assets_r4) == 1)
+    check("rule 4 education unresolved: name_basis is unresolved_village", assets_r4[0].name_basis == "unresolved_village")
+    check("rule 4 education unresolved: expected name format", assets_r4[0].name == "School in Girgaon (not specified)")
+
+    # 5. Rule 5: Road (1 PMGSY work) and Water
+    r5_road = [{
+        "id": 5, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+        "latitude": 16.700, "longitude": 74.200, "raw_text": "Potholes", "severity": "medium", "confidence": 0.9,
+    }]
+    assets_r5_road = _build_assets(r5_road, facilities_by_category=facilities_by_category, works_by_village=works_by_village, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("rule 5 road 1 pmgsy work: names pmgsy work", assets_r5_road[0].name == "Girgaon to Phata Road")
+    check("rule 5 road 1 pmgsy work: name_basis is pmgsy_work", assets_r5_road[0].name_basis == "pmgsy_work")
+
+    r5_water = [{
+        "id": 6, "issue_category": "water", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+        "latitude": 16.700, "longitude": 74.200, "raw_text": "No tap water", "severity": "high", "confidence": 0.9,
+    }]
+    assets_r5_water = _build_assets(r5_water, facilities_by_category=facilities_by_category, works_by_village=works_by_village, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("rule 5 water: name_basis is unnamed_pin", assets_r5_water[0].name_basis == "unnamed_pin")
+    check("rule 5 water: name is Water point near Girgaon", assets_r5_water[0].name == "Water point near Girgaon")
+
+
+def test_citizen_selected_beats_nearby_pin() -> None:
+    gazetteer = [{"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200}]
+    facilities_by_category = {
+        "education": [
+            {"id": 10, "name": "Facility A (Selected)", "category": "education", "lat": 16.710, "lon": 74.210, "source": "udise", "external_id": "FA"},
+            {"id": 11, "name": "Facility B (Near Pin)", "category": "education", "lat": 16.7001, "lon": 74.2001, "source": "udise", "external_id": "FB"},
+        ],
+    }
+    # Pin sits right at Facility B (~15m away), but citizen explicitly selected Facility A
+    report = [{
+        "id": 1, "issue_category": "education", "facility_id": 10, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.7001, "longitude": 74.2001,
+        "precise_lat": 16.7001, "precise_lon": 74.2001, "pin_source": "citizen_gps",
+        "raw_text": "Selected Facility A complaint", "severity": "medium", "confidence": 0.9,
+    }]
+    assets = _build_assets(report, facilities_by_category=facilities_by_category, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("citizen-selected beats pin: 1 asset created", len(assets) == 1)
+    check("citizen-selected beats pin: names selected facility", assets[0].name == "Facility A (Selected)")
+    check("citizen-selected beats pin: name_basis is citizen_selected", assets[0].name_basis == "citizen_selected")
+
+
+def test_asset_breakdown_sums_to_priority_score() -> None:
+    import json
+    gazetteer = [{"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200}]
+    reports = [{
+        "id": 1, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+        "latitude": 16.700, "longitude": 74.200, "raw_text": "Potholes", "severity": "high", "confidence": 0.85,
+    }]
+    assets = _build_assets(reports, facilities_by_category={}, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    asset = assets[0]
+    bd = json.loads(asset.breakdown)
+    check("asset breakdown sums to priority_score", math.isclose(round(sum(bd.values()), 2), round(asset.priority_score, 2), abs_tol=0.01))
+
+
+def test_village_score_equals_max_asset_score() -> None:
+    gazetteer = [{"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200}]
+    # Two reports with different severities yielding two different road assets (>400m apart)
+    reports = [
+        {"id": 1, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+         "latitude": 16.700, "longitude": 74.200, "precise_lat": 16.700, "precise_lon": 74.200, "raw_text": "Road 1 bad", "severity": "low", "confidence": 0.9},
+        {"id": 2, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+         "latitude": 16.710, "longitude": 74.210, "precise_lat": 16.710, "precise_lon": 74.210, "raw_text": "Road 2 collapsed", "severity": "critical", "confidence": 0.95},
+    ]
+    assets = _build_assets(reports, facilities_by_category={}, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    villages = _build_villages(reports, assets, gazetteer)
+    check("village score equals max of asset scores", len(villages) == 1 and villages[0].priority_score == max(a.priority_score for a in assets))
+    check("village top_asset_id matches max asset id", villages[0].top_asset_id == max(assets, key=lambda a: a.priority_score).id)
+
+
+def test_hospital_reports_from_two_villages_one_asset() -> None:
+    import json
+    gazetteer = [
+        {"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200},
+        {"id": 2, "name": "Balinge", "district": "Kolhapur", "block": "Karvir", "population": 3000, "lat": 16.705, "lon": 74.205},
+    ]
+    facilities = {
+        "health": [{"id": 50, "name": "Sub-District Hospital", "category": "health", "lat": 16.702, "lon": 74.202, "source": "healthgis", "external_id": "SDH1"}],
+    }
+    reports = [
+        {"id": 1, "issue_category": "health", "facility_id": 50, "village": "Girgaon", "district": "Kolhapur", "block": "Karvir", "latitude": 16.700, "longitude": 74.200, "raw_text": "T1", "severity": "high", "confidence": 0.9},
+        {"id": 2, "issue_category": "health", "facility_id": 50, "village": "Balinge", "district": "Kolhapur", "block": "Karvir", "latitude": 16.705, "longitude": 74.205, "raw_text": "T2", "severity": "high", "confidence": 0.9},
+    ]
+    assets = _build_assets(reports, facilities_by_category=facilities, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("hospital from 2 villages creates 1 asset", len(assets) == 1)
+    serv = json.loads(assets[0].villages_served)
+    check("asset records both villages_served", sorted(serv) == ["Balinge", "Girgaon"])
+    villages = _build_villages(reports, assets, gazetteer)
+    check("both villages include this asset", len(villages) == 2 and all(v.asset_count == 1 for v in villages))
+
+
+def test_candidate_list_sorted_and_capped() -> None:
+    schools = [
+        {"name": f"School {i}", "external_id": f"S{i}", "lat": 16.700 + (i * 0.001), "lon": 74.200}
+        for i in range(1, 9)
+    ]
+    cands = _find_school_candidates(16.700, 74.200, schools)
+    check("candidates capped at 6", len(cands) == 6)
+    dists = [c["distance_m"] for c in cands]
+    check("candidates sorted by distance ascending", dists == sorted(dists))
+
+
+def test_road_pins_clustering_distance() -> None:
+    r_400m = [
+        {"latitude": 16.7000, "longitude": 74.2000},
+        {"latitude": 16.7036, "longitude": 74.2000},
+    ]
+    groups_400 = _group_by_radius(r_400m, config.ASSET_GROUP_RADIUS_M)
+    check("two road pins 400m apart give two groups", len(groups_400) == 2)
+
+    r_100m = [
+        {"latitude": 16.7000, "longitude": 74.2000},
+        {"latitude": 16.7009, "longitude": 74.2000},
+    ]
+    groups_100 = _group_by_radius(r_100m, config.ASSET_GROUP_RADIUS_M)
+    check("two road pins 100m apart give one group", len(groups_100) == 1)
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -393,6 +581,13 @@ def main() -> None:
         test_apply_precise_coords,
         test_precise_coords_split_work_groups,
         test_nwdp_groundwater_lookup,
+        test_asset_identity_five_rules,
+        test_citizen_selected_beats_nearby_pin,
+        test_asset_breakdown_sums_to_priority_score,
+        test_village_score_equals_max_asset_score,
+        test_hospital_reports_from_two_villages_one_asset,
+        test_candidate_list_sorted_and_capped,
+        test_road_pins_clustering_distance,
     ]:
         test()
 
