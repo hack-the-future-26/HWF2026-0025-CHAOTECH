@@ -25,6 +25,7 @@ Run:
 """
 
 import argparse
+import concurrent.futures
 import json
 import os
 import socket
@@ -33,6 +34,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 
 # Set global socket timeout to prevent indefinite hangs on stalled TCP reads
@@ -110,6 +112,20 @@ def fetch_json(url: str, max_retries: int = 3, timeout: float = 12.0) -> dict | 
     return None
 
 
+def _fetch_single_school(item: tuple, delay_sec: float = 0.05) -> tuple:
+    """Worker task to fetch report card and facilities JSON for a single school."""
+    facility_id, udise_code, sch_name, village, district = item
+    rc_url = KYS_REPORT_CARD_URL.format(udise_code)
+    fac_url = KYS_FACILITY_URL.format(udise_code)
+    rc_data = fetch_json(rc_url)
+    if delay_sec > 0:
+        time.sleep(delay_sec / 2.0)
+    fac_data = fetch_json(fac_url)
+    if delay_sec > 0:
+        time.sleep(delay_sec / 2.0)
+    return item, rc_data, fac_data
+
+
 def inspect_first_school(rc_data: dict, fac_data: dict) -> None:
     """Print complete sorted field names and check for student enrolment count."""
     print("=" * 70)
@@ -138,7 +154,13 @@ def inspect_first_school(rc_data: dict, fac_data: dict) -> None:
     print()
 
 
-def load_udise_data(limit: int | None = None, dry_run: bool = False, batch_size: int = 50, delay_sec: float = 0.55) -> dict:
+def load_udise_data(
+    limit: int | None = None,
+    dry_run: bool = False,
+    batch_size: int = 50,
+    delay_sec: float = 0.05,
+    workers: int = 8,
+) -> dict:
     """
     Fetch and store UDISE+ school condition data for education facilities.
     """
@@ -190,101 +212,96 @@ def load_udise_data(limit: int | None = None, dry_run: bool = False, batch_size:
         major_repair_count = 0
         total_grant_sum = 0.0
 
-        print("\nStarting polite crawl (~1.5 requests/sec overall)...")
-        print("-" * 70)
+        print(f"\nStarting parallel crawl ({workers} workers, {delay_sec}s inter-request delay)...", flush=True)
+        print("-" * 70, flush=True)
 
-        for i, (facility_id, udise_code, sch_name, village, district) in enumerate(todo, start=1):
-            rc_url = KYS_REPORT_CARD_URL.format(udise_code)
-            fac_url = KYS_FACILITY_URL.format(udise_code)
+        worker = partial(_fetch_single_school, delay_sec=delay_sec)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            for i, (item, rc_data, fac_data) in enumerate(executor.map(worker, todo), start=1):
+                facility_id, udise_code, sch_name, village, district = item
+                now_utc = datetime.now(timezone.utc)
 
-            rc_data = fetch_json(rc_url)
-            time.sleep(delay_sec / 2.0)
-            fac_data = fetch_json(fac_url)
-            time.sleep(delay_sec / 2.0)
+                if rc_data or fac_data:
+                    rc = rc_data or {}
+                    fac = fac_data or {}
 
-            now_utc = datetime.now(timezone.utc)
+                    if not first_school_inspected and rc and fac:
+                        inspect_first_school(rc, fac)
+                        first_school_inspected = True
 
-            if rc_data or fac_data:
-                rc = rc_data or {}
-                fac = fac_data or {}
+                    year_desc = rc.get("yearDesc") or TARGET_YEAR
+                    tch_reg = _safe_int(rc.get("tchReg"))
+                    tch_cont = _safe_int(rc.get("tchCont"))
+                    tch_part = _safe_int(rc.get("tchPart"))
 
-                if not first_school_inspected and rc and fac:
-                    inspect_first_school(rc, fac)
-                    first_school_inspected = True
+                    cls_tot = _safe_int(fac.get("clsrmsInst"))
+                    cls_gd = _safe_int(fac.get("clsrmsGd"))
+                    cls_min = _safe_int(fac.get("clsrmsMin"))
+                    cls_maj = _safe_int(fac.get("clsrmsMaj"))
 
-                year_desc = rc.get("yearDesc") or TARGET_YEAR
-                tch_reg = _safe_int(rc.get("tchReg"))
-                tch_cont = _safe_int(rc.get("tchCont"))
-                tch_part = _safe_int(rc.get("tchPart"))
+                    toilet_b_fun = _safe_int(fac.get("toiletbFun"))
+                    toilet_g_fun = _safe_int(fac.get("toiletgFun"))
+                    drinking_water = _safe_bool(fac.get("drinkWaterYn"))
+                    electricity = _safe_bool(fac.get("electricityYn"))
+                    bndry_wall = fac.get("bndrywallType")
+                    if bndry_wall:
+                        bndry_wall = str(bndry_wall).strip()
 
-                cls_tot = _safe_int(fac.get("clsrmsInst"))
-                cls_gd = _safe_int(fac.get("clsrmsGd"))
-                cls_min = _safe_int(fac.get("clsrmsMin"))
-                cls_maj = _safe_int(fac.get("clsrmsMaj"))
+                    tot_grant = _safe_float(rc.get("totalGrant"))
+                    # Note: official UDISE+ spelling is 'totalExpediture' (missing 'n')
+                    tot_exp = _safe_float(rc.get("totalExpediture")) if rc.get("totalExpediture") is not None else _safe_float(rc.get("totalExpenditure"))
 
-                toilet_b_fun = _safe_int(fac.get("toiletbFun"))
-                toilet_g_fun = _safe_int(fac.get("toiletgFun"))
-                drinking_water = _safe_bool(fac.get("drinkWaterYn"))
-                electricity = _safe_bool(fac.get("electricityYn"))
-                bndry_wall = fac.get("bndrywallType")
-                if bndry_wall:
-                    bndry_wall = str(bndry_wall).strip()
+                    raw_json = json.dumps({"report_card": rc, "facility": fac}, default=str)
 
-                tot_grant = _safe_float(rc.get("totalGrant"))
-                # Note: official UDISE+ spelling is 'totalExpediture' (missing 'n')
-                tot_exp = _safe_float(rc.get("totalExpediture")) if rc.get("totalExpediture") is not None else _safe_float(rc.get("totalExpenditure"))
+                    row = SchoolCondition(
+                        facility_id=facility_id,
+                        udise_code=udise_code,
+                        year_desc=year_desc,
+                        teachers_regular=tch_reg,
+                        teachers_contract=tch_cont,
+                        teachers_part_time=tch_part,
+                        classrooms_total=cls_tot,
+                        classrooms_good=cls_gd,
+                        classrooms_minor_repair=cls_min,
+                        classrooms_major_repair=cls_maj,
+                        toilet_boys_functional=toilet_b_fun,
+                        toilet_girls_functional=toilet_g_fun,
+                        drinking_water=drinking_water,
+                        electricity=electricity,
+                        boundary_wall_status=bndry_wall,
+                        total_grant=tot_grant,
+                        total_expenditure=tot_exp,
+                        raw_json=raw_json,
+                        fetch_failed=False,
+                        fetched_at=now_utc,
+                    )
+                    db.add(row)
+                    succeeded += 1
 
-                raw_json = json.dumps({"report_card": rc, "facility": fac}, default=str)
+                    t_sum = (tch_reg or 0) + (tch_cont or 0) + (tch_part or 0)
+                    teachers_total += t_sum
+                    if cls_maj and cls_maj > 0:
+                        major_repair_count += 1
+                    if tot_grant:
+                        total_grant_sum += tot_grant
 
-                row = SchoolCondition(
-                    facility_id=facility_id,
-                    udise_code=udise_code,
-                    year_desc=year_desc,
-                    teachers_regular=tch_reg,
-                    teachers_contract=tch_cont,
-                    teachers_part_time=tch_part,
-                    classrooms_total=cls_tot,
-                    classrooms_good=cls_gd,
-                    classrooms_minor_repair=cls_min,
-                    classrooms_major_repair=cls_maj,
-                    toilet_boys_functional=toilet_b_fun,
-                    toilet_girls_functional=toilet_g_fun,
-                    drinking_water=drinking_water,
-                    electricity=electricity,
-                    boundary_wall_status=bndry_wall,
-                    total_grant=tot_grant,
-                    total_expenditure=tot_exp,
-                    raw_json=raw_json,
-                    fetch_failed=False,
-                    fetched_at=now_utc,
-                )
-                db.add(row)
-                succeeded += 1
+                else:
+                    # Both endpoints failed after retries
+                    row = SchoolCondition(
+                        facility_id=facility_id,
+                        udise_code=udise_code,
+                        year_desc=TARGET_YEAR,
+                        fetch_failed=True,
+                        fetched_at=now_utc,
+                    )
+                    db.add(row)
+                    failed += 1
 
-                t_sum = (tch_reg or 0) + (tch_cont or 0) + (tch_part or 0)
-                teachers_total += t_sum
-                if cls_maj and cls_maj > 0:
-                    major_repair_count += 1
-                if tot_grant:
-                    total_grant_sum += tot_grant
-
-            else:
-                # Both endpoints failed after retries
-                row = SchoolCondition(
-                    facility_id=facility_id,
-                    udise_code=udise_code,
-                    year_desc=TARGET_YEAR,
-                    fetch_failed=True,
-                    fetched_at=now_utc,
-                )
-                db.add(row)
-                failed += 1
-
-            if i % batch_size == 0 or i == len(todo):
-                db.commit()
-                elapsed = time.time() - start_time
-                rate = i / elapsed if elapsed > 0 else 0
-                print(f"[{i}/{len(todo)}] committed. OK: {succeeded}, Failed: {failed} ({rate:.2f} schools/sec)")
+                if i % batch_size == 0 or i == len(todo):
+                    db.commit()
+                    elapsed = time.time() - start_time
+                    rate = i / elapsed if elapsed > 0 else 0
+                    print(f"[{i}/{len(todo)}] committed. OK: {succeeded}, Failed: {failed} ({rate:.2f} schools/sec)", flush=True)
 
         db.commit()
         elapsed_total = time.time() - start_time
@@ -313,7 +330,7 @@ def load_udise_data(limit: int | None = None, dry_run: bool = False, batch_size:
         print(f"Schools with major-repair rms:  {summary['pct_major_repair']}%")
         print(f"Total grant funding recorded:   Rs {summary['total_grant_sum']:,.2f}")
         print(f"Total time taken:               {summary['elapsed_seconds']:.1f} s")
-        print("=" * 70)
+        print("=" * 70, flush=True)
         return summary
 
     finally:
@@ -325,10 +342,17 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit number of un-fetched schools to process")
     parser.add_argument("--dry-run", action="store_true", help="Print pending counts without fetching")
     parser.add_argument("--batch-size", type=int, default=50, help="Database commit batch size")
-    parser.add_argument("--delay", type=float, default=0.15, help="Delay in seconds between school calls (default 0.15)")
+    parser.add_argument("--delay", type=float, default=0.05, help="Delay in seconds between school calls (default 0.05)")
+    parser.add_argument("--workers", type=int, default=8, help="Number of concurrent worker threads (default 8)")
     args = parser.parse_args()
 
-    load_udise_data(limit=args.limit, dry_run=args.dry_run, batch_size=args.batch_size, delay_sec=args.delay)
+    load_udise_data(
+        limit=args.limit,
+        dry_run=args.dry_run,
+        batch_size=args.batch_size,
+        delay_sec=args.delay,
+        workers=args.workers,
+    )
 
 
 if __name__ == "__main__":
