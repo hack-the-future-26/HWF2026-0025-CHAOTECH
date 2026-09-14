@@ -314,3 +314,16 @@ RUPEES_PER_CRORE = 10_000_000
 # are roughly 2-3 km, and a citizen reporting a problem on the outskirts of
 # a neighbouring village would still be within this.
 PIN_MAX_DISTANCE_KM = 5.0
+
+
+# ---------------------------------------------------------------------------
+# Feature 6 & Feature 1 -- rainfall accumulation and burst detection window
+# ---------------------------------------------------------------------------
+
+# Lookback window for temporal burst detection and rainfall accumulation (hours).
+# 72 hours (3 days) aligns with the typical duration of an active monsoon
+# depression or intense precipitation event in western Maharashtra, long enough
+# to capture sustained severe rainfall and related complaints without letting
+# historical noise dilute the signal.  Aligned with Task 2's burst window so
+# "rainfall in the last 72h" directly corroborates "reports in the last 72h".
+BURST_WINDOW_HOURS = 72.0

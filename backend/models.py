@@ -526,3 +526,25 @@ class LgdVillage(Base):
     state_name = Column(Text)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class MosdacRainfall(Base):
+    """
+    Gridded recent rainfall from ISRO MOSDAC's GSMaP Rain product (0.1°x0.1° grid,
+    hourly, IMD-gauge-corrected, covering India).
+
+    Used as an objective meteorological corroboration signal for road washout
+    and water shortage/drought complaints.  Keyed by 0.1° grid cell coordinates
+    (grid_lat, grid_lon) and window duration.
+    """
+
+    __tablename__ = "mosdac_rainfall"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    grid_lat = Column(Float, index=True)
+    grid_lon = Column(Float, index=True)
+    district = Column(Text, index=True)
+    rainfall_mm = Column(Float)
+    window_hours = Column(Float, default=72.0)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

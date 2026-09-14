@@ -1,0 +1,3338 @@
+[
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 75.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 70.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 66.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 61.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 56.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 52.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 48.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 43.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 39.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 34.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.7,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 29.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 73.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 66.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 62.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 60.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 58.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 46.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 39.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 35.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 33.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.8,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 31.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 71.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 64.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 61.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 59.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 58.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 53.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 45.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 38.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 33.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 31.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 15.9,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 30.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 71.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 66.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 62.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 58.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 50.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 44.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 39.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 35.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 31.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.0,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 27.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 71.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 68.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 63.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 56.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 50.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 45.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 43.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 41.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 37.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.1,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 23.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 70.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 68.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 63.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 55.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 48.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 43.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 42.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 41.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 37.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 29.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.2,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 21.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 69.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 65.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 60.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 49.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 44.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 41.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 38.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 33.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 28.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.3,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 22.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 66.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 60.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 56.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 51.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 47.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 40.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 34.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 29.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 26.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.4,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 24.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 65.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 58.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 53.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 52.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 47.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 39.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 31.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 26.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 25.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.5,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 24.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 64.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 59.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 52.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 49.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 44.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 38.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 32.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 27.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 24.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.6,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 21.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 64.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 61.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 56.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 50.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 44.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 40.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 37.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 34.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 30.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 24.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.7,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 17.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 64.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 62.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 57.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 49.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 41.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 37.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 36.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 35.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 30.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 23.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.8,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 15.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 62.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 60.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 54.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 48.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 41.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 37.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 35.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 32.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 28.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 22.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 16.9,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 15.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 60.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 55.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 51.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 47.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 44.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 39.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 34.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 28.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 23.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 20.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.0,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 17.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 73.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 58.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 73.8,
+    "district": "Kolhapur",
+    "rainfall_mm": 51.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 73.9,
+    "district": "Kolhapur",
+    "rainfall_mm": 48.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.0,
+    "district": "Kolhapur",
+    "rainfall_mm": 47.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.1,
+    "district": "Kolhapur",
+    "rainfall_mm": 45.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.2,
+    "district": "Kolhapur",
+    "rainfall_mm": 40.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.3,
+    "district": "Kolhapur",
+    "rainfall_mm": 32.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.4,
+    "district": "Kolhapur",
+    "rainfall_mm": 25.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.5,
+    "district": "Kolhapur",
+    "rainfall_mm": 20.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.6,
+    "district": "Kolhapur",
+    "rainfall_mm": 19.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 17.1,
+    "grid_lon": 74.7,
+    "district": "Kolhapur",
+    "rainfall_mm": 18.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 58.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 58.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 57.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 53.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 47.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 41.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 39.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 40.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 39.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 36.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 24.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 21.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 19.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 13.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.6,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 7.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 58.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 58.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 57.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 53.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 47.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 42.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 40.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 39.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 36.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 24.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 21.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 18.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 13.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.7,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 7.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 60.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 56.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 53.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 51.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 48.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 45.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 42.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 36.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 33.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 27.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 25.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 18.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 15.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 12.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.8,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 10.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 61.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 55.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 50.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 48.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 49.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 48.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 45.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 38.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 33.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 27.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 22.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 16.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 12.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 12.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 19.9,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 12.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 61.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 55.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 50.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 48.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 49.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 48.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 45.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 38.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 33.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 27.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 22.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 16.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 12.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 12.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.0,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 12.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 60.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 57.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 53.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 51.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 48.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 45.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 42.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 36.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 33.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 27.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 24.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 18.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 15.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 12.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.1,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 10.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 58.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 58.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 57.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 53.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 47.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 42.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 39.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 39.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 36.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 24.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 21.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 19.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 13.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.2,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 7.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 58.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 58.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 57.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 53.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 47.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 41.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 39.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 40.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 39.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 36.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 24.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 21.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 19.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 13.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.3,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 7.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 59.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 57.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 54.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 51.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 48.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 44.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 41.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 37.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 34.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 27.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 24.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 19.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 16.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 13.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.4,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 9.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 61.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 55.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 51.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 49.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 49.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 48.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 44.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 33.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 31.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 30.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 27.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 22.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 16.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 13.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 12.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.5,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 11.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 62.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 55.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 50.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 48.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 49.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 49.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 45.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 38.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 32.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 30.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 31.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 28.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 22.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 15.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 12.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 11.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.6,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 12.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 60.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 56.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 52.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 50.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 48.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 46.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 43.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 35.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 32.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 28.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 25.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 17.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 14.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 12.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.7,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 10.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 58.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 58.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 56.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 52.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 47.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 42.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 40.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 39.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 38.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 35.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 25.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 22.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 20.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 18.2,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 13.6,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.8,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 8.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.3,
+    "district": "Nashik",
+    "rainfall_mm": 57.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.4,
+    "district": "Nashik",
+    "rainfall_mm": 58.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.5,
+    "district": "Nashik",
+    "rainfall_mm": 58.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.6,
+    "district": "Nashik",
+    "rainfall_mm": 53.8,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.7,
+    "district": "Nashik",
+    "rainfall_mm": 47.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.8,
+    "district": "Nashik",
+    "rainfall_mm": 41.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 73.9,
+    "district": "Nashik",
+    "rainfall_mm": 39.4,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.0,
+    "district": "Nashik",
+    "rainfall_mm": 40.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.1,
+    "district": "Nashik",
+    "rainfall_mm": 40.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.2,
+    "district": "Nashik",
+    "rainfall_mm": 36.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.3,
+    "district": "Nashik",
+    "rainfall_mm": 30.5,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.4,
+    "district": "Nashik",
+    "rainfall_mm": 24.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.5,
+    "district": "Nashik",
+    "rainfall_mm": 21.1,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.6,
+    "district": "Nashik",
+    "rainfall_mm": 21.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.7,
+    "district": "Nashik",
+    "rainfall_mm": 21.9,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.8,
+    "district": "Nashik",
+    "rainfall_mm": 19.7,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 74.9,
+    "district": "Nashik",
+    "rainfall_mm": 14.0,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  },
+  {
+    "grid_lat": 20.9,
+    "grid_lon": 75.0,
+    "district": "Nashik",
+    "rainfall_mm": 7.3,
+    "window_hours": 72.0,
+    "recorded_at": "2026-09-14T11:41:39.498584+00:00"
+  }
+]
