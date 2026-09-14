@@ -27,12 +27,16 @@ Run:
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Set global socket timeout to prevent indefinite hangs on stalled TCP reads
+socket.setdefaulttimeout(15.0)
 
 _BACKEND_DIR = Path(__file__).resolve().parent
 if str(_BACKEND_DIR) not in sys.path:
@@ -321,9 +325,10 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit number of un-fetched schools to process")
     parser.add_argument("--dry-run", action="store_true", help="Print pending counts without fetching")
     parser.add_argument("--batch-size", type=int, default=50, help="Database commit batch size")
+    parser.add_argument("--delay", type=float, default=0.15, help="Delay in seconds between school calls (default 0.15)")
     args = parser.parse_args()
 
-    load_udise_data(limit=args.limit, dry_run=args.dry_run, batch_size=args.batch_size)
+    load_udise_data(limit=args.limit, dry_run=args.dry_run, batch_size=args.batch_size, delay_sec=args.delay)
 
 
 if __name__ == "__main__":
