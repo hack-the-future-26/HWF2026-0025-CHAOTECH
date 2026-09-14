@@ -301,9 +301,101 @@ def run():
 
         print()
 
+    va_passed, va_total = test_village_and_asset_endpoints(client)
+    passed += va_passed
+    total += va_total
+
     print(f"Result: {passed}/{total} checks passed")
     if passed != total:
         sys.exit(1)
+
+
+def test_village_and_asset_endpoints(client) -> tuple[int, int]:
+    print("=== Village & Asset Priority endpoint tests ===")
+    passed = 0
+    total = 0
+
+    def assert_check(name: str, cond: bool, fail_msg: str = ""):
+        nonlocal passed, total
+        total += 1
+        if cond:
+            print(f"PASS: {name}")
+            passed += 1
+        else:
+            print(f"FAIL: {name} - {fail_msg}")
+
+    # 1. GET /villages?district=Kolhapur
+    res = client.get("/villages?district=Kolhapur")
+    assert_check("GET /villages returns 200", res.status_code == 200, f"got {res.status_code}")
+    villages = res.json() if res.status_code == 200 else []
+    assert_check("GET /villages returns non-empty list", len(villages) > 0)
+    if villages:
+        v0 = villages[0]
+        expected_keys = {
+            "gazetteer_id", "name", "block", "district", "lat", "lon",
+            "priority_score", "rank_in_district", "report_count",
+            "counts_by_category", "asset_count", "top_asset", "is_demo"
+        }
+        assert_check("GET /villages shape matches specification", expected_keys.issubset(v0.keys()))
+
+        # 2. GET /villages/{gazetteer_id}
+        gid = v0["gazetteer_id"]
+        v_res = client.get(f"/villages/{gid}")
+        assert_check(f"GET /villages/{gid} returns 200", v_res.status_code == 200, f"got {v_res.status_code}")
+        v_data = v_res.json() if v_res.status_code == 200 else {}
+        detail_keys = {"assets", "top_asset", "reports"}
+        assert_check("GET /villages/{id} contains assets, top_asset, reports", detail_keys.issubset(v_data.keys()))
+        if v_data.get("top_asset"):
+            assert_check("top_asset contains breakdown and evidence", "breakdown" in v_data["top_asset"] and "evidence" in v_data["top_asset"])
+
+        # Check no precise_lat in reports
+        reports = v_data.get("reports", [])
+        no_pin_in_reports = all("precise_lat" not in r and "precise_lon" not in r for r in reports)
+        assert_check("no precise_lat/lon leaked in village reports", no_pin_in_reports)
+
+        # 3. GET /assets/{asset_id}
+        if v_data.get("assets"):
+            a0 = v_data["assets"][0]
+            aid = a0["id"]
+            a_res = client.get(f"/assets/{aid}")
+            assert_check(f"GET /assets/{aid} returns 200", a_res.status_code == 200, f"got {a_res.status_code}")
+            a_data = a_res.json() if a_res.status_code == 200 else {}
+            asset_expected_keys = {
+                "id", "asset_type", "name", "name_basis", "facility_id", "source", "external_id",
+                "lat", "lon", "location_basis", "primary_gazetteer_id", "village", "block", "district",
+                "villages_served", "report_count", "distinct_reporters", "priority_score",
+                "rank_in_village", "breakdown", "evidence", "candidates", "is_demo", "created_at", "reports"
+            }
+            assert_check("GET /assets/{id} shape matches specification", asset_expected_keys.issubset(a_data.keys()))
+            a_reports = a_data.get("reports", [])
+            assert_check("no precise_lat/lon leaked in asset reports", all("precise_lat" not in r and "precise_lon" not in r for r in a_reports))
+
+    # 4. Privacy: Pin-based asset coordinates are rounded to at most 3 decimals
+    res_all_v = client.get("/villages?district=Kolhapur")
+    found_pin_asset = False
+    for v in (res_all_v.json() if res_all_v.status_code == 200 else []):
+        v_full = client.get(f"/villages/{v['gazetteer_id']}").json()
+        for a in v_full.get("assets", []):
+            if a.get("location_basis") != "register_coordinates" and a.get("lat") is not None:
+                lat, lon = a["lat"], a["lon"]
+                lat_rounded = round(lat, 3) == lat
+                lon_rounded = round(lon, 3) == lon
+                assert_check(f"pin-based asset coordinates rounded to <=3 decimals", lat_rounded and lon_rounded, f"got ({lat}, {lon})")
+                found_pin_asset = True
+                break
+        if found_pin_asset:
+            break
+    if not found_pin_asset:
+        assert_check("found at least one pin-based asset to verify coordinate rounding", False)
+
+    # 5. Unknown IDs return 404
+    res_404_v = client.get("/villages/99999999")
+    assert_check("unknown village ID returns 404", res_404_v.status_code == 404, f"got {res_404_v.status_code}")
+    res_404_a = client.get("/assets/99999999")
+    assert_check("unknown asset ID returns 404", res_404_a.status_code == 404, f"got {res_404_a.status_code}")
+
+    print()
+    return passed, total
 
 
 if __name__ == "__main__":
