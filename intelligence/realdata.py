@@ -1134,6 +1134,57 @@ def school_condition_evidence(facility_id: int, index: dict[int, dict]) -> tuple
     return row, sentence
 
 
+def school_condition_deficit(
+    facility_id: int, index: dict[int, dict]
+) -> tuple[float | None, dict]:
+    """
+    Real per-school infrastructure deficit from UDISE+ 2024-25 condition data
+    -- classroom repair need, electricity, drinking water, functional toilets.
+
+    Returns (None, {}) when this specific school has no UDISE+ record, so the
+    caller falls back to the village-wide Census signal rather than
+    asserting a school we simply haven't fetched has zero deficit.
+
+    Independent signals, worst one wins -- same pattern as the road/water/
+    health deficits in this file. A school can be short on one thing and
+    fine on the others; a single average would hide that.
+    """
+    if not index or facility_id not in index:
+        return None, {}
+    row = index[facility_id]
+    if not row:
+        return None, {}
+
+    evidence: dict = {}
+    signals: list[float] = []
+
+    total = row.get("classrooms_total") or 0
+    major = row.get("classrooms_major_repair") or 0
+    if total > 0:
+        share = major / total
+        evidence["share_classrooms_major_repair"] = round(share, 3)
+        signals.append(share)
+
+    if row.get("electricity") is False:
+        evidence["no_electricity"] = True
+        signals.append(1.0)
+
+    if row.get("drinking_water") is False:
+        evidence["no_drinking_water"] = True
+        signals.append(1.0)
+
+    toilet_b = row.get("toilet_boys_functional")
+    toilet_g = row.get("toilet_girls_functional")
+    if toilet_b == 0 or toilet_g == 0:
+        evidence["no_functional_toilet"] = True
+        signals.append(1.0)
+
+    if not signals:
+        return 0.0, evidence
+
+    evidence["year"] = row.get("year_desc")
+    evidence["source"] = "udise_2024_25_this_school"
+    return max(signals), evidence
 
 
 

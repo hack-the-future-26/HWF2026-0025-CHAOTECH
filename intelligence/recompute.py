@@ -308,6 +308,8 @@ def _score_members(
     water_testing_index: dict[int, dict] | None = None,
     river_readings: list[dict] | None = None,
     hazard_alerts: list[dict] | None = None,
+    facility_id: int | None = None,
+    school_condition_index: dict[int, dict] | None = None,
     groups: list[dict] | None = None,
 ) -> dict:
     """
@@ -330,6 +332,16 @@ def _score_members(
     infra_value, infra_evidence = realdata.real_infra_deficit(
         category, nearby_villages, works_index, population_affected
     )
+    # A specific school's own 2024-25 UDISE+ condition is more specific than
+    # the village-wide 2011 Census signal above, so it takes over when we
+    # have it -- never blended, since the two are answering slightly
+    # different questions (this building vs. this village's schools).
+    if category == "education" and facility_id is not None:
+        school_value, school_evidence = realdata.school_condition_deficit(
+            facility_id, school_condition_index or {}
+        )
+        if school_value is not None:
+            infra_value, infra_evidence = school_value, school_evidence
     gw_station, gw_text = None, None
     wt_evidence, wt_text = None, None
     if category == "water":
@@ -513,6 +525,7 @@ def _build_assets(
     water_testing_index: dict[int, dict] | None = None,
     river_readings: list[dict] | None = None,
     hazard_alerts: list[dict] | None = None,
+    school_condition_index: dict[int, dict] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -768,6 +781,8 @@ def _build_assets(
             water_testing_index=water_testing_index,
             river_readings=river_readings,
             hazard_alerts=hazard_alerts,
+            facility_id=facility_id,
+            school_condition_index=school_condition_index,
             groups=None,
         )
         evidence = dict(result["evidence"])
@@ -925,6 +940,7 @@ def recompute(db, verbose: bool = True) -> dict:
     water_testing_index = realdata.load_water_testing_index(db)
     river_readings = realdata.load_river_readings_index(db)
     hazard_alerts = realdata.load_hazard_alerts_index(db)
+    school_condition_index = realdata.load_school_condition_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -954,7 +970,8 @@ def recompute(db, verbose: bool = True) -> dict:
         f"real data: {with_records}/{len(amenity_index)} villages with government "
         f"records, {len(works_index)} sanctioned works pinned to a village, "
         f"{len(gw_stations)} groundwater telemetry stations, "
-        f"{len(river_readings)} CWC river readings, {len(hazard_alerts)} SACHET alerts"
+        f"{len(river_readings)} CWC river readings, {len(hazard_alerts)} SACHET alerts, "
+        f"{len(school_condition_index)} UDISE+ school condition records"
     )
 
     # --- Steps 1-3: embed, gate, cluster -----------------------------------
@@ -1091,6 +1108,7 @@ def recompute(db, verbose: bool = True) -> dict:
         water_testing_index=water_testing_index,
         river_readings=river_readings,
         hazard_alerts=hazard_alerts,
+        school_condition_index=school_condition_index,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)

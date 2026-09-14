@@ -1085,6 +1085,151 @@ def test_village_finance_evidence():
     check("load_village_finance_index: uses latest fin_year", loaded[101]["fin_year"] == "2025-2026")
 
 
+def test_school_condition_deficit() -> None:
+    # 1. No record for this facility -> caller must fall back, never assume 0.
+    value, ev = realdata.school_condition_deficit(999, {})
+    check("school condition deficit: no record returns (None, {})", value is None and ev == {})
+
+    # 2. Real signals present -> worst one wins, same pattern as road/water.
+    index = {
+        42: {
+            "classrooms_total": 5, "classrooms_major_repair": 2,
+            "electricity": True, "drinking_water": True,
+            "toilet_boys_functional": 1, "toilet_girls_functional": 1,
+            "year_desc": "2024-25",
+        },
+    }
+    value, ev = realdata.school_condition_deficit(42, index)
+    check("school condition deficit: major-repair share computed", math.isclose(value, 0.4), f"got {value}")
+    check("school condition deficit: evidence names the source", ev.get("source") == "udise_2024_25_this_school")
+
+    # 3. A missing amenity outweighs a small classroom-repair share.
+    index[43] = {
+        "classrooms_total": 10, "classrooms_major_repair": 1,
+        "electricity": False, "drinking_water": True,
+        "toilet_boys_functional": 1, "toilet_girls_functional": 1,
+    }
+    value, ev = realdata.school_condition_deficit(43, index)
+    check("school condition deficit: no electricity saturates to 1.0", value == 1.0, f"got {value}")
+    check("school condition deficit: no_electricity flagged", ev.get("no_electricity") is True)
+
+    # 4. Nothing wrong recorded -> a real, honest zero, not a missing record.
+    index[44] = {
+        "classrooms_total": 4, "classrooms_major_repair": 0,
+        "electricity": True, "drinking_water": True,
+        "toilet_boys_functional": 1, "toilet_girls_functional": 1,
+    }
+    value, ev = realdata.school_condition_deficit(44, index)
+    check("school condition deficit: no problems recorded is a real 0.0", value == 0.0)
+
+
+def test_udise_overrides_census_for_a_specific_school() -> None:
+    """
+    A specific school's own UDISE+ condition must take over from the
+    village-wide Census signal when we have it -- and must NOT apply to a
+    school we have no UDISE+ record for, which must keep the village signal.
+    """
+    import json
+
+    gazetteer = [
+        {"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200},
+    ]
+    # Census says this village's schools are fine (no middle/secondary gap),
+    # so the village-wide signal alone would report 0 deficit here.
+    amenity_index = [{
+        "gazetteer_id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir",
+        "population": 4000, "lat": 16.700, "lon": 74.200, "has_real_data": True,
+        "school_middle": 1, "school_secondary": 1,
+    }]
+    facilities_by_category = {
+        "education": [
+            {"id": 10, "name": "Z.P. Primary School", "category": "education", "lat": 16.700, "lon": 74.200, "source": "udise", "external_id": "U10"},
+            {"id": 11, "name": "No-Data School", "category": "education", "lat": 16.700, "lon": 74.200, "source": "udise", "external_id": "U11"},
+        ],
+    }
+    school_condition_index = {
+        10: {
+            "classrooms_total": 4, "classrooms_major_repair": 3,
+            "electricity": True, "drinking_water": True,
+            "toilet_boys_functional": 1, "toilet_girls_functional": 1,
+        },
+    }
+    r1 = [{
+        "id": 1, "issue_category": "education", "facility_id": 10, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.700, "longitude": 74.200,
+        "raw_text": "Roof leaking", "severity": "high", "confidence": 0.9,
+    }]
+    r2 = [{
+        "id": 2, "issue_category": "education", "facility_id": 11, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.700, "longitude": 74.200,
+        "raw_text": "Roof leaking", "severity": "high", "confidence": 0.9,
+    }]
+    assets_with_udise = _build_assets(
+        r1, facilities_by_category=facilities_by_category, works_by_village={},
+        gazetteer=gazetteer, amenity_index=amenity_index, works_index=[], gw_stations=[],
+        school_condition_index=school_condition_index,
+    )
+    ev_with = json.loads(assets_with_udise[0].evidence)
+    check(
+        "school with real UDISE+ data: infra_deficit reflects its own major-repair share",
+        math.isclose(ev_with["infra_deficit"]["share_classrooms_major_repair"], 0.75),
+        f"got {ev_with['infra_deficit']}",
+    )
+    check(
+        "school with real UDISE+ data: evidence names UDISE as the source, not Census",
+        ev_with["infra_deficit"].get("source") == "udise_2024_25_this_school",
+    )
+
+    assets_without_udise = _build_assets(
+        r2, facilities_by_category=facilities_by_category, works_by_village={},
+        gazetteer=gazetteer, amenity_index=amenity_index, works_index=[], gw_stations=[],
+        school_condition_index=school_condition_index,
+    )
+    ev_without = json.loads(assets_without_udise[0].evidence)
+    check(
+        "school with no UDISE+ record: falls back to the village-wide Census signal",
+        "share_classrooms_major_repair" not in ev_without["infra_deficit"],
+        f"got {ev_without['infra_deficit']}",
+    )
+
+
+def test_village_investment_unspent_grant() -> None:
+    """
+    intelligence/investment.py had zero test coverage before this -- the
+    module's own docstring says it was "complete and correct" only because
+    someone checked it by hand. This covers the one thing added to it: real
+    PRIASoft money, independent of the module's existing PMGSY-roads-only
+    fields.
+    """
+    from intelligence.investment import VillageInvestment
+
+    no_finance = VillageInvestment(
+        gazetteer_id=1, village="Girgaon", district="Kolhapur",
+        latitude=16.7, longitude=74.2,
+    )
+    check(
+        "unspent_grant_rupees: no PRIASoft record is None, never a guessed 0",
+        no_finance.unspent_grant_rupees is None,
+    )
+
+    with_finance = VillageInvestment(
+        gazetteer_id=2, village="Jadhewadi", district="Kolhapur",
+        latitude=16.7, longitude=74.2,
+        finance={
+            "fin_year": "2025-2026",
+            "untied_receipts": 327509.15, "untied_payments": 227355.0,
+            "tied_receipts": 273960.0, "tied_payments": 340234.0,
+        },
+    )
+    # untied unspent: 327509.15 - 227355.0 = 100154.15
+    # tied unspent (overspent, real and allowed to go negative): 273960 - 340234 = -66274.0
+    check(
+        "unspent_grant_rupees: real untied+tied balance, can go negative",
+        math.isclose(with_finance.unspent_grant_rupees, 33880.15),
+        f"got {with_finance.unspent_grant_rupees}",
+    )
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -1122,6 +1267,9 @@ def main() -> None:
         test_hazard_near,
         test_gpdp_district_evidence,
         test_village_finance_evidence,
+        test_school_condition_deficit,
+        test_udise_overrides_census_for_a_specific_school,
+        test_village_investment_unspent_grant,
     ]:
         test()
 
