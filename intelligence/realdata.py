@@ -1168,64 +1168,154 @@ def water_testing_evidence(gazetteer_id: int, index: dict[int, dict]) -> tuple[d
     sentence = f"{samples} samples tested this year, {untested} villages untested nearby"
     return row, sentence
 
+
+def water_testing_catchment_evidence(
+    villages: list[dict], index: dict[int, dict]
+) -> tuple[dict | None, str | None]:
+    """
+    Aggregate current-year JJM testing coverage across a water cluster's
+    whole catchment, not just one village. Many JJM rows are at a finer
+    habitation grain than the gazetteer (hamlets under a village), so most
+    catchments will only partially match -- report exactly how many of the
+    catchment's gazetteer villages matched, never invent coverage for the
+    rest. Returns (None, None) if nothing in the catchment matched this
+    year's JJM data at all -- that means "not found in this year's JJM
+    testing round," never "these villages need no testing."
+    """
+    if not index:
+        return None, None
+    matched = [
+        index[v["gazetteer_id"]] for v in villages
+        if v.get("gazetteer_id") in index
+    ]
+    if not matched:
+        return None, None
+    total_samples = sum(m.get("samples_tested") or 0 for m in matched)
+    evidence = {
+        "villages_tested_this_year": len(matched),
+        "villages_in_catchment": len(villages),
+        "samples_tested_total": total_samples,
+    }
+    sentence = (
+        f"{len(matched)} of {len(villages)} catchment villages tested this "
+        f"year (JJM WQMIS, current cycle): {total_samples} samples total"
+    )
+    return evidence, sentence
+
 # ---------------------------------------------------------------------------
 # Task 2 & 3: Hazard Near (CWC River Levels & SACHET Alerts)
 # ---------------------------------------------------------------------------
 
-def hazard_near(lat: float, lon: float, db, hours: int = 72) -> tuple[bool, dict]:
-    if db is None or lat is None or lon is None:
+def _as_utc(dt):
+    """
+    SQLite drops tzinfo on round-trip, so a DateTime column always comes
+    back naive even though every writer in this project stores UTC
+    (datetime.now(timezone.utc)). Stamp it back on here, once, rather than
+    at every comparison site -- comparing a naive value against an aware
+    `now` raises TypeError instead of silently doing the wrong thing, which
+    is what surfaced this in the first place.
+    """
+    if dt is None or dt.tzinfo is not None:
+        return dt
+    return dt.replace(tzinfo=timezone.utc)
+
+
+def load_river_readings_index(db) -> list[dict]:
+    """
+    Every stored CWC river reading, as plain dicts. Loaded once per
+    recompute() call, same pattern as load_groundwater_index -- hazard_near
+    below must never query the database itself per cluster.
+    """
+    if db is None:
+        return []
+    try:
+        from models import RiverReading
+        return [
+            {
+                "name": r.name, "lat": r.lat, "lon": r.lon,
+                "value": r.value, "datatype_code": r.datatype_code,
+                "observed_at": _as_utc(r.observed_at),
+            }
+            for r in db.query(RiverReading).all()
+        ]
+    except Exception:
+        return []
+
+
+def load_hazard_alerts_index(db) -> list[dict]:
+    """Every stored SACHET alert, as plain dicts. Loaded once per recompute()."""
+    if db is None:
+        return []
+    try:
+        from models import HazardAlert
+        return [
+            {"districts": a.districts, "effective": _as_utc(a.effective),
+             "expires": _as_utc(a.expires), "event": a.event}
+            for a in db.query(HazardAlert).all()
+        ]
+    except Exception:
+        return []
+
+
+def hazard_near(
+    lat: float | None,
+    lon: float | None,
+    river_readings: list[dict],
+    hazard_alerts: list[dict],
+    hours: int = 72,
+) -> tuple[bool, dict]:
+    """
+    True if an unusual CWC river reading or an active SACHET alert is near
+    (lat, lon) within the last `hours`.
+
+    Evidence-only for now: it corroborates a possible emergency, it does not
+    move the priority score -- the urgency-term redesign that would actually
+    score bridge/building emergencies (FEATURE_ROADMAP.md #7) has not been
+    built yet, so this stays visible in the evidence panel until it has.
+
+    `river_readings` / `hazard_alerts` are the plain-dict lists from
+    `load_river_readings_index` / `load_hazard_alerts_index` -- pre-loaded
+    once per recompute() call, not queried live per cluster.
+    """
+    if lat is None or lon is None:
         return False, {}
 
-    evidence = {}
+    evidence: dict = {}
     is_hazard = False
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(hours=hours)
 
-    try:
-        from models import RiverReading
-        from intelligence.clustering import haversine_km
-        readings = db.query(RiverReading).filter(RiverReading.observed_at >= cutoff).all()
-        near_readings = []
-        for r in readings:
-            if r.lat and r.lon:
-                dist = haversine_km(lat, lon, r.lat, r.lon)
-                if dist <= 25.0:
-                    near_readings.append(r)
-        
-        if near_readings:
-            is_hazard = True
-            evidence["cwc_river_warnings"] = len(near_readings)
-            evidence["cwc_nearest"] = f"{near_readings[0].name} ({near_readings[0].value} {near_readings[0].datatype_code})"
-    except Exception:
-        pass
+    near_readings = [
+        r for r in (river_readings or [])
+        if r.get("observed_at") is not None and r["observed_at"] >= cutoff
+        and r.get("lat") is not None and r.get("lon") is not None
+        and haversine_km(lat, lon, r["lat"], r["lon"]) <= 25.0
+    ]
+    if near_readings:
+        is_hazard = True
+        evidence["cwc_river_warnings"] = len(near_readings)
+        nearest = near_readings[0]
+        evidence["cwc_nearest"] = f"{nearest['name']} ({nearest['value']} {nearest['datatype_code']})"
 
-    try:
-        from models import HazardAlert
-        alerts = db.query(HazardAlert).filter(
-            HazardAlert.effective <= now,
-            HazardAlert.expires >= now
-        ).all()
-        
-        active_alerts = []
-        for a in alerts:
-            if not a.districts: continue
-            in_bounds = False
-            if "Kolhapur" in a.districts and (15.7 <= lat <= 17.1 and 73.7 <= lon <= 74.7):
-                in_bounds = True
-            if "Nashik" in a.districts and (19.6 <= lat <= 20.9 and 73.3 <= lon <= 75.0):
-                in_bounds = True
-                
-            if in_bounds:
-                active_alerts.append(a)
-                
-        if active_alerts:
-            is_hazard = True
-            evidence["sachet_alerts"] = len(active_alerts)
-            events = [a.event for a in active_alerts if a.event]
-            if events:
-                evidence["sachet_events"] = ", ".join(events)
-    except Exception:
-        pass
+    active_alerts = []
+    for a in (hazard_alerts or []):
+        districts = a.get("districts") or ""
+        effective, expires = a.get("effective"), a.get("expires")
+        if not (effective and expires and effective <= now <= expires):
+            continue
+        in_bounds = (
+            ("Kolhapur" in districts and 15.7 <= lat <= 17.1 and 73.7 <= lon <= 74.7)
+            or ("Nashik" in districts and 19.6 <= lat <= 20.9 and 73.3 <= lon <= 75.0)
+        )
+        if in_bounds:
+            active_alerts.append(a)
+
+    if active_alerts:
+        is_hazard = True
+        evidence["sachet_alerts"] = len(active_alerts)
+        events = [a["event"] for a in active_alerts if a.get("event")]
+        if events:
+            evidence["sachet_events"] = ", ".join(events)
 
     return is_hazard, evidence
 

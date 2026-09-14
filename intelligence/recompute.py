@@ -305,6 +305,9 @@ def _score_members(
     amenity_index: list[dict],
     works_index: list[dict],
     gw_stations: list[dict],
+    water_testing_index: dict[int, dict] | None = None,
+    river_readings: list[dict] | None = None,
+    hazard_alerts: list[dict] | None = None,
     groups: list[dict] | None = None,
 ) -> dict:
     """
@@ -328,10 +331,26 @@ def _score_members(
         category, nearby_villages, works_index, population_affected
     )
     gw_station, gw_text = None, None
+    wt_evidence, wt_text = None, None
     if category == "water":
         gw_station, gw_text = realdata.lookup_groundwater(lat, lon, gw_stations)
         if gw_text:
             infra_evidence["groundwater_corroboration"] = gw_text
+        wt_evidence, wt_text = realdata.water_testing_catchment_evidence(
+            nearby_villages, water_testing_index or {}
+        )
+        if wt_text:
+            infra_evidence["water_testing_corroboration"] = wt_text
+
+    # Evidence-only for now (see hazard_near's own docstring): corroborates a
+    # possible emergency without moving the score, since the urgency-term
+    # redesign that would actually use this hasn't been built yet.
+    hazard_flag, hazard_evidence = (False, {})
+    if category in ("road", "water"):
+        hazard_flag, hazard_evidence = realdata.hazard_near(
+            lat, lon, river_readings or [], hazard_alerts or []
+        )
+
     vulnerability_value, vulnerability_evidence = realdata.real_vulnerability(
         nearby_villages
     )
@@ -400,6 +419,10 @@ def _score_members(
     }
     if category == "water" and gw_text:
         result["evidence"]["groundwater"] = gw_text
+    if category == "water" and wt_text:
+        result["evidence"]["water_testing"] = wt_text
+    if hazard_flag:
+        result["evidence"]["hazard_corroboration"] = hazard_evidence
 
     return result
 
@@ -487,6 +510,9 @@ def _build_assets(
     works_index: list[dict],
     gw_stations: list[dict],
     road_segments: list[dict] | None = None,
+    water_testing_index: dict[int, dict] | None = None,
+    river_readings: list[dict] | None = None,
+    hazard_alerts: list[dict] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -739,6 +765,9 @@ def _build_assets(
             amenity_index=amenity_index,
             works_index=works_index,
             gw_stations=gw_stations,
+            water_testing_index=water_testing_index,
+            river_readings=river_readings,
+            hazard_alerts=hazard_alerts,
             groups=None,
         )
         evidence = dict(result["evidence"])
@@ -893,6 +922,9 @@ def recompute(db, verbose: bool = True) -> dict:
     works_index = realdata.load_works_index(db)
     gw_stations = realdata.load_groundwater_index(db)
     road_segments = realdata.load_road_segment_index(db)
+    water_testing_index = realdata.load_water_testing_index(db)
+    river_readings = realdata.load_river_readings_index(db)
+    hazard_alerts = realdata.load_hazard_alerts_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -921,7 +953,8 @@ def recompute(db, verbose: bool = True) -> dict:
     log(
         f"real data: {with_records}/{len(amenity_index)} villages with government "
         f"records, {len(works_index)} sanctioned works pinned to a village, "
-        f"{len(gw_stations)} groundwater telemetry stations"
+        f"{len(gw_stations)} groundwater telemetry stations, "
+        f"{len(river_readings)} CWC river readings, {len(hazard_alerts)} SACHET alerts"
     )
 
     # --- Steps 1-3: embed, gate, cluster -----------------------------------
@@ -1016,6 +1049,9 @@ def recompute(db, verbose: bool = True) -> dict:
             amenity_index=amenity_index,
             works_index=works_index,
             gw_stations=gw_stations,
+            water_testing_index=water_testing_index,
+            river_readings=river_readings,
+            hazard_alerts=hazard_alerts,
             groups=groups,
         )
         scored.append((cluster, result))
@@ -1052,6 +1088,9 @@ def recompute(db, verbose: bool = True) -> dict:
         works_index=works_index,
         gw_stations=gw_stations,
         road_segments=road_segments,
+        water_testing_index=water_testing_index,
+        river_readings=river_readings,
+        hazard_alerts=hazard_alerts,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)

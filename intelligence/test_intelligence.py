@@ -822,55 +822,6 @@ def test_school_condition_index_and_evidence() -> None:
     check("load_school_condition_index: parses teachers", loaded[101]["teachers_regular"] == 3)
 
 
-def main() -> None:
-    print("\nP3 Intelligence Engine -- test suite")
-    print("-" * 65)
-    for test in [
-        test_demand_is_capped,
-        test_population_is_log_scaled,
-        test_infra_deficit_tracks_severity,
-        test_vulnerability_favours_small_settlements,
-        test_confidence_gate_damps_but_never_zeroes,
-        test_breakdown_sums_to_score,
-        test_breakdown_has_the_contract_keys,
-        test_score_stays_within_scale,
-        test_equity_can_flip_the_ranking,
-        test_haversine_is_sane,
-        test_gate_blocks_distant_pairs,
-        test_semantic_distance_separates_meanings,
-        test_catchment_population_respects_radius,
-        test_budget_points_are_capped,
-        test_weights_sum_to_one,
-        test_apply_precise_coords,
-        test_precise_coords_split_work_groups,
-        test_nwdp_groundwater_lookup,
-        test_asset_identity_five_rules,
-        test_citizen_selected_beats_nearby_pin,
-        test_demo_seeded_facility_is_not_labelled_citizen_picked,
-        test_asset_breakdown_sums_to_priority_score,
-        test_village_score_equals_max_asset_score,
-        test_hospital_reports_from_two_villages_one_asset,
-        test_candidate_list_sorted_and_capped,
-        test_road_pins_clustering_distance,
-        test_pmgsy_road_segment_lookup,
-        test_road_asset_matches_geosadak_only_with_a_real_pin,
-        test_school_condition_index_and_evidence,
-    ]:
-        test()
-
-    print("-" * 65)
-    total = _passed + len(_failed)
-    print(f"  Result: {_passed}/{total} passed, {len(_failed)} failed")
-    if _failed:
-        for name in _failed:
-            print(f"    failed: {name}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
-
-
 def test_water_testing_evidence():
     index = {100: {"samples_tested": 30, "villages_not_tested": 0}}
     row, text = realdata.water_testing_evidence(100, index)
@@ -878,65 +829,96 @@ def test_water_testing_evidence():
     r2, t2 = realdata.water_testing_evidence(999, index)
     check("water testing evidence absent", r2 is None and t2 is None)
 
-class MockRiverReading:
-    def __init__(self, lat, lon, observed_at, name, value, datatype_code):
-        self.lat = lat
-        self.lon = lon
-        self.observed_at = observed_at
-        self.name = name
-        self.value = value
-        self.datatype_code = datatype_code
+    # Catchment aggregation: a water cluster's villages_near() list, not a
+    # single gazetteer_id -- most JJM rows are finer-grained than the
+    # gazetteer, so only some catchment villages are expected to match.
+    villages = [{"gazetteer_id": 100}, {"gazetteer_id": 101}, {"gazetteer_id": 999}]
+    wide_index = {100: {"samples_tested": 30}, 101: {"samples_tested": 12}}
+    ev, sentence = realdata.water_testing_catchment_evidence(villages, wide_index)
+    check("water testing catchment: counts matched vs total", ev == {
+        "villages_tested_this_year": 2, "villages_in_catchment": 3, "samples_tested_total": 42,
+    }, f"got {ev}")
+    check("water testing catchment: sentence names the partial match",
+          sentence == "2 of 3 catchment villages tested this year (JJM WQMIS, current cycle): 42 samples total",
+          f"got {sentence}")
+    ev_none, sentence_none = realdata.water_testing_catchment_evidence(villages, {})
+    check("water testing catchment: no data is (None, None), never zero", ev_none is None and sentence_none is None)
 
-class MockHazardAlert:
-    def __init__(self, districts, effective, expires, event):
-        self.districts = districts
-        self.effective = effective
-        self.expires = expires
-        self.event = event
-
-class MockDBQuery:
-    def __init__(self, items):
-        self.items = items
-    def filter(self, *args, **kwargs):
-        return self
-    def all(self):
-        return self.items
-
-class MockDB:
-    def __init__(self, readings=[], alerts=[]):
-        self.readings = readings
-        self.alerts = alerts
-    def query(self, model):
-        from models import RiverReading, HazardAlert
-        if model == RiverReading: return MockDBQuery(self.readings)
-        if model == HazardAlert: return MockDBQuery(self.alerts)
-        return MockDBQuery([])
 
 def test_hazard_near():
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
-    
+
+    # hazard_near takes pre-loaded plain-dict lists (same pattern as every
+    # other real_* lookup in this file) -- never a live db session per call.
+    check("hazard_near: no lat/lon returns (False, {})", realdata.hazard_near(None, None, [], []) == (False, {}))
+
     # 1. Nearby river reading
-    rr = MockRiverReading(16.7, 74.2, now, "Test River", 123.4, "MSD")
-    db1 = MockDB(readings=[rr])
-    is_haz, ev = realdata.hazard_near(16.7, 74.2, db1)
+    rr = {"lat": 16.7, "lon": 74.2, "observed_at": now, "name": "Test River", "value": 123.4, "datatype_code": "MSD"}
+    is_haz, ev = realdata.hazard_near(16.7, 74.2, [rr], [])
     check("hazard_near detects nearby river warning", is_haz and "cwc_river_warnings" in ev)
-    
+
     # 2. Distant river reading
-    rr_far = MockRiverReading(28.0, 77.0, now, "Far River", 10.0, "MSD")
-    db2 = MockDB(readings=[rr_far])
-    is_haz2, ev2 = realdata.hazard_near(16.7, 74.2, db2)
+    rr_far = {"lat": 28.0, "lon": 77.0, "observed_at": now, "name": "Far River", "value": 10.0, "datatype_code": "MSD"}
+    is_haz2, ev2 = realdata.hazard_near(16.7, 74.2, [rr_far], [])
     check("hazard_near ignores distant river reading", not is_haz2 and not ev2)
-    
-    # 3. SACHET alert in Kolhapur bounds
-    alert = MockHazardAlert("Kolhapur", now - timedelta(days=1), now + timedelta(days=1), "Heavy Rain")
-    db3 = MockDB(alerts=[alert])
-    is_haz3, ev3 = realdata.hazard_near(16.7, 74.2, db3)
+
+    # 3. A stale reading outside the window is ignored
+    rr_old = {"lat": 16.7, "lon": 74.2, "observed_at": now - timedelta(hours=200), "name": "Old", "value": 1.0, "datatype_code": "MSD"}
+    is_haz_old, ev_old = realdata.hazard_near(16.7, 74.2, [rr_old], [])
+    check("hazard_near ignores a reading older than the window", not is_haz_old and not ev_old)
+
+    # 4. SACHET alert in Kolhapur bounds
+    alert = {"districts": "Kolhapur", "effective": now - timedelta(days=1), "expires": now + timedelta(days=1), "event": "Heavy Rain"}
+    is_haz3, ev3 = realdata.hazard_near(16.7, 74.2, [], [alert])
     check("hazard_near detects active SACHET alert in bounds", is_haz3 and ev3.get("sachet_alerts") == 1)
 
-test_water_testing_evidence()
-test_hazard_near()
+    # 5. An expired SACHET alert is ignored
+    expired = {"districts": "Kolhapur", "effective": now - timedelta(days=5), "expires": now - timedelta(days=1), "event": "Heavy Rain"}
+    is_haz4, ev4 = realdata.hazard_near(16.7, 74.2, [], [expired])
+    check("hazard_near ignores an expired SACHET alert", not is_haz4 and not ev4)
 
+    # 6. load_river_readings_index / load_hazard_alerts_index against a mock DB
+    # SQLite drops tzinfo on round-trip -- every DateTime column comes back
+    # naive even though it was written as UTC. Mock rows use naive values
+    # here on purpose, so this test actually exercises that normalization
+    # instead of masking it with already-aware datetimes.
+    naive_now = now.replace(tzinfo=None)
+
+    class MockRiverReadingRow:
+        def __init__(self):
+            self.name, self.lat, self.lon = "Test River", 16.7, 74.2
+            self.value, self.datatype_code, self.observed_at = 123.4, "MSD", naive_now
+
+    class MockHazardAlertRow:
+        def __init__(self):
+            self.districts, self.event = "Kolhapur", "Heavy Rain"
+            self.effective = naive_now - timedelta(days=1)
+            self.expires = naive_now + timedelta(days=1)
+
+    class MockHazardQuery:
+        def __init__(self, items):
+            self.items = items
+        def all(self):
+            return self.items
+
+    class MockHazardDB:
+        def query(self, model):
+            from models import RiverReading, HazardAlert
+            if model is RiverReading:
+                return MockHazardQuery([MockRiverReadingRow()])
+            if model is HazardAlert:
+                return MockHazardQuery([MockHazardAlertRow()])
+            return MockHazardQuery([])
+
+    loaded_readings = realdata.load_river_readings_index(MockHazardDB())
+    loaded_alerts = realdata.load_hazard_alerts_index(MockHazardDB())
+    check("load_river_readings_index: returns plain dicts", loaded_readings == [
+        {"name": "Test River", "lat": 16.7, "lon": 74.2, "value": 123.4, "datatype_code": "MSD", "observed_at": now}
+    ], f"got {loaded_readings}")
+    check("load_hazard_alerts_index: returns plain dicts", loaded_alerts[0]["districts"] == "Kolhapur" and loaded_alerts[0]["event"] == "Heavy Rain")
+    check("load_river_readings_index: None db returns []", realdata.load_river_readings_index(None) == [])
+    check("load_hazard_alerts_index: None db returns []", realdata.load_hazard_alerts_index(None) == [])
 
 def test_gpdp_district_evidence():
     # 1. Edge cases: missing district or empty index
@@ -1030,6 +1012,53 @@ def test_gpdp_district_evidence():
     check("load_gpdp_district_summary_index: loads district", "kolhapur" in loaded)
     check("load_gpdp_district_summary_index: uses latest plan year", loaded["kolhapur"]["plan_year"] == "2026-27")
 
+def main() -> None:
+    print("\nP3 Intelligence Engine -- test suite")
+    print("-" * 65)
+    for test in [
+        test_demand_is_capped,
+        test_population_is_log_scaled,
+        test_infra_deficit_tracks_severity,
+        test_vulnerability_favours_small_settlements,
+        test_confidence_gate_damps_but_never_zeroes,
+        test_breakdown_sums_to_score,
+        test_breakdown_has_the_contract_keys,
+        test_score_stays_within_scale,
+        test_equity_can_flip_the_ranking,
+        test_haversine_is_sane,
+        test_gate_blocks_distant_pairs,
+        test_semantic_distance_separates_meanings,
+        test_catchment_population_respects_radius,
+        test_budget_points_are_capped,
+        test_weights_sum_to_one,
+        test_apply_precise_coords,
+        test_precise_coords_split_work_groups,
+        test_nwdp_groundwater_lookup,
+        test_asset_identity_five_rules,
+        test_citizen_selected_beats_nearby_pin,
+        test_demo_seeded_facility_is_not_labelled_citizen_picked,
+        test_asset_breakdown_sums_to_priority_score,
+        test_village_score_equals_max_asset_score,
+        test_hospital_reports_from_two_villages_one_asset,
+        test_candidate_list_sorted_and_capped,
+        test_road_pins_clustering_distance,
+        test_pmgsy_road_segment_lookup,
+        test_road_asset_matches_geosadak_only_with_a_real_pin,
+        test_school_condition_index_and_evidence,
+        test_water_testing_evidence,
+        test_hazard_near,
+        test_gpdp_district_evidence,
+    ]:
+        test()
 
-test_gpdp_district_evidence()
+    print("-" * 65)
+    total = _passed + len(_failed)
+    print(f"  Result: {_passed}/{total} passed, {len(_failed)} failed")
+    if _failed:
+        for name in _failed:
+            print(f"    failed: {name}")
+        sys.exit(1)
 
+
+if __name__ == "__main__":
+    main()
