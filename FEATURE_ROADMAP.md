@@ -13,7 +13,7 @@ Status: ✅ done · 🔨 being built · 📝 designed, not started · ⏸ parked
 |---|---|---|---|
 | 1 | **Exact report location**: map pin, "use my location", 5 km check, privacy-safe | ✅ Done (commits 4b83dff → 0040806, verified) | `BUILD_PROMPT_FOR_AGENT.md` Task 1 |
 | 2 | **Village → specific asset view**: village bubbles; click to zoom and open the village priority panel; pins for each specific school, hospital, road spot and water point, each with its own priority | ✅ Built (910142e → 4dbe99e) + map fixes 2026-09-14 (**not yet committed**) | `BUILD_PROMPT_VILLAGE_ASSET_VIEW.md` |
-| 3 | **Road names from PMGSY GeoSadak** (Task 5): real road identity for road pins | 📝 Run after #2 finishes, never at the same time | `BUILD_PROMPT_FOR_AGENT.md` Task 5 |
+| 3 | **Road names + real road shape from PMGSY GeoSadak**: pinned road assets named after the nearest road within 150 m, road drawn on the map | ✅ Built by Claude 2026-09-15 (91725ab → afea92a); the agent's earlier version was reverted (d4f58dc, 15a1d74, d765386). Village-centre assets are deliberately never matched. All 101 current matches come from demo reports. **Live DB needs one recompute** after the UDISE loader finishes | `BUILD_PROMPT_ROAD_GEOMETRY.md` (spec only) |
 | 4 | **Groundwater evidence (NWDP)** on water clusters | ✅ Done (03c26d9; data checked against the live source) | `BUILD_PROMPT_FOR_AGENT.md` Task 4 |
 | 5 | **Rainfall evidence (MOSDAC GSMaP)** | ⛔ Needs an ISRO MOSDAC account (email sign-up, approval by email) | `LIVE_GOV_DATA_RESEARCH.md` §3 |
 | 6 | **Fake-complaint defence** (see below) | 📝 Designed; build prompt not written yet | `PHOTO_VERIFICATION_RESEARCH.md` |
