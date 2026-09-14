@@ -282,6 +282,115 @@ def _work_groups(members: list[dict]) -> list[dict]:
     return out
 
 
+def _score_members(
+    members: list[dict],
+    lat: float,
+    lon: float,
+    category: str,
+    *,
+    gazetteer: list[dict],
+    amenity_index: list[dict],
+    works_index: list[dict],
+    gw_stations: list[dict],
+    groups: list[dict] | None = None,
+) -> dict:
+    """
+    Score a group of citizen reports (either a DemandCluster or an Asset).
+
+    Calculates catchment population, confidence, real infrastructure deficit,
+    vulnerability, reporting capacity deficit, scheme eligibility, and HQ distance
+    based on government data surrounding (lat, lon), then runs score_cluster()
+    and builds the full evidence dictionary.
+    """
+    population_affected = population_in_catchment(lat, lon, category, gazetteer)
+    confidences = [m["confidence"] for m in members if m.get("confidence") is not None]
+    average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+    unique_reporters = _unique_reporters(members)
+    settlement_count = _settlement_count(members)
+    block = _modal([m.get("block") for m in members])
+
+    nearby_villages = realdata.villages_near(lat, lon, amenity_index)
+
+    infra_value, infra_evidence = realdata.real_infra_deficit(
+        category, nearby_villages, works_index, population_affected
+    )
+    gw_station, gw_text = None, None
+    if category == "water":
+        gw_station, gw_text = realdata.lookup_groundwater(lat, lon, gw_stations)
+        if gw_text:
+            infra_evidence["groundwater_corroboration"] = gw_text
+    vulnerability_value, vulnerability_evidence = realdata.real_vulnerability(
+        nearby_villages
+    )
+    reporting_value, reporting_evidence = realdata.real_reporting_capacity_deficit(
+        nearby_villages
+    )
+    eligible, eligibility_evidence = realdata.real_scheme_eligibility(
+        category, nearby_villages, population_affected
+    )
+    hq_km, hq_evidence = realdata.real_hq_distance_km(nearby_villages)
+
+    result = score_cluster(
+        unique_reporters=unique_reporters,
+        population_affected=population_affected,
+        settlement_count=settlement_count,
+        severities=[m["severity"] for m in members],
+        average_confidence=average_confidence,
+        issue_category=category,
+        block=block,
+        distance_to_hq_km=nearest_hq_distance_km(lat, lon, gazetteer),
+        real_infra_deficit=infra_value,
+        real_vulnerability=vulnerability_value,
+        real_reporting_deficit=reporting_value,
+        # Only assert eligibility when there were records to judge it on;
+        # "we have no data" must not be recorded as "not eligible".
+        scheme_eligible=eligible if eligibility_evidence else None,
+        real_hq_distance_km=hq_km,
+    )
+    counted = sorted(
+        (v for v in nearby_villages if v.get("population")),
+        key=lambda v: v["population"],
+        reverse=True,
+    )
+    result["evidence"] = {
+        # Which source each term actually used -- real government records or
+        # the fallback proxy. score_cluster computed this to produce the
+        # number; before, it was dropped on the floor, so a score could be
+        # read but a reader could not tell which terms were guesses. Now it
+        # is persisted alongside the rest of the working (§10.2 feature #3).
+        "data_basis": result["data_basis"],
+        "demand": {
+            "distinct_reporters": unique_reporters,
+            "total_reports": len(members),
+            "saturates_at": config.DEMAND_SATURATION_REPORTERS,
+            "settlements": settlement_count,
+        },
+        "population": {
+            "people_affected": population_affected,
+            "catchment_radius_km": config.CATCHMENT_RADIUS_KM.get(
+                category, config.DEFAULT_CATCHMENT_RADIUS_KM
+            ),
+            "villages_in_catchment": len(nearby_villages),
+            "largest_villages": [
+                {"name": v["name"], "population": v["population"]}
+                for v in counted[:5]
+            ],
+        },
+        "infra_deficit": infra_evidence,
+        "vulnerability": vulnerability_evidence,
+        "reporting_capacity": reporting_evidence,
+        "scheme_eligibility": eligibility_evidence,
+        "feasibility": hq_evidence,
+        "cost_benchmark": realdata.cost_benchmark(category, works_index),
+        "work_groups": len(groups) if groups is not None else 0,
+        "villages_examined": len(nearby_villages),
+    }
+    if category == "water" and gw_text:
+        result["evidence"]["groundwater"] = gw_text
+
+    return result
+
+
 def recompute(db, verbose: bool = True) -> dict:
     """Run the full P3 pass. Returns a summary dict."""
 
@@ -408,91 +517,17 @@ def recompute(db, verbose: bool = True) -> dict:
                 )
             )
 
-        # --- what the government's own records say about this place --------
-        nearby_villages = realdata.villages_near(centroid_lat, centroid_lon, amenity_index)
-
-        infra_value, infra_evidence = realdata.real_infra_deficit(
-            category, nearby_villages, works_index, population_affected
+        result = _score_members(
+            members,
+            centroid_lat,
+            centroid_lon,
+            category,
+            gazetteer=gazetteer,
+            amenity_index=amenity_index,
+            works_index=works_index,
+            gw_stations=gw_stations,
+            groups=groups,
         )
-        gw_station, gw_text = None, None
-        if category == "water":
-            gw_station, gw_text = realdata.lookup_groundwater(
-                centroid_lat, centroid_lon, gw_stations
-            )
-            if gw_text:
-                infra_evidence["groundwater_corroboration"] = gw_text
-        vulnerability_value, vulnerability_evidence = realdata.real_vulnerability(
-            nearby_villages
-        )
-        reporting_value, reporting_evidence = realdata.real_reporting_capacity_deficit(
-            nearby_villages
-        )
-        eligible, eligibility_evidence = realdata.real_scheme_eligibility(
-            category, nearby_villages, population_affected
-        )
-        hq_km, hq_evidence = realdata.real_hq_distance_km(nearby_villages)
-
-        result = score_cluster(
-            unique_reporters=cluster.unique_reporters,
-            population_affected=population_affected,
-            settlement_count=cluster.settlement_count,
-            severities=[m["severity"] for m in members],
-            average_confidence=average_confidence,
-            issue_category=category,
-            block=cluster.block,
-            distance_to_hq_km=nearest_hq_distance_km(centroid_lat, centroid_lon, gazetteer),
-            real_infra_deficit=infra_value,
-            real_vulnerability=vulnerability_value,
-            real_reporting_deficit=reporting_value,
-            # Only assert eligibility when there were records to judge it on;
-            # "we have no data" must not be recorded as "not eligible".
-            scheme_eligible=eligible if eligibility_evidence else None,
-            real_hq_distance_km=hq_km,
-        )
-        # Everything a reader needs to check a term rather than take it on
-        # trust: which villages were counted and how many people live in them,
-        # which scheme and which rule, what a comparable work has actually
-        # cost. All of it was already computed to produce the score.
-        counted = sorted(
-            (v for v in nearby_villages if v.get("population")),
-            key=lambda v: v["population"],
-            reverse=True,
-        )
-        result["evidence"] = {
-            # Which source each term actually used -- real government records or
-            # the fallback proxy. score_cluster computed this to produce the
-            # number; before, it was dropped on the floor, so a score could be
-            # read but a reader could not tell which terms were guesses. Now it
-            # is persisted alongside the rest of the working (§10.2 feature #3).
-            "data_basis": result["data_basis"],
-            "demand": {
-                "distinct_reporters": cluster.unique_reporters,
-                "total_reports": len(members),
-                "saturates_at": config.DEMAND_SATURATION_REPORTERS,
-                "settlements": cluster.settlement_count,
-            },
-            "population": {
-                "people_affected": population_affected,
-                "catchment_radius_km": config.CATCHMENT_RADIUS_KM.get(
-                    category, config.DEFAULT_CATCHMENT_RADIUS_KM
-                ),
-                "villages_in_catchment": len(nearby_villages),
-                "largest_villages": [
-                    {"name": v["name"], "population": v["population"]}
-                    for v in counted[:5]
-                ],
-            },
-            "infra_deficit": infra_evidence,
-            "vulnerability": vulnerability_evidence,
-            "reporting_capacity": reporting_evidence,
-            "scheme_eligibility": eligibility_evidence,
-            "feasibility": hq_evidence,
-            "cost_benchmark": realdata.cost_benchmark(category, works_index),
-            "work_groups": len(groups),
-            "villages_examined": len(nearby_villages),
-        }
-        if category == "water" and gw_text:
-            result["evidence"]["groundwater"] = gw_text
         scored.append((cluster, result))
 
     db.commit()
