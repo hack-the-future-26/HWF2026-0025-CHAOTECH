@@ -521,44 +521,6 @@ def test_village_and_asset_endpoints(client) -> tuple[int, int]:
     res_404_a = client.get("/assets/99999999")
     assert_check("unknown asset ID returns 404", res_404_a.status_code == 404, f"got {res_404_a.status_code}")
 
-    # 6. PMGSY Road Geometry in Asset API (Step 3)
-    matched_asset_id = None
-    unmatched_asset_id = None
-    for v in (res_all_v.json() if res_all_v.status_code == 200 else []):
-        v_full = client.get(f"/villages/{v['gazetteer_id']}").json()
-        for a in v_full.get("assets", []):
-            if matched_asset_id is None and a.get("name_basis") == "geosadak_segment":
-                matched_asset_id = a["id"]
-            if unmatched_asset_id is None and a.get("asset_type") == "road" and a.get("name_basis") == "unnamed_pin":
-                unmatched_asset_id = a["id"]
-            if matched_asset_id is not None and unmatched_asset_id is not None:
-                break
-        if matched_asset_id is not None and unmatched_asset_id is not None:
-            break
-
-    assert_check("found matched road asset in API", matched_asset_id is not None)
-    assert_check("found unmatched road asset in API", unmatched_asset_id is not None)
-
-    if matched_asset_id is not None:
-        res_matched = client.get(f"/assets/{matched_asset_id}")
-        assert_check("GET matched asset returns 200", res_matched.status_code == 200)
-        m_data = res_matched.json() if res_matched.status_code == 200 else {}
-        geom = m_data.get("evidence", {}).get("road_geometry")
-        assert_check("matched asset has road_geometry in evidence", geom is not None)
-        if geom:
-            points = geom.get("points", [])
-            assert_check("matched asset points is a list with >= 2 coordinate pairs", isinstance(points, list) and len(points) >= 2, f"got {len(points)}")
-            if len(points) >= 2:
-                assert_check("points contains valid coordinate pair [lat, lon]", len(points[0]) == 2 and isinstance(points[0][0], (int, float)))
-
-    if unmatched_asset_id is not None:
-        res_unmatched = client.get(f"/assets/{unmatched_asset_id}")
-        assert_check("GET unmatched asset returns 200", res_unmatched.status_code == 200)
-        u_data = res_unmatched.json() if res_unmatched.status_code == 200 else {}
-        u_evidence = u_data.get("evidence", {})
-        assert_check("unmatched asset has no road_geometry in evidence", "road_geometry" not in u_evidence)
-        assert_check("unmatched asset has no road_geometry at root", "road_geometry" not in u_data)
-
     print()
     return passed, total
 

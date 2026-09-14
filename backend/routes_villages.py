@@ -122,8 +122,7 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
 
     assets_list = []
     for a in assets:
-        ev = json.loads(a.evidence) if a.evidence else {}
-        item = {
+        assets_list.append({
             "id": a.id,
             "name": a.name,
             "asset_type": a.asset_type,
@@ -134,16 +133,11 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
             "lat": _format_coord(a.latitude, a.location_basis),
             "lon": _format_coord(a.longitude, a.location_basis),
             "is_demo": a.is_demo,
-            "evidence": ev,
-        }
-        if "road_geometry" in ev:
-            item["road_geometry"] = ev["road_geometry"]
-        assets_list.append(item)
+        })
 
     top_asset = db.query(Asset).filter(Asset.id == vp.top_asset_id).first() if vp.top_asset_id else None
     top_asset_data = None
     if top_asset:
-        top_ev = json.loads(top_asset.evidence) if top_asset.evidence else {}
         top_asset_data = {
             "id": top_asset.id,
             "name": top_asset.name,
@@ -154,11 +148,9 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
             "lat": _format_coord(top_asset.latitude, top_asset.location_basis),
             "lon": _format_coord(top_asset.longitude, top_asset.location_basis),
             "breakdown": json.loads(top_asset.breakdown) if top_asset.breakdown else {},
-            "evidence": top_ev,
+            "evidence": json.loads(top_asset.evidence) if top_asset.evidence else {},
             "is_demo": top_asset.is_demo,
         }
-        if "road_geometry" in top_ev:
-            top_asset_data["road_geometry"] = top_ev["road_geometry"]
 
     counts_by_category = json.loads(vp.counts_by_category) if vp.counts_by_category else {}
 
@@ -223,8 +215,7 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
                     rank_in_village = rank
                     break
 
-    ev = json.loads(asset.evidence) if asset.evidence else {}
-    asset_data = {
+    return {
         "id": asset.id,
         "asset_type": asset.asset_type,
         "name": asset.name,
@@ -245,12 +236,9 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
         "priority_score": asset.priority_score,
         "rank_in_village": rank_in_village,
         "breakdown": json.loads(asset.breakdown) if asset.breakdown else {},
-        "evidence": ev,
+        "evidence": json.loads(asset.evidence) if asset.evidence else {},
         "candidates": json.loads(asset.candidates) if asset.candidates else None,
         "is_demo": asset.is_demo,
         "created_at": asset.created_at,
         "reports": serialized_reports,
     }
-    if "road_geometry" in ev:
-        asset_data["road_geometry"] = ev["road_geometry"]
-    return asset_data
