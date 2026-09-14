@@ -21,6 +21,12 @@ ADDED_COLUMNS = {
         # GPS pin from the citizen intake form's map control.
         "precise_lat": "FLOAT",
         "precise_lon": "FLOAT",
+        # School or hospital picked by citizen on intake form.
+        "facility_id": "INTEGER",
+        # Pin source: citizen_gps or synthetic_seed.
+        "pin_source": "TEXT",
+        # Specific asset this report was grouped into.
+        "asset_id": "INTEGER",
     },
     "demand_cluster": {
         "district": "TEXT",

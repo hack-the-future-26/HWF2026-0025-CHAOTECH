@@ -50,6 +50,12 @@ class CitizenRequest(Base):
     cluster_id = Column(Integer, ForeignKey("demand_cluster.id"), nullable=True)
     # Registered citizen who filed the report, if authenticated.
     user_id = Column(Integer, ForeignKey("citizen_user.id"), nullable=True)
+    # Specific facility (school or hospital) chosen on the intake form.
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
+    # Source of the report's coordinates: "citizen_gps" or "synthetic_seed".
+    pin_source = Column(Text, nullable=True)
+    # Specific asset this report was grouped into, rebuilt on every recompute.
+    asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
 
 
 class CitizenRequestRaw(Base):
@@ -572,3 +578,65 @@ class NwdpGroundwater(Base):
     trend = Column(Text)  # "falling", "rising", "stable"
     recorded_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Asset(Base):
+    """
+    A specific, tangible asset (named school, health facility, road problem spot,
+    or water point) with its own priority score, breakdown, and evidence.
+    Rebuilt on every recompute pass.
+    """
+
+    __tablename__ = "asset"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_type = Column(Text, index=True)  # road, water, health, education
+    name = Column(Text)
+    name_basis = Column(Text)  # citizen_selected, nearest_register, pmgsy_work, unnamed_pin, unresolved_village
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
+    source = Column(Text, nullable=True)
+    external_id = Column(Text, nullable=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    location_basis = Column(Text)  # register_coordinates, citizen_gps_pin, synthetic_seed, village_centroid, mixed
+    primary_gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True)
+    village = Column(Text, index=True)
+    block = Column(Text, index=True)
+    district = Column(Text, index=True)
+    villages_served = Column(Text)  # JSON list of village names
+    report_count = Column(Integer, default=0)
+    distinct_reporters = Column(Integer, default=0)
+    priority_score = Column(Float, index=True)
+    breakdown = Column(Text)  # JSON text
+    evidence = Column(Text)  # JSON text
+    candidates = Column(Text, nullable=True)  # JSON text
+    is_demo = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class VillagePriority(Base):
+    """
+    Priority ranking for each revenue village in the gazetteer that has citizen
+    complaints. Driven by the village's highest-need asset.
+    Rebuilt on every recompute pass.
+    """
+
+    __tablename__ = "village_priority"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), index=True)
+    village = Column(Text, index=True)
+    block = Column(Text, index=True)
+    district = Column(Text, index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    population = Column(Integer, nullable=True)
+    report_count = Column(Integer, default=0)
+    counts_by_category = Column(Text)  # JSON
+    asset_count = Column(Integer, default=0)
+    priority_score = Column(Float, index=True)
+    top_asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    rank_in_district = Column(Integer, nullable=True)
+    is_demo = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

@@ -501,6 +501,7 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
         confidence = result["confidence_overall"]
 
         precise_lat, precise_lon = None, None
+        pin_source = None
         if intake:
             # A village chosen from the dropdown outranks one guessed from the
             # text. This is the fix for reports that used to be stored with no
@@ -514,6 +515,8 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
                 precise_lat, precise_lon = _validate_pin(
                     form, location_resolved["lat"], location_resolved["lon"]
                 )
+                if precise_lat is not None and precise_lon is not None:
+                    pin_source = "citizen_gps"
             # The picked village replaces whatever the extractor scraped out
             # of the sentence. Left as-is, a complaint that never named a
             # place stored fragments like "din se, bahut samasya" as its
@@ -539,6 +542,7 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             longitude=location_resolved.get("lon"),
             precise_lat=precise_lat,
             precise_lon=precise_lon,
+            pin_source=pin_source,
             confidence=confidence,
             is_synthetic=result["is_synthetic"],
             department=intake["department"] if intake else None,
