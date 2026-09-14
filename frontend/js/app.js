@@ -124,10 +124,9 @@
   }
 
   /** Transform for a point (used when diving into a single cluster).
-   *  `rightInset` is the width of any panel covering the right edge, so the
-   *  point is centred in what the user can actually see. Unused since the
-   *  detail moved from a right sidebar to a dock beneath the map, but kept
-   *  because a right-hand overlay is a plausible thing to add back. */
+   *  `rightInset` is for a panel that covers the map without resizing it;
+   *  the detail column resizes the map instead (see sizeToStage), so every
+   *  caller passes 0. */
   function pointTransform(lon, lat, k, rightInset = 0) {
     const [px, py] = projection([lon, lat]);
     const safeK = Number.isFinite(k) && k > 0 ? k : 1;
@@ -361,9 +360,106 @@
     const dock = d3.select("#dock");
     if (!dock.classed("dock--open")) return;
     dock.classed("dock--open", false);
-    // Give the map its space back. Waits out the slide-down so the height
-    // read in sizeToStage is the settled one, not a mid-transition value.
+    stage.classList.remove("stage--docked");
+    // Give the map its width back once the slide-out has settled.
     setTimeout(refit, 440);
+  }
+
+  function openDock() {
+    const dock = d3.select("#dock");
+    stage.classList.add("stage--docked");
+    // Only on the closed -> open transition. refit() re-navigates and
+    // navigate() re-renders the dock, so an unconditional refit here would
+    // schedule another one every 440ms forever.
+    const wasOpen = dock.classed("dock--open");
+    dock.classed("dock--open", true);
+    if (!wasOpen) setTimeout(refit, 440);
+  }
+
+  // Which sections the officer has opened or closed, by id. The dock is
+  // re-rendered on every refit and resize; without this, whatever they had
+  // opened would snap shut under them.
+  const sectState = {};
+
+  /** Header of the detail column; returns the scrolling body to fill. */
+  function dockShell({ cat, demo, title, sub, score, rank, onClose }) {
+    const dock = d3.select("#dock");
+    dock.html("");
+    const head = dock.append("header").attr("class", "dock__head");
+    const top = head.append("div").attr("class", "dock__headtop");
+    top.append("span").attr("class", "dock__cat").text(cat);
+    if (demo) top.append("span").attr("class", "badge--demo").text("demo data");
+    top.append("div").attr("class", "dock__spacer");
+    top.append("button")
+      .attr("type", "button")
+      .attr("class", "dock__close")
+      .attr("aria-label", "Close detail")
+      .html("&times;")
+      .on("click", onClose);
+    head.append("div").attr("class", "dock__title").text(title);
+    if (sub) head.append("div").attr("class", "dock__sub").text(sub);
+    const sr = head.append("div").attr("class", "dock__scorerow");
+    sr.append("span").attr("class", "dock__score").text((score ?? 0).toFixed(2));
+    sr.append("span").attr("class", "dock__scoreof").text("/ 100");
+    if (rank) sr.append("span").attr("class", "dock__rank").text(rank);
+    return dock.append("div").attr("class", "dock__body");
+  }
+
+  /** A folding section: a heading row with a one-line summary, then content. */
+  function dockSection(body, { id, title, summary, open = false, hint }) {
+    const isOpen = id in sectState ? sectState[id] : open;
+    const s = body.append("section")
+      .attr("class", `sect${isOpen ? " sect--open" : ""}`)
+      .attr("data-sect", id);
+    const h = s.append("button")
+      .attr("type", "button")
+      .attr("class", "sect__head")
+      .attr("aria-expanded", String(isOpen));
+    h.append("span").attr("class", "sect__title").text(title);
+    const sum = h.append("span").attr("class", "sect__sum").text(summary || "");
+    h.append("span").attr("class", "sect__caret").attr("aria-hidden", "true");
+    const content = s.append("div").attr("class", "sect__body");
+    if (hint) content.append("div").attr("class", "dock__hint").text(hint);
+    h.on("click", () => setSectionOpen(s, !s.classed("sect--open")));
+    return { sect: s, body: content, summary: sum };
+  }
+
+  function setSectionOpen(s, open) {
+    s.classed("sect--open", open);
+    s.select(".sect__head").attr("aria-expanded", String(open));
+    sectState[s.attr("data-sect")] = open;
+  }
+
+  /** The "1 report ›" chip: opens the reports section and brings it into view. */
+  function reportsChip(row, count, sect) {
+    const b = row.insert("button", ":first-child").attr("type", "button").attr("class", "kfact kfact--btn")
+      .on("click", () => {
+        setSectionOpen(sect, true);
+        // Scroll the column only. scrollIntoView would also scroll the stage
+        // behind it and shove the map off the top of the screen.
+        const scroller = sect.node().closest(".dock__body");
+        if (scroller) {
+          const top = scroller.scrollTop + sect.node().getBoundingClientRect().top
+            - scroller.getBoundingClientRect().top;
+          scroller.scrollTo({ top, behavior: "smooth" });
+        }
+      });
+    b.append("b").text(fmt(count));
+    b.append("span").text(count === 1 ? "report" : "reports");
+  }
+
+  /** A fact chip. `lead` puts the words first: "named from <b>register</b>". */
+  function kfact(row, value, label = "", lead = null) {
+    const f = row.append("span").attr("class", "kfact");
+    if (lead) f.append("span").text(lead);
+    f.append("b").text(value);
+    if (label) f.append("span").text(label);
+  }
+
+  function reportsSummary(list) {
+    const n = (list || []).length;
+    const distinct = new Set((list || []).map((r) => (r.raw_text || "").trim())).size;
+    return `${n} report${n === 1 ? "" : "s"} · ${distinct} distinct`;
   }
 
   /* ------------------------------------------------------------ evidence -- */
@@ -572,13 +668,13 @@
     const reportsArr = list || [];
     const distinctTexts = new Set(reportsArr.map((r) => (r.raw_text || "").trim())).size;
 
-    const priv = target.append("div").attr("class", "privacy");
+    const priv = target.append("div").attr("class", "privacy privacy--line")
+      .attr("title", "Phone numbers and self-stated names are stripped at ingestion, " +
+                     "and no citizen identity is stored at all.");
     priv.append("div").attr("class", "privacy__icon").text("🛡");
     priv.append("div").attr("class", "privacy__text")
-      .html(`<b>${reportsArr.length} reports · ${distinctTexts} distinct</b>. ` +
-            `Phone numbers and self-stated names are stripped at ingestion, and no ` +
-            `citizen identity is stored at all — so this is what the state can see: ` +
-            `what was reported and from where, never by whom.`);
+      .html(`<b>${reportsArr.length} reports · ${distinctTexts} distinct.</b> ` +
+            `What was reported and where — never by whom.`);
 
     if (!reportsArr.length) {
       target.append("div").attr("class", "ev__none").text("No citizen reports recorded.");
@@ -588,7 +684,17 @@
     reportsArr.forEach((r) => {
       const isNew = highlightId != null && r.id === highlightId;
       const el = target.append("div").attr("class", `rep${isNew ? " rep--new" : ""}`);
-      const top = el.append("div").attr("class", "rep__top");
+      // The citizen's photo, once reports carry one. Only http(s) or
+      // same-site paths are ever turned into a link.
+      const photo = r.photo_url || r.image_url;
+      if (photo && /^(https?:\/\/|\/)/.test(photo)) {
+        el.append("a").attr("class", "rep__media")
+          .attr("href", photo).attr("target", "_blank").attr("rel", "noopener")
+          .attr("aria-label", "Open the photo from this report")
+          .append("img").attr("src", photo).attr("alt", "Photo from the report").attr("loading", "lazy");
+      }
+      const main = el.append("div").attr("class", "rep__main");
+      const top = main.append("div").attr("class", "rep__top");
       top.append("span").attr("class", "rep__lang").text(r.language_detected || "?");
       if (r.severity) {
         top.append("span")
@@ -599,7 +705,7 @@
         top.append("span").attr("class", "rep__sev rep__sev--medium").text("yours");
       }
       top.append("span").attr("class", "rep__where").text(r.village || r.block || "—");
-      el.append("div").attr("class", "rep__text").text(r.raw_text || "");
+      main.append("div").attr("class", "rep__text").text(r.raw_text || "");
     });
   }
 
@@ -650,7 +756,8 @@
     TERMS.forEach(([key, label, source]) => {
       const val = b[key] ?? 0;
       const t = target.append("div").attr("class", "term");
-      const r = t.append("div").attr("class", "term__row");
+      const r = t.append("div").attr("class", "term__row")
+        .attr("role", "button").attr("tabindex", 0).attr("aria-expanded", "false");
       r.append("span").attr("class", "term__name").text(label);
       r.append("span").attr("class", "term__caret").text("▸");
       r.append("span")
@@ -666,13 +773,17 @@
       evTargets[key] = t.append("div").attr("class", "term__ev")
         .text(evidence ? "" : "Loading the record…");
 
-      t.classed("term--open", true);
-      r.select(".term__caret").text("▾");
-
-      r.on("click", () => {
+      // Closed by default: nine one-line terms read at a glance, and each
+      // opens onto the record it was computed from.
+      const toggle = () => {
         const open = !t.classed("term--open");
         t.classed("term--open", open);
+        r.attr("aria-expanded", String(open));
         r.select(".term__caret").text(open ? "▾" : "▸");
+      };
+      r.on("click", toggle);
+      r.on("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
       });
     });
 
@@ -688,39 +799,28 @@
   }
 
   async function renderPanel(c) {
-    const dock = d3.select("#dock");
-    dock.html("");
+    const body = dockShell({
+      cat: c.issue_category || "—",
+      title: c.block || c.district || `Cluster ${c.id}`,
+      sub: `${c.district} district · cluster ${c.id}`,
+      score: c.priority_score,
+      rank: `RANK #${rankOf(c)} OF ${clusters.length}`,
+      onClose: () => navigate("district", { state: nav.state, district: nav.district }),
+    });
 
-    /* -- head -- */
-    const head = dock.append("div").attr("class", "dock__head");
-    head.append("span").attr("class", "dock__cat").text(c.issue_category || "—");
-    const titles = head.append("div");
-    titles.append("div").attr("class", "dock__title")
-      .text(c.block || c.district || `Cluster ${c.id}`);
-    titles.append("div").attr("class", "dock__sub")
-      .text(`${c.district} district · cluster ${c.id}`);
-    head.append("div").attr("class", "dock__spacer");
-    head.append("div").attr("class", "dock__score")
-      .text((c.priority_score ?? 0).toFixed(2));
-    head.append("div").attr("class", "dock__scoreof").text("/ 100");
-    head.append("div").attr("class", "dock__rank")
-      .text(`RANK #${rankOf(c)} OF ${clusters.length}`);
-    head.append("button")
-      .attr("class", "dock__close")
-      .attr("aria-label", "Close detail")
-      .html("&times;")
-      .on("click", () => navigate("district", { state: nav.state, district: nav.district }));
+    const facts = body.append("div").attr("class", "kfacts");
+    kfact(facts, fmt(c.unique_reporters ?? 0), "distinct reporters");
+    kfact(facts, fmt(c.population_affected ?? 0), "people affected");
+    kfact(facts, fmt(c.settlement_count ?? 0), "settlements");
 
-    const cols = dock.append("div").attr("class", "dock__cols");
-
-    /* -- column 1: the nine terms, each opening onto its evidence -- */
-    const sec = cols.append("div").attr("class", "dock__col");
-    sec.append("div").attr("class", "eyebrow").text("Why this score");
-    sec.append("div").attr("class", "dock__hint")
-      .text("Nine independently-sourced terms, summing to the score exactly. " +
-            "Click any term to see the record it was computed from.");
-
-    const evTargets = renderBreakdown(sec, c.breakdown, null, null);
+    /* -- the nine terms, each opening onto its evidence -- */
+    const why = dockSection(body, {
+      id: "cluster:why", title: "Why this score", open: true,
+      summary: `sum of ${TERMS.length} terms`,
+      hint: "Nine independently-sourced terms, summing to the score exactly. " +
+            "Click any term to see the record it was computed from.",
+    });
+    const evTargets = renderBreakdown(why.body, c.breakdown, null, null);
 
     /* -- why this ranks above the next cluster (§10.2 #16) -- */
     const runner = c.runner_up_cluster_id != null
@@ -736,7 +836,7 @@
         .slice(0, 3);
       const rName = runner.block
         || `${runner.district || "cluster"} #${runner.id}`;
-      sec.append("div").attr("class", "cfline")
+      why.body.append("div").attr("class", "cfline")
         .attr("style",
           "margin-top:12px;padding:10px 12px;border-radius:8px;" +
           "background:var(--cream-deep,#efeadd);font-size:11.5px;" +
@@ -751,54 +851,35 @@
             : ` on the combined terms — no single term decides it.`));
     }
 
-    /* -- column 2: which specific thing is broken -- */
-    const mid = cols.append("div").attr("class", "dock__col");
-    const facts = mid.append("div").attr("class", "facts");
-    [
-      [fmt(c.report_count ?? 0), "citizen reports"],
-      [fmt(c.unique_reporters ?? 0), "distinct reporters"],
-      [fmt(c.population_affected ?? 0), "people affected"],
-      [fmt(c.settlement_count ?? 0), "settlements"],
-    ].forEach(([v, l]) => {
-      const f = facts.append("div").attr("class", "fact");
-      f.append("div").attr("class", "fact__v").text(v);
-      f.append("div").attr("class", "fact__l").text(l);
+    /* -- which specific thing is broken -- */
+    const wg = dockSection(body, {
+      id: "cluster:places", title: "Which specific thing is broken", open: true,
+      summary: "loading…",
+      hint: "The cluster decides where the money goes. These are the places " +
+            "inside it a crew would actually be sent.",
     });
-
-    mid.append("div").attr("class", "eyebrow").style("margin-top", "16px")
-      .text("Which specific thing is broken");
-    mid.append("div").attr("class", "dock__hint")
-      .text("The cluster decides where the money goes. These are the places " +
-            "inside it a crew would actually be sent.");
-    const wgBody = mid.append("div").text("Loading work groups…")
+    const wgBody = wg.body.append("div").text("Loading work groups…")
       .style("font-size", "11.5px").style("color", "var(--muted)");
 
-    /* -- column 3: the reports, then the counterfactual -- */
-    const right = cols.append("div").attr("class", "dock__col");
-    right.append("div").attr("class", "eyebrow").text("Who reported this");
-    right.append("div").attr("class", "dock__hint")
-      .text("The individual citizen reports corroborated into this cluster.");
-    const repsBody = right.append("div").text("Loading reports…")
-      .style("font-size", "11.5px").style("color", "var(--muted)");
-
+    /* -- the reports -- */
     // ?mine=<report id> is how the intake screen hands the citizen back to
     // their own report after clustering runs, so it has to be read here --
     // without it the "yours" badge in loadClusterReports can never fire.
     const mineId = Number(params.get("mine"));
-    loadClusterReports(c.id, repsBody, Number.isFinite(mineId) && mineId > 0 ? mineId : null);
+    const mine = Number.isFinite(mineId) && mineId > 0 ? mineId : null;
+    const reps = dockSection(body, {
+      id: "cluster:reports", title: "Citizen reports", open: mine != null,
+      summary: `${fmt(c.report_count ?? 0)} reports`,
+    });
+    reportsChip(facts, c.report_count ?? 0, reps.sect);
+    const repsBody = reps.body.append("div").text("Loading reports…")
+      .style("font-size", "11.5px").style("color", "var(--muted)");
+    loadClusterReports(c.id, repsBody, mine);
 
-    // Only on the closed -> open transition. refit() re-navigates, navigate()
-    // re-renders this dock, and an unconditional refit here would schedule
-    // another one every 440ms forever -- rebuilding the DOM under the user
-    // and silently discarding any term they had expanded.
-    const wasOpen = dock.classed("dock--open");
-    dock.classed("dock--open", true);
-    if (!wasOpen) setTimeout(refit, 440);
+    openDock();
 
     /* -- the evidence and work groups need the detail endpoint -- */
-    loadClusterDetail(c.id, evTargets, wgBody);
-
-    /* -- counterfactual -- */
+    loadClusterDetail(c.id, evTargets, wgBody, wg.summary);
   }
 
   /**
@@ -809,7 +890,7 @@
    * read for the one cluster someone opened, so shipping it with the list
    * would make every page load pay for detail nobody asked for.
    */
-  async function loadClusterDetail(clusterId, evTargets, wgBody) {
+  async function loadClusterDetail(clusterId, evTargets, wgBody, wgSummary = null) {
     let detail;
     try {
       detail = await d3.json(`${API}/clusters/${clusterId}`);
@@ -828,7 +909,7 @@
     const dockEl = d3.select("#dock");
     dockEl.selectAll(".dock__warn").remove();
     (detail.warnings || []).forEach((w) => {
-      dockEl.insert("div", ".dock__cols")
+      dockEl.select(".dock__body").insert("div", ".sect")
         .attr("class", "dock__warn")
         .attr("style",
           "margin:0 0 10px;padding:9px 12px;border-radius:8px;font-size:12px;" +
@@ -843,6 +924,7 @@
     populateEvidence(evTargets, evidence, detail.data_basis || {});
 
     const groups = detail.work_groups || [];
+    if (wgSummary) wgSummary.text(`${groups.length} place${groups.length === 1 ? "" : "s"}`);
     wgBody.html("");
     if (!groups.length) {
       wgBody.append("div").attr("class", "ev__none")
@@ -895,63 +977,43 @@
   }
 
   function renderVillagePanel(vData) {
-    const dock = d3.select("#dock");
-    dock.html("");
-
     const topAsset = vData.top_asset || {};
     const districtVillages = districtVillagesCache[nav.district] || [];
     const totalVillages = districtVillages.length || (vData.rank_in_district ? vData.rank_in_district : "—");
     const rankText = vData.rank_in_district
-      ? `RANK #${vData.rank_in_district} OF ${totalVillages} VILLAGES IN ${vData.district}`
+      ? `RANK #${vData.rank_in_district} OF ${totalVillages} IN ${vData.district}`
       : "VILLAGE PRIORITY";
-
-    /* -- head -- */
-    const head = dock.append("div").attr("class", "dock__head");
-    head.append("span").attr("class", "dock__cat").text("Village Priority");
-    if (vData.is_demo) {
-      head.append("span").attr("class", "badge--demo").text("demo data");
-    }
-    const titles = head.append("div");
-    titles.append("div").attr("class", "dock__title").text(vData.name);
-    titles.append("div").attr("class", "dock__sub")
-      .text(`${vData.block ? vData.block + " block · " : ""}${vData.district} district · ${vData.asset_count || (vData.assets || []).length} assets`);
-    head.append("div").attr("class", "dock__spacer");
-    head.append("div").attr("class", "dock__score")
-      .text((vData.priority_score ?? 0).toFixed(2));
-    head.append("div").attr("class", "dock__scoreof").text("/ 100");
-    head.append("div").attr("class", "dock__rank").text(rankText);
-    head.append("button")
-      .attr("class", "dock__close")
-      .attr("aria-label", "Close detail")
-      .html("&times;")
-      .on("click", () => navigate("district", { state: nav.state, district: nav.district }));
-
-    const cols = dock.append("div").attr("class", "dock__cols");
-
-    /* -- Col 1: Why this score (driven by top asset) -- */
-    const col1 = cols.append("div").attr("class", "dock__col");
-    col1.append("div").attr("class", "eyebrow").text("Why this score");
-    col1.append("div").attr("class", "dock__hint")
-      .html(topAsset.name
-        ? `Driven by its highest-need asset: <b>${topAsset.name}</b>`
-        : "Nine independently-sourced terms for this village's highest-need asset.");
-
-    renderBreakdown(col1, topAsset.breakdown, topAsset.evidence, topAsset.data_basis);
-
-    /* -- Col 2: Fix first inside this village -- */
-    const col2 = cols.append("div").attr("class", "dock__col");
-    col2.append("div").attr("class", "eyebrow").text("Fix first inside this village");
-    col2.append("div").attr("class", "dock__hint")
-      .text("Ranked assets in this village. Click any asset to inspect its evidence.");
-
     const assets = (vData.assets || []).slice().sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0));
-    const listEl = col2.append("div");
+    const reports = vData.reports || [];
+
+    const body = dockShell({
+      cat: "Village priority",
+      demo: vData.is_demo,
+      title: vData.name,
+      sub: `${vData.block ? vData.block + " block · " : ""}${vData.district} district`,
+      score: vData.priority_score,
+      rank: rankText,
+      onClose: () => navigate("district", { state: nav.state, district: nav.district }),
+    });
+
+    const facts = body.append("div").attr("class", "kfacts");
+    kfact(facts, fmt(assets.length), assets.length === 1 ? "asset" : "assets");
+
+    /* -- what to fix first: the actionable list leads -- */
+    const fix = dockSection(body, {
+      id: "village:fix", title: "Fix first inside this village", open: true,
+      summary: `${assets.length} ranked`,
+      hint: "Ranked by need. Select one to see its evidence and where it is.",
+    });
     if (!assets.length) {
-      listEl.append("div").attr("class", "ev__none").text("No assets identified for this village.");
+      fix.body.append("div").attr("class", "ev__none").text("No assets identified for this village.");
     }
     assets.forEach((a) => {
-      const card = listEl.append("div").attr("class", "wg")
-        .on("click", () => navigate("asset", { asset: a, village: vData, state: nav.state, district: nav.district }));
+      const open = () => navigate("asset", { asset: a, village: vData, state: nav.state, district: nav.district });
+      const card = fix.body.append("div").attr("class", "wg")
+        .attr("role", "button").attr("tabindex", 0)
+        .on("click", open)
+        .on("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
       const top = card.append("div").attr("class", "wg__top");
       top.append("span").style("font-size", "14px").text(assetIcon(a.asset_type));
       top.append("span").attr("class", "wg__name").text(a.name);
@@ -966,73 +1028,62 @@
       }
     });
 
-    /* -- Col 3: Reports -- */
-    const col3 = cols.append("div").attr("class", "dock__col");
-    col3.append("div").attr("class", "eyebrow").text("Citizen reports");
-    col3.append("div").attr("class", "dock__hint")
-      .text(`Individual citizen grievances from ${vData.name}.`);
+    /* -- the village scores as its highest-need asset -- */
+    const why = dockSection(body, {
+      id: "village:why", title: "Why this score", open: false,
+      summary: topAsset.name ? `from ${topAsset.name}` : "",
+    });
+    why.body.append("div").attr("class", "dock__hint")
+      .html(topAsset.name
+        ? `A village scores as its highest-need asset, <b>${topAsset.name}</b>. ` +
+          `A road score and a hospital score are never added together.`
+        : "Nine independently-sourced terms for this village's highest-need asset.");
+    renderBreakdown(why.body, topAsset.breakdown, topAsset.evidence, topAsset.data_basis);
 
-    renderReportsList(col3, vData.reports || []);
+    /* -- reports, folded to one line -- */
+    const reps = dockSection(body, {
+      id: "village:reports", title: "Citizen reports", open: false,
+      summary: reportsSummary(reports),
+    });
+    renderReportsList(reps.body, reports);
+    reportsChip(facts, reports.length, reps.sect);
 
-    const wasOpen = dock.classed("dock--open");
-    dock.classed("dock--open", true);
-    if (!wasOpen) setTimeout(refit, 440);
+    openDock();
   }
 
   function renderAssetPanel(aData) {
-    const dock = d3.select("#dock");
-    dock.html("");
-
-    /* -- head -- */
-    const head = dock.append("div").attr("class", "dock__head");
-    head.append("span").attr("class", "dock__cat").text(aData.asset_type || "Asset");
-    if (aData.is_demo) {
-      head.append("span").attr("class", "badge--demo").text("demo data");
-    }
-    const titles = head.append("div");
-    titles.append("div").attr("class", "dock__title").text(aData.name);
-    titles.append("div").attr("class", "dock__sub")
-      .text(`${aData.village ? aData.village + " · " : ""}${aData.block ? aData.block + " block · " : ""}${aData.district} district`);
-    head.append("div").attr("class", "dock__spacer");
-    head.append("div").attr("class", "dock__score")
-      .text((aData.priority_score ?? 0).toFixed(2));
-    head.append("div").attr("class", "dock__scoreof").text("/ 100");
     const rankLabel = aData.rank_in_village
       ? `RANK #${aData.rank_in_village} IN ${aData.village || "VILLAGE"}`
       : "ASSET PRIORITY";
-    head.append("div").attr("class", "dock__rank").text(rankLabel);
-    head.append("button")
-      .attr("class", "dock__close")
-      .attr("aria-label", "Close detail")
-      .html("&times;")
-      .on("click", () => {
+    const evidence = aData.evidence || {};
+    const reports = aData.reports || [];
+
+    const body = dockShell({
+      cat: aData.asset_type || "Asset",
+      demo: aData.is_demo,
+      title: aData.name,
+      sub: `${aData.village ? aData.village + " · " : ""}${aData.block ? aData.block + " block · " : ""}${aData.district} district`,
+      score: aData.priority_score,
+      rank: rankLabel,
+      onClose: () => {
         if (nav.village) {
           navigate("village", { village: nav.village, state: nav.state, district: nav.district });
         } else {
           navigate("district", { state: nav.state, district: nav.district });
         }
-      });
+      },
+    });
 
-    const cols = dock.append("div").attr("class", "dock__cols");
+    const facts = body.append("div").attr("class", "kfacts");
+    const distinct = aData.distinct_reporters ?? 0;
+    kfact(facts, fmt(distinct), distinct === 1 ? "distinct reporter" : "distinct reporters");
+    kfact(facts, nameBasisLabel(aData.name_basis), "", "named from");
+    kfact(facts, locationBasisLabel(aData.location_basis), "", "at");
 
-    /* -- Col 1: Nine-term breakdown -- */
-    const col1 = cols.append("div").attr("class", "dock__col");
-    col1.append("div").attr("class", "eyebrow").text("Why this score");
-    col1.append("div").attr("class", "dock__hint")
-      .text("Nine independently-sourced terms for this specific asset.");
-
-    renderBreakdown(col1, aData.breakdown, aData.evidence, aData.data_basis);
-
-    /* -- Col 2: Facts & provenance -- */
-    const col2 = cols.append("div").attr("class", "dock__col");
-    col2.append("div").attr("class", "eyebrow").text("Asset facts & provenance");
-    col2.append("div").attr("class", "dock__hint")
-      .text("Registers, location provenance, and scheme records behind this asset.");
-
-    // Warning banner if undelivered works exist
-    const infraEv = (aData.evidence || {}).infra_deficit || {};
+    // Money already committed here but not delivered: said before anything else.
+    const infraEv = evidence.infra_deficit || {};
     if (infraEv.undelivered_sanctioned_works > 0) {
-      col2.append("div").attr("class", "dock__warn")
+      body.append("div").attr("class", "dock__warn")
         .attr("style",
           "margin:0 0 12px;padding:9px 12px;border-radius:8px;font-size:12px;" +
           "line-height:1.5;color:var(--body);background:rgba(203,120,20,.12);" +
@@ -1040,47 +1091,44 @@
         .html(`<b>&#9888; Already funded here.</b> ${infraEv.undelivered_sanctioned_works} sanctioned works not delivered (₹${infraEv.undelivered_sanctioned_cost_lakh || 0} lakh unspent${infraEv.oldest_undelivered_sanction_year ? `, oldest from ${infraEv.oldest_undelivered_sanction_year}` : ""}).`);
     }
 
-    const facts = col2.append("div").attr("class", "facts");
-    [
-      [fmt(aData.report_count ?? 0), "citizen reports"],
-      [fmt(aData.distinct_reporters ?? 0), "distinct reporters"],
-      [nameBasisLabel(aData.name_basis), "naming source"],
-      [locationBasisLabel(aData.location_basis), "location source"],
-    ].forEach(([v, l]) => {
-      const f = facts.append("div").attr("class", "fact");
-      f.append("div").attr("class", "fact__v").style("font-size", "14px").text(v);
-      f.append("div").attr("class", "fact__l").text(l);
+    /* -- the nine terms -- */
+    const why = dockSection(body, {
+      id: "asset:why", title: "Why this score", open: true,
+      summary: `sum of ${TERMS.length} terms`,
+      hint: "Nine independently-sourced terms for this specific asset. Click a term for its record.",
     });
+    renderBreakdown(why.body, aData.breakdown, evidence, aData.data_basis);
 
-    const kvBox = col2.append("div").style("margin-top", "12px");
-    if (aData.source) {
+    /* -- where it is and which register names it -- */
+    const road = evidence.road_geometry;
+    const reg = dockSection(body, {
+      id: "asset:record", title: "Record & location", open: true,
+      summary: aData.source ? (REGISTER_NAMES[aData.source] || aData.source) : locationBasisLabel(aData.location_basis),
+    });
+    const kvBox = reg.body.append("div");
+    const kv = (k, v) => {
+      if (v == null || v === "") return;
       const row = kvBox.append("div").attr("class", "ev");
-      row.append("span").attr("class", "ev__k").text("Register source");
-      row.append("span").attr("class", "ev__v").text(`${REGISTER_NAMES[aData.source] || aData.source}${aData.external_id ? ` · ${aData.external_id}` : ""}`);
+      row.append("span").attr("class", "ev__k").text(k);
+      row.append("span").attr("class", "ev__v").text(v);
+    };
+    if (aData.source) {
+      kv("Register source", `${REGISTER_NAMES[aData.source] || aData.source}${aData.external_id ? ` · ${aData.external_id}` : ""}`);
     }
     if (aData.villages_served && aData.villages_served.length) {
-      const row = kvBox.append("div").attr("class", "ev");
-      row.append("span").attr("class", "ev__k").text("Villages served");
-      row.append("span").attr("class", "ev__v").text(aData.villages_served.join(", "));
+      kv("Villages served", aData.villages_served.join(", "));
     }
-    const road = (aData.evidence || {}).road_geometry;
     if (road) {
-      [
-        ["DRRP road code", road.drrp_road_code],
-        ["Road category", road.road_category],
-        ["Road owner", road.road_owner],
-        ["Complaint to road", road.distance_m != null ? `${road.distance_m} m` : null],
-      ].filter(([, v]) => v).forEach(([k, v]) => {
-        const row = kvBox.append("div").attr("class", "ev");
-        row.append("span").attr("class", "ev__k").text(k);
-        row.append("span").attr("class", "ev__v").text(v);
-      });
+      kv("DRRP road code", road.drrp_road_code);
+      kv("Road category", road.road_category);
+      kv("Road owner", road.road_owner);
+      kv("Complaint to road", road.distance_m != null ? `${road.distance_m} m` : null);
     }
 
     // Groundwater evidence for water assets
-    const gwEv = (aData.evidence || {}).groundwater;
+    const gwEv = evidence.groundwater;
     if (gwEv) {
-      const gwBox = col2.append("div").style("margin-top", "12px").attr("class", "term__ev").style("display", "block");
+      const gwBox = reg.body.append("div").style("margin-top", "12px").attr("class", "term__ev").style("display", "block");
       gwBox.append("div").style("font-size", "10px").style("font-weight", "700").style("text-transform", "uppercase").style("color", "#2e7d32").style("margin-bottom", "4px").text("Groundwater telemetry (NWDP)");
       renderEvidence(gwBox, gwEv);
     }
@@ -1088,7 +1136,7 @@
     // Candidates if unresolved
     const cands = aData.candidates || [];
     if (cands.length) {
-      const box = col2.append("div").attr("class", "wg__cands").style("margin-top", "12px");
+      const box = reg.body.append("div").attr("class", "wg__cands").style("margin-top", "12px");
       box.append("div").attr("class", "wg__candhead")
         .text(`${cands.length} possible facilities in this village — citizen pin narrows to one:`);
       cands.forEach((c) => {
@@ -1099,17 +1147,15 @@
       });
     }
 
-    /* -- Col 3: Reports -- */
-    const col3 = cols.append("div").attr("class", "dock__col");
-    col3.append("div").attr("class", "eyebrow").text("Reports for this asset");
-    col3.append("div").attr("class", "dock__hint")
-      .text(`The individual citizen grievances grouped into this asset.`);
+    /* -- reports, folded to one line -- */
+    const reps = dockSection(body, {
+      id: "asset:reports", title: "Citizen reports", open: false,
+      summary: reportsSummary(reports),
+    });
+    renderReportsList(reps.body, reports);
+    reportsChip(facts, aData.report_count ?? reports.length, reps.sect);
 
-    renderReportsList(col3, aData.reports || []);
-
-    const wasOpen = dock.classed("dock--open");
-    dock.classed("dock--open", true);
-    if (!wasOpen) setTimeout(refit, 440);
+    openDock();
   }
 
   /** Centre the map on one work group so the officer sees where it is. */
@@ -1698,12 +1744,14 @@
 
   function sizeToStage() {
     const r = stage.getBoundingClientRect();
-    width = r.width;
     const dock = document.getElementById("dock");
-    const docked = dock && dock.classList.contains("dock--open")
-      ? dock.getBoundingClientRect().height : 0;
-    height = Math.max(160, r.height - docked);
+    // offsetWidth, not getBoundingClientRect: the dock slides in with a
+    // transform, and the map must shrink to its settled width.
+    const docked = dock && dock.classList.contains("dock--open") ? dock.offsetWidth : 0;
+    width = Math.max(240, r.width - docked);
+    height = r.height;
     svg.attr("width", width).attr("height", height)
+       .style("width", `${width}px`)
        .style("height", `${height}px`)
        .attr("viewBox", `0 0 ${width} ${height}`);
   }
