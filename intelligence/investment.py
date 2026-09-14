@@ -83,6 +83,27 @@ class VillageInvestment:
 
     nearby_reports: int = 0
     works: list = field(default_factory=list)
+    # Real per-village receipts & expenditure from PRIASoft (the panchayat's
+    # own accounts, not scheme-specific like `works` above) -- see
+    # realdata.load_village_finance_index. None where PRIASoft has no
+    # record for this village; never a guessed 0.
+    finance: dict | None = None
+
+    @property
+    def unspent_grant_rupees(self) -> float | None:
+        """
+        Real money the panchayat received but hasn't spent, this financial
+        year -- untied + tied combined. This is a whole-panchayat signal,
+        not tied to any one scheme, unlike `sanctioned_cost_lakh` below
+        which is PMGSY-roads-only. None when there's no PRIASoft record for
+        this village, never 0 -- absence of data is not absence of an
+        unspent balance.
+        """
+        if not self.finance:
+            return None
+        untied = (self.finance.get("untied_receipts") or 0) - (self.finance.get("untied_payments") or 0)
+        tied = (self.finance.get("tied_receipts") or 0) - (self.finance.get("tied_payments") or 0)
+        return round(untied + tied, 2)
 
     @property
     def undelivered_works(self) -> list:
@@ -127,6 +148,9 @@ def build_village_investment(db) -> list[VillageInvestment]:
         sys.path.insert(0, str(backend))
 
     from models import CitizenRequest, Gazetteer, GovernmentProject  # noqa: E402
+    from . import realdata  # noqa: E402
+
+    finance_index = realdata.load_village_finance_index(db)
 
     works_by_village: dict[int, list] = {}
     unpinned = []
@@ -170,6 +194,7 @@ def build_village_investment(db) -> list[VillageInvestment]:
                 longitude=village.longitude,
                 nearby_reports=nearby,
                 works=works,
+                finance=finance_index.get(village.id),
             )
         )
 

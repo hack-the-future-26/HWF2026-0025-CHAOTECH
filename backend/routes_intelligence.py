@@ -63,6 +63,11 @@ def investment_alignment(
             "undelivered_works": len(v.undelivered_works),
             "undelivered_cost_lakh": round(v.sanctioned_cost_lakh, 2),
             "oldest_undelivered_year": v.oldest_undelivered_year,
+            # Real PRIASoft receipts/expenditure for this village, whole-panchayat
+            # -- not tied to PMGSY roads like the fields above. None when this
+            # village has no PRIASoft record, never a guessed 0.
+            "finance_fin_year": (v.finance or {}).get("fin_year"),
+            "unspent_grant_rupees": v.unspent_grant_rupees,
         }
 
     return {
