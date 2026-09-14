@@ -657,6 +657,83 @@ def test_pmgsy_road_segment_lookup() -> None:
     check("load_road_segment_index: parses points list", len(loaded[0]["points"]) == 2)
 
 
+def test_road_asset_matches_geosadak_only_with_a_real_pin() -> None:
+    import json
+
+    gazetteer = [
+        {"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200},
+    ]
+    works_by_village = {
+        "Girgaon": [{"name": "Girgaon to Phata Road", "external_id": "P1", "status": "completed", "cost_lakh": 25.0, "year": 2022}]
+    }
+    # A straight north-south road along lon 74.200, ~1.7 km long.
+    road = {
+        "id": 7, "external_id": "GS7", "district": "Kolhapur", "block": "Karvir",
+        "drrp_road_code": "VR 18", "road_name": "Girgaon Link Road",
+        "road_category": "RR(VR)", "road_owner": "ZP",
+        "points": [[16.695, 74.200], [16.7025, 74.200], [16.710, 74.200]],
+        "min_lat": 16.695, "max_lat": 16.710, "min_lon": 74.200, "max_lon": 74.200,
+    }
+
+    def road_report(rid, lat, lon, pinned=True):
+        r = {
+            "id": rid, "issue_category": "road", "village": "Girgaon", "district": "Kolhapur",
+            "block": "Karvir", "latitude": lat, "longitude": lon,
+            "raw_text": "Road broken", "severity": "medium", "confidence": 0.9,
+        }
+        if pinned:
+            r.update({"precise_lat": lat, "precise_lon": lon, "pin_source": "citizen_gps"})
+        return r
+
+    def build(reports, segments):
+        return _build_assets(
+            reports, facilities_by_category={}, works_by_village=works_by_village,
+            gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[],
+            road_segments=segments,
+        )
+
+    # ~106 m east of the road, pinned by a citizen -> matched.
+    [a] = build([road_report(1, 16.7000, 74.2010)], [road])
+    ev = json.loads(a.evidence)
+    check("pinned road ~106 m away: named from GeoSadak", a.name == "Girgaon Link Road")
+    check("pinned road: name_basis geosadak_segment", a.name_basis == "geosadak_segment")
+    check("pinned road: source pmgsy_geosadak", a.source == "pmgsy_geosadak" and a.external_id == "GS7")
+    check("pinned road: full road shape stored", ev.get("road_geometry", {}).get("points") == road["points"])
+    check("pinned road: distance recorded (~106 m)",
+          90 < ev["road_geometry"]["distance_m"] < 125)
+
+    # Same spot but only the village centre is known -> NOT matched to a road.
+    [a] = build([road_report(2, 16.7000, 74.2010, pinned=False)], [road])
+    check("village-centre road is never named after a nearby road", a.name_basis != "geosadak_segment")
+    check("village-centre road falls back to the PMGSY work", a.name_basis == "pmgsy_work")
+    check("village-centre road carries no road shape", "road_geometry" not in json.loads(a.evidence))
+
+    # Pinned but ~320 m from the road -> outside 150 m, falls back.
+    [a] = build([road_report(3, 16.7000, 74.2030)], [road])
+    check("pinned road 320 m away is not matched", a.name_basis == "pmgsy_work")
+
+    # No segments loaded at all -> identical to the old behaviour.
+    [a] = build([road_report(4, 16.7000, 74.2010)], None)
+    check("no GeoSadak data: old naming unchanged", a.name_basis == "pmgsy_work")
+
+    # Unnamed road -> its DRRP code is the name.
+    unnamed = dict(road, road_name=None)
+    [a] = build([road_report(5, 16.7000, 74.2010)], [unnamed])
+    check("unnamed GeoSadak road falls back to its DRRP code", a.name == "VR 18")
+
+    # Two complaint spots ~550 m apart on the same road -> distinct names.
+    two = build([road_report(6, 16.6980, 74.2005), road_report(7, 16.7030, 74.2005)], [road])
+    names = sorted(x.name for x in two)
+    check("two spots on one road: two assets", len(two) == 2)
+    check("two spots on one road: second is numbered",
+          names == ["Girgaon Link Road", "Girgaon Link Road #2"])
+
+    # Water next to the road never picks up road geometry.
+    water = dict(road_report(8, 16.7000, 74.2010), issue_category="water")
+    [a] = build([water], [road])
+    check("water asset near a road gets no road shape", "road_geometry" not in json.loads(a.evidence))
+
+
 def test_school_condition_index_and_evidence() -> None:
     from .realdata import load_school_condition_index, school_condition_evidence
 
@@ -776,6 +853,7 @@ def main() -> None:
         test_candidate_list_sorted_and_capped,
         test_road_pins_clustering_distance,
         test_pmgsy_road_segment_lookup,
+        test_road_asset_matches_geosadak_only_with_a_real_pin,
         test_school_condition_index_and_evidence,
     ]:
         test()

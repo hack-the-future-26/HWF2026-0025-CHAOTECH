@@ -486,6 +486,7 @@ def _build_assets(
     amenity_index: list[dict],
     works_index: list[dict],
     gw_stations: list[dict],
+    road_segments: list[dict] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -579,10 +580,14 @@ def _build_assets(
 
     created_assets: list[Asset] = []
     synthetic_id_counter = 1
+    # Two complaint spots on the same PMGSY road would otherwise get the
+    # same name; the second and later ones are numbered.
+    segment_uses: Counter = Counter()
 
     for key, member_pairs in asset_groups.items():
         members = [p[0] for p in member_pairs]
         name_bases = [p[1] for p in member_pairs]
+        road_geometry = None
 
         if key[0] == "facility":
             fid = key[1]
@@ -659,7 +664,36 @@ def _build_assets(
 
             if cat == "road":
                 works = (works_by_village or {}).get(village) or (works_by_village or {}).get(village.lower()) or []
-                if len(works) == 1 and total_grps == 1:
+                # A village-centre coordinate is not where the problem is, so
+                # the road that happens to pass near the centre is not "the"
+                # road; only a real pin is matched to a GeoSadak segment.
+                segment, distance_m = (None, None)
+                if road_segments and location_basis != "village_centroid":
+                    segment, distance_m = realdata.nearest_road_segment(lat, lon, road_segments)
+                if segment:
+                    base_name = (
+                        (segment.get("road_name") or "").strip()
+                        or segment.get("drrp_road_code")
+                        or f"Road near {village}"
+                    )
+                    segment_uses[segment["id"]] += 1
+                    uses = segment_uses[segment["id"]]
+                    name = base_name if uses == 1 else f"{base_name} #{uses}"
+                    name_basis = "geosadak_segment"
+                    source = "pmgsy_geosadak"
+                    external_id = segment.get("external_id")
+                    candidates = None
+                    road_geometry = {
+                        "segment_id": segment["id"],
+                        "external_id": segment.get("external_id"),
+                        "road_name": segment.get("road_name"),
+                        "drrp_road_code": segment.get("drrp_road_code"),
+                        "road_category": segment.get("road_category"),
+                        "road_owner": segment.get("road_owner"),
+                        "distance_m": round(distance_m, 1),
+                        "points": segment["points"],
+                    }
+                elif len(works) == 1 and total_grps == 1:
                     name = works[0]["name"]
                     name_basis = "pmgsy_work"
                     source = "pmgsy"
@@ -713,6 +747,8 @@ def _build_assets(
         if candidates is not None:
             evidence["candidates"] = candidates
         evidence["villages_served"] = villages_served
+        if road_geometry is not None:
+            evidence["road_geometry"] = road_geometry
 
         is_demo = all(bool(m.get("is_synthetic")) for m in members)
 
@@ -856,6 +892,7 @@ def recompute(db, verbose: bool = True) -> dict:
     amenity_index = realdata.load_amenity_index(db)
     works_index = realdata.load_works_index(db)
     gw_stations = realdata.load_groundwater_index(db)
+    road_segments = realdata.load_road_segment_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -877,7 +914,8 @@ def recompute(db, verbose: bool = True) -> dict:
 
     log(
         f"named assets: {len(facility_index)} facilities, "
-        f"{len(works_by_village)} villages with a sanctioned road work"
+        f"{len(works_by_village)} villages with a sanctioned road work, "
+        f"{len(road_segments)} PMGSY GeoSadak road segments"
     )
     with_records = sum(1 for v in amenity_index if v.get("has_real_data"))
     log(
@@ -1013,6 +1051,7 @@ def recompute(db, verbose: bool = True) -> dict:
         amenity_index=amenity_index,
         works_index=works_index,
         gw_stations=gw_stations,
+        road_segments=road_segments,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)
