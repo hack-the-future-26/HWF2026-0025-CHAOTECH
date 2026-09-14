@@ -592,7 +592,7 @@ class Asset(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     asset_type = Column(Text, index=True)  # road, water, health, education
     name = Column(Text)
-    name_basis = Column(Text)  # geosadak_segment, citizen_selected, nearest_register, pmgsy_work, unnamed_pin, unresolved_village
+    name_basis = Column(Text)  # citizen_selected, nearest_register, pmgsy_work, unnamed_pin, unresolved_village
     facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
     source = Column(Text, nullable=True)
     external_id = Column(Text, nullable=True)

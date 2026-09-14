@@ -486,7 +486,6 @@ def _build_assets(
     amenity_index: list[dict],
     works_index: list[dict],
     gw_stations: list[dict],
-    road_segment_index: list[dict] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -584,8 +583,6 @@ def _build_assets(
     for key, member_pairs in asset_groups.items():
         members = [p[0] for p in member_pairs]
         name_bases = [p[1] for p in member_pairs]
-        segment = None
-        distance_m = None
 
         if key[0] == "facility":
             fid = key[1]
@@ -661,52 +658,36 @@ def _build_assets(
             location_basis = _determine_location_basis(members)
 
             if cat == "road":
-                segment, distance_m = (
-                    realdata.nearest_road_segment(lat, lon, road_segment_index)
-                    if road_segment_index
-                    else (None, None)
-                )
-                if segment:
-                    raw_name = segment.get("road_name")
-                    if raw_name and raw_name.strip():
-                        name = raw_name.strip()
-                    else:
-                        name = segment.get("drrp_road_code") or f"Road near {village}"
-                    name_basis = "geosadak_segment"
-                    source = "pmgsy_geosadak"
-                    external_id = str(segment.get("external_id") or segment.get("id"))
+                works = (works_by_village or {}).get(village) or (works_by_village or {}).get(village.lower()) or []
+                if len(works) == 1 and total_grps == 1:
+                    name = works[0]["name"]
+                    name_basis = "pmgsy_work"
+                    source = "pmgsy"
+                    external_id = works[0].get("external_id")
                     candidates = None
                 else:
-                    works = (works_by_village or {}).get(village) or (works_by_village or {}).get(village.lower()) or []
-                    if len(works) == 1 and total_grps == 1:
-                        name = works[0]["name"]
-                        name_basis = "pmgsy_work"
-                        source = "pmgsy"
-                        external_id = works[0].get("external_id")
-                        candidates = None
+                    name = f"Road near {village}" if grp_idx == 0 else f"Road near {village} #{grp_idx + 1}"
+                    name_basis = "unnamed_pin"
+                    source = None
+                    external_id = None
+                    if works:
+                        candidates = [
+                            {
+                                "name": w["name"],
+                                "external_id": w.get("external_id"),
+                                "detail": " · ".join(
+                                    part for part in (
+                                        w.get("status"),
+                                        f"Rs {w['cost_lakh']:,.2f} lakh" if w.get("cost_lakh") else None,
+                                        f"sanctioned {w['year']}" if w.get("year") else None,
+                                    ) if part
+                                ),
+                                "distance_m": None,
+                            }
+                            for w in works[:config.SCHOOL_CANDIDATE_MAX]
+                        ]
                     else:
-                        name = f"Road near {village}" if grp_idx == 0 else f"Road near {village} #{grp_idx + 1}"
-                        name_basis = "unnamed_pin"
-                        source = None
-                        external_id = None
-                        if works:
-                            candidates = [
-                                {
-                                    "name": w["name"],
-                                    "external_id": w.get("external_id"),
-                                    "detail": " · ".join(
-                                        part for part in (
-                                            w.get("status"),
-                                            f"Rs {w['cost_lakh']:,.2f} lakh" if w.get("cost_lakh") else None,
-                                            f"sanctioned {w['year']}" if w.get("year") else None,
-                                        ) if part
-                                    ),
-                                    "distance_m": None,
-                                }
-                                for w in works[:config.SCHOOL_CANDIDATE_MAX]
-                            ]
-                        else:
-                            candidates = None
+                        candidates = None
             else:
                 # water
                 name = f"Water point near {village}" if grp_idx == 0 else f"Water point near {village} #{grp_idx + 1}"
@@ -732,16 +713,6 @@ def _build_assets(
         if candidates is not None:
             evidence["candidates"] = candidates
         evidence["villages_served"] = villages_served
-        if segment:
-            evidence["road_geometry"] = {
-                "segment_id": segment["id"],
-                "road_name": segment.get("road_name"),
-                "drrp_road_code": segment.get("drrp_road_code"),
-                "road_category": segment.get("road_category"),
-                "road_owner": segment.get("road_owner"),
-                "distance_m": round(distance_m, 1) if distance_m is not None else None,
-                "points": segment["points"],
-            }
 
         is_demo = all(bool(m.get("is_synthetic")) for m in members)
 
@@ -885,7 +856,6 @@ def recompute(db, verbose: bool = True) -> dict:
     amenity_index = realdata.load_amenity_index(db)
     works_index = realdata.load_works_index(db)
     gw_stations = realdata.load_groundwater_index(db)
-    road_segment_index = realdata.load_road_segment_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -907,8 +877,7 @@ def recompute(db, verbose: bool = True) -> dict:
 
     log(
         f"named assets: {len(facility_index)} facilities, "
-        f"{len(works_by_village)} villages with a sanctioned road work, "
-        f"{len(road_segment_index)} PMGSY road segments"
+        f"{len(works_by_village)} villages with a sanctioned road work"
     )
     with_records = sum(1 for v in amenity_index if v.get("has_real_data"))
     log(
@@ -1044,7 +1013,6 @@ def recompute(db, verbose: bool = True) -> dict:
         amenity_index=amenity_index,
         works_index=works_index,
         gw_stations=gw_stations,
-        road_segment_index=road_segment_index,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)
