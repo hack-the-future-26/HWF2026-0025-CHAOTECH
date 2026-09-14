@@ -327,7 +327,17 @@ def _score_members(
     settlement_count = _settlement_count(members)
     block = _modal([m.get("block") for m in members])
 
-    nearby_villages = realdata.villages_near(lat, lon, amenity_index)
+    # Same radius population_in_catchment already uses for this category, not
+    # the flat AMENITY_LOOKUP_RADIUS_KM default -- a health asset's real
+    # catchment is 8km, and a village with a real Census record sitting at
+    # 5-8km was being silently invisible to infra_deficit/vulnerability/
+    # equity/scheme_eligibility while still being counted for population,
+    # which is exactly backwards. Verified live: this was the reason 13 of
+    # 177 health assets (7%, vs 0-1% for every other category) fell through
+    # to proxies despite real Census data existing just outside the old
+    # flat radius.
+    amenity_radius_km = config.CATCHMENT_RADIUS_KM.get(category, config.DEFAULT_CATCHMENT_RADIUS_KM)
+    nearby_villages = realdata.villages_near(lat, lon, amenity_index, radius_km=amenity_radius_km)
 
     infra_value, infra_evidence = realdata.real_infra_deficit(
         category, nearby_villages, works_index, population_affected

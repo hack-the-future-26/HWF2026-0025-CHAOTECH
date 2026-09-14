@@ -1193,6 +1193,66 @@ def test_udise_overrides_census_for_a_specific_school() -> None:
     )
 
 
+def test_amenity_lookup_uses_the_categorys_own_catchment_radius() -> None:
+    """
+    Real bug, found live 2026-09-15: infra_deficit/vulnerability/equity all
+    looked up nearby villages within a flat 5km, regardless of category --
+    even though population_in_catchment already correctly used each
+    category's own, wider radius (health: 8km). A health asset with the
+    nearest Census-bearing village at 6km was counting that village's
+    people for "population affected" while treating it as invisible for
+    every real-data term, silently falling through to proxies. Verified
+    against the real database: 13 of 177 health assets (7%, vs 0-1%
+    elsewhere) hit this before the fix -- health has the widest catchment,
+    so the widest blind spot.
+    """
+    import json
+
+    # 1 degree of latitude is ~111km; 0.054 degrees north is ~6km -- inside
+    # health's 8km catchment, outside water's 3km, and outside the old flat
+    # 5km amenity radius that applied to every category alike.
+    village = {
+        "id": 1, "name": "Amenity Village", "district": "Kolhapur", "block": "Karvir",
+        "population": 4000, "lat": 16.700, "lon": 74.200,
+    }
+    gazetteer = [village]
+    amenity_index = [{
+        "gazetteer_id": 1, "name": "Amenity Village", "district": "Kolhapur", "block": "Karvir",
+        "population": 4000, "lat": 16.700, "lon": 74.200, "has_real_data": True,
+        "school_middle": 0, "school_secondary": 0,
+    }]
+    far_lat, far_lon = 16.700 + 6.0 / 111.0, 74.200
+
+    def report(rid, category):
+        return {
+            "id": rid, "issue_category": category, "village": "Amenity Village",
+            "district": "Kolhapur", "block": "Karvir", "latitude": far_lat, "longitude": far_lon,
+            "raw_text": "problem here", "severity": "medium", "confidence": 0.9,
+        }
+
+    health_assets = _build_assets(
+        [report(1, "health")], facilities_by_category={}, works_by_village={},
+        gazetteer=gazetteer, amenity_index=amenity_index, works_index=[], gw_stations=[],
+    )
+    ev_health = json.loads(health_assets[0].evidence)
+    check(
+        "health asset (8km catchment): 6km-away Census village is now found",
+        bool(ev_health.get("infra_deficit")) or ev_health.get("data_basis", {}).get("infra_deficit") != "proxy_reported_severity",
+        f"got {ev_health.get('data_basis')}",
+    )
+
+    water_assets = _build_assets(
+        [report(2, "water")], facilities_by_category={}, works_by_village={},
+        gazetteer=gazetteer, amenity_index=amenity_index, works_index=[], gw_stations=[],
+    )
+    ev_water = json.loads(water_assets[0].evidence)
+    check(
+        "water asset (3km catchment): the same 6km-away village correctly stays out of range",
+        ev_water.get("data_basis", {}).get("infra_deficit") == "proxy_reported_severity",
+        f"got {ev_water.get('data_basis')}",
+    )
+
+
 def test_village_investment_unspent_grant() -> None:
     """
     intelligence/investment.py had zero test coverage before this -- the
@@ -1270,6 +1330,7 @@ def main() -> None:
         test_school_condition_deficit,
         test_udise_overrides_census_for_a_specific_school,
         test_village_investment_unspent_grant,
+        test_amenity_lookup_uses_the_categorys_own_catchment_radius,
     ]:
         test()
 
