@@ -1001,3 +1001,135 @@ def nearest_road_segment(
     return nearest, round(min_dist_m, 1)
 
 
+# ---------------------------------------------------------------------------
+# UDISE+ School Condition & Staffing (Workstream A1)
+# ---------------------------------------------------------------------------
+
+
+def load_school_condition_index(db) -> dict[int, dict]:
+    """
+    facility_id -> its latest SchoolCondition row, as a plain dict.
+    Schools with fetch_failed=True or no row at all are simply absent —
+    callers must treat "not in this dict" as "no data", never as zero.
+    """
+    if db is None:
+        return {}
+    from models import SchoolCondition
+
+    result = {}
+    try:
+        rows = (
+            db.query(SchoolCondition)
+            .filter(SchoolCondition.fetch_failed.is_(False))
+            .order_by(SchoolCondition.id.asc())
+            .all()
+        )
+        for r in rows:
+            if r.facility_id is None:
+                continue
+            result[r.facility_id] = {
+                "id": r.id,
+                "facility_id": r.facility_id,
+                "udise_code": r.udise_code,
+                "year_desc": r.year_desc,
+                "teachers_regular": r.teachers_regular,
+                "teachers_contract": r.teachers_contract,
+                "teachers_part_time": r.teachers_part_time,
+                "classrooms_total": r.classrooms_total,
+                "classrooms_good": r.classrooms_good,
+                "classrooms_minor_repair": r.classrooms_minor_repair,
+                "classrooms_major_repair": r.classrooms_major_repair,
+                "toilet_boys_functional": r.toilet_boys_functional,
+                "toilet_girls_functional": r.toilet_girls_functional,
+                "drinking_water": r.drinking_water,
+                "electricity": r.electricity,
+                "boundary_wall_status": r.boundary_wall_status,
+                "total_grant": r.total_grant,
+                "total_expenditure": r.total_expenditure,
+                "raw_json": r.raw_json,
+                "fetched_at": r.fetched_at,
+            }
+    except Exception:
+        result = {}
+    return result
+
+
+def school_condition_evidence(facility_id: int, index: dict[int, dict]) -> tuple[dict | None, str | None]:
+    """
+    Returns (raw_row_dict, a short human evidence sentence) or (None, None)
+    if this school has no data. Example sentence:
+    "5 teachers (2024-25); 4 of 5 classrooms good, 1 needs minor repair;
+    grant ₹25,000, spent ₹25,000."
+    Do not compute a 0-1 deficit score here — that belongs to Workstream B
+    (B5), which will call this function and turn it into a score.
+    """
+    if not index or facility_id not in index:
+        return None, None
+
+    row = index[facility_id]
+    if not row:
+        return None, None
+
+    parts = []
+
+    # 1. Teachers
+    t_reg = row.get("teachers_regular")
+    t_cont = row.get("teachers_contract")
+    t_part = row.get("teachers_part_time")
+    if t_reg is not None or t_cont is not None or t_part is not None:
+        t_total = (t_reg or 0) + (t_cont or 0) + (t_part or 0)
+        yr_str = f" ({row['year_desc']})" if row.get("year_desc") else ""
+        t_label = "teacher" if t_total == 1 else "teachers"
+        parts.append(f"{t_total} {t_label}{yr_str}")
+
+    # 2. Classrooms
+    cls_tot = row.get("classrooms_total")
+    cls_gd = row.get("classrooms_good")
+    cls_min = row.get("classrooms_minor_repair")
+    cls_maj = row.get("classrooms_major_repair")
+
+    if cls_tot is not None:
+        cls_parts = []
+        if cls_gd is not None:
+            cls_parts.append(f"{cls_gd} of {cls_tot} classrooms good")
+        if cls_min is not None and cls_min > 0:
+            verb = "needs" if cls_min == 1 else "need"
+            cls_parts.append(f"{cls_min} {verb} minor repair")
+        if cls_maj is not None and cls_maj > 0:
+            verb = "needs" if cls_maj == 1 else "need"
+            cls_parts.append(f"{cls_maj} {verb} major repair")
+        if cls_parts:
+            parts.append(", ".join(cls_parts))
+        elif cls_tot == 0:
+            parts.append("0 classrooms")
+    elif any(c is not None for c in (cls_gd, cls_min, cls_maj)):
+        cls_parts = []
+        if cls_gd is not None:
+            cls_parts.append(f"{cls_gd} classrooms good")
+        if cls_min is not None and cls_min > 0:
+            cls_parts.append(f"{cls_min} need minor repair")
+        if cls_maj is not None and cls_maj > 0:
+            cls_parts.append(f"{cls_maj} need major repair")
+        if cls_parts:
+            parts.append(", ".join(cls_parts))
+
+    # 3. Grant and expenditure
+    grant = row.get("total_grant")
+    spent = row.get("total_expenditure")
+    if grant is not None or spent is not None:
+        money_parts = []
+        if grant is not None:
+            money_parts.append(f"grant ₹{grant:,.0f}")
+        if spent is not None:
+            money_parts.append(f"spent ₹{spent:,.0f}")
+        parts.append(", ".join(money_parts))
+
+    if not parts:
+        sentence = f"UDISE+ data available ({row.get('year_desc') or '2024-25'})."
+    else:
+        sentence = "; ".join(parts) + "."
+
+    return row, sentence
+
+
+

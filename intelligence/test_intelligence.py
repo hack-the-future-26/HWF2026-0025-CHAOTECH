@@ -783,6 +783,93 @@ def test_pmgsy_road_segment_asset_matching() -> None:
     ev_far_unnamed = json.loads(assets_far_unnamed[0].evidence)
     check("distant road no work: road_geometry absent", "road_geometry" not in ev_far_unnamed)
 
+def test_school_condition_index_and_evidence() -> None:
+    from .realdata import load_school_condition_index, school_condition_evidence
+
+    # 1. school_condition_evidence edge cases
+    raw, text = school_condition_evidence(1, {})
+    check("school condition evidence: empty index returns (None, None)", raw is None and text is None)
+
+    raw, text = school_condition_evidence(999, {1: {"facility_id": 1}})
+    check("school condition evidence: missing facility returns (None, None)", raw is None and text is None)
+
+    # 2. Formatted evidence string verification
+    sample_row = {
+        "id": 10,
+        "facility_id": 42,
+        "udise_code": "27341212203",
+        "year_desc": "2024-25",
+        "teachers_regular": 5,
+        "teachers_contract": 0,
+        "teachers_part_time": 0,
+        "classrooms_total": 5,
+        "classrooms_good": 4,
+        "classrooms_minor_repair": 1,
+        "classrooms_major_repair": 0,
+        "toilet_boys_functional": 1,
+        "toilet_girls_functional": 1,
+        "drinking_water": True,
+        "electricity": True,
+        "boundary_wall_status": "7-Partial",
+        "total_grant": 25000.0,
+        "total_expenditure": 25000.0,
+        "raw_json": "{}",
+        "fetched_at": None,
+    }
+    index = {42: sample_row}
+    r_out, t_out = school_condition_evidence(42, index)
+    check("school condition evidence: returns row dict", r_out is not None and r_out["facility_id"] == 42)
+    expected_text = "5 teachers (2024-25); 4 of 5 classrooms good, 1 needs minor repair; grant ₹25,000, spent ₹25,000."
+    check("school condition evidence: sentence format matches specification", t_out == expected_text)
+
+    # 3. load_school_condition_index with mock DB
+    class MockConditionRow:
+        def __init__(self, id, facility_id, udise_code, fetch_failed):
+            self.id = id
+            self.facility_id = facility_id
+            self.udise_code = udise_code
+            self.fetch_failed = fetch_failed
+            self.year_desc = "2024-25"
+            self.teachers_regular = 3
+            self.teachers_contract = 0
+            self.teachers_part_time = 0
+            self.classrooms_total = 3
+            self.classrooms_good = 3
+            self.classrooms_minor_repair = 0
+            self.classrooms_major_repair = 0
+            self.toilet_boys_functional = 1
+            self.toilet_girls_functional = 1
+            self.drinking_water = True
+            self.electricity = True
+            self.boundary_wall_status = "All Good"
+            self.total_grant = 10000.0
+            self.total_expenditure = 8000.0
+            self.raw_json = "{}"
+            self.fetched_at = None
+
+    class MockQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            # Row 1 is valid, Row 2 has facility_id=None, Row 3 has fetch_failed=True (mock query filter would omit it, but test index logic)
+            return [
+                MockConditionRow(1, 101, "273401", False),
+                MockConditionRow(2, None, "273402", False),
+            ]
+
+    class MockDB:
+        def query(self, model):
+            return MockQuery()
+
+    loaded = load_school_condition_index(MockDB())
+    check("load_school_condition_index: loads valid rows", 101 in loaded)
+    check("load_school_condition_index: ignores None facility_id", None not in loaded and len(loaded) == 1)
+    check("load_school_condition_index: parses teachers", loaded[101]["teachers_regular"] == 3)
+
 
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
@@ -816,6 +903,7 @@ def main() -> None:
         test_road_pins_clustering_distance,
         test_pmgsy_road_segment_lookup,
         test_pmgsy_road_segment_asset_matching,
+        test_school_condition_index_and_evidence,
     ]:
         test()
 

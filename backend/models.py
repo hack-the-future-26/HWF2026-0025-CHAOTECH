@@ -674,3 +674,34 @@ class PMGSYRoadSegment(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class SchoolCondition(Base):
+    """
+    Current (yearly) school condition, staffing and money from UDISE+ Know
+    Your School. Replaces village-wide 2011 Census facts with real,
+    current, per-school data.
+    """
+    __tablename__ = "school_condition"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), index=True)
+    udise_code = Column(Text, index=True)
+    year_desc = Column(Text)                      # "2024-25"
+    teachers_regular = Column(Integer, nullable=True)
+    teachers_contract = Column(Integer, nullable=True)
+    teachers_part_time = Column(Integer, nullable=True)
+    classrooms_total = Column(Integer, nullable=True)
+    classrooms_good = Column(Integer, nullable=True)
+    classrooms_minor_repair = Column(Integer, nullable=True)
+    classrooms_major_repair = Column(Integer, nullable=True)
+    toilet_boys_functional = Column(Integer, nullable=True)  # count, from toiletbFun
+    toilet_girls_functional = Column(Integer, nullable=True)
+    drinking_water = Column(Boolean, nullable=True)
+    electricity = Column(Boolean, nullable=True)
+    boundary_wall_status = Column(Text, nullable=True)       # raw text, e.g. "7-Partial"
+    total_grant = Column(Float, nullable=True)
+    total_expenditure = Column(Float, nullable=True)
+    raw_json = Column(Text, nullable=True)         # both API responses, merged, for anything not modeled above
+    fetch_failed = Column(Boolean, default=False)  # true if this school could not be fetched after retries
+    fetched_at = Column(DateTime, nullable=True)
+
+
