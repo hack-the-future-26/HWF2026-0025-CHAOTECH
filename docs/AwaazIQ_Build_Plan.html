@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AwaazIQ — Feature Build Plan</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  :root {
+    --navy: #1b2a4a; --ink: #22262e; --body: #3b4150; --muted: #6b7180;
+    --amber: #c0781e; --amber-soft: #f6e7cf; --cream: #faf7f0; --line: #e3ded2;
+    --green: #2f7d4f; --green-soft: #e2f1e7; --red: #b23a3a; --red-soft: #f6e0e0;
+    --yellow: #9a6a00; --yellow-soft: #fbf0cf; --blue: #2c5aa0; --blue-soft: #e3ecf8;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; color: var(--body);
+         font-size: 10pt; line-height: 1.5; margin: 0; }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; color: var(--navy); line-height: 1.2; }
+  h1 { font-size: 21pt; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--amber); page-break-before: always; }
+  h1.first { page-break-before: auto; }
+  h2 { font-size: 14pt; margin: 7mm 0 2mm; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1mm; }
+  code, .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 8.6pt; background: #f1eee6;
+                padding: 0 3px; border-radius: 3px; color: #3a2f1c; word-break: break-word; }
+  pre { font-family: Consolas, "Cascadia Mono", monospace; font-size: 8.2pt; background: #1e2433; color: #e8e4d8;
+        padding: 3mm 3.5mm; border-radius: 4px; white-space: pre-wrap; word-break: break-word; margin: 1mm 0 3.5mm;
+        page-break-inside: avoid; line-height: 1.42; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 4mm; font-size: 8.8pt; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--navy); color: #fff; text-align: left; font-weight: 600; padding: 1.6mm 2mm; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fbfaf6; }
+  .pill { display: inline-block; font-size: 7.6pt; font-weight: 700; padding: 0.2mm 1.8mm; border-radius: 8px;
+          letter-spacing: .02em; white-space: nowrap; }
+  .ok { background: var(--green-soft); color: var(--green); }
+  .no { background: var(--red-soft); color: var(--red); }
+  .maybe { background: var(--yellow-soft); color: var(--yellow); }
+  .todo { background: var(--blue-soft); color: var(--blue); }
+  .block { background: #ece7f5; color: #5b3d8f; }
+  .callout { background: var(--cream); border-left: 3px solid var(--amber); padding: 2.5mm 3.5mm; margin: 2mm 0 4mm;
+             page-break-inside: avoid; }
+  .callout.warn { border-left-color: var(--red); background: #fcf4f2; }
+  .callout.good { border-left-color: var(--green); background: #f3f9f5; }
+  .callout b:first-child { color: var(--navy); }
+  .spec { border: 1px solid var(--line); border-radius: 5px; padding: 3mm 4mm 1mm; margin: 0 0 5mm;
+          page-break-inside: avoid; break-inside: avoid; }
+  .kv { break-inside: avoid; }
+  .spec h3 { margin-top: 0; display: flex; justify-content: space-between; gap: 4mm; }
+  .spec h3 .meta { font-family: "Segoe UI", sans-serif; font-size: 8pt; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .kv { display: grid; grid-template-columns: 30mm 1fr; gap: 1mm 3mm; font-size: 9pt; margin-bottom: 2.5mm; }
+  .kv div:nth-child(odd) { color: var(--muted); font-weight: 600; }
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .brand { font-family: Georgia, serif; font-size: 40pt; color: var(--navy); margin-top: 30mm; }
+  .cover .tag { color: var(--amber); font-size: 13pt; margin-top: 1mm; }
+  .cover .title { font-family: Georgia, serif; font-size: 25pt; color: var(--ink); margin-top: 16mm; line-height: 1.15; }
+  .cover .sub { font-size: 11pt; color: var(--body); margin-top: 5mm; max-width: 150mm; }
+  .cover .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-top: 12mm; }
+  .cover .fact { background: var(--cream); border: 1px solid var(--line); border-radius: 5px; padding: 3mm; }
+  .cover .fact b { display: block; font-family: Georgia, serif; font-size: 18pt; color: var(--navy); }
+  .cover .fact span { font-size: 8pt; color: var(--muted); }
+  .cover .foot { font-size: 8.5pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 3mm; }
+  .toc ol { columns: 2; column-gap: 10mm; font-size: 10pt; }
+  .team { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; margin: 2mm 0 4mm; }
+  .card { border: 1px solid var(--line); border-radius: 5px; padding: 3mm 3.5mm; page-break-inside: avoid; background: #fff; }
+  .card h3 { margin: 0 0 1.5mm; font-size: 11pt; }
+  .card .who { font-size: 8pt; font-weight: 700; color: var(--amber); letter-spacing: .06em; text-transform: uppercase; }
+  .card ul { margin: 0; font-size: 9pt; }
+  .small { font-size: 8.6pt; color: var(--muted); }
+  .formula { font-family: Consolas, monospace; font-size: 9pt; background: var(--cream); border: 1px solid var(--line);
+             border-radius: 4px; padding: 2.5mm 3.5mm; margin: 1mm 0 3.5mm; page-break-inside: avoid; white-space: pre-wrap; }
+  .nobreak { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ COVER -->
+<section class="cover">
+  <div>
+    <div class="brand">AwaazIQ</div>
+    <div class="tag">From Citizen Voice to Intelligent Action</div>
+    <div class="title">Feature Build Plan<br/>and Team Work Split</div>
+    <div class="sub">
+      Every feature we have designed or built, the real government data behind each one
+      (checked live, not assumed), exactly how to build it, and how the work divides across
+      four people. Written so each member can pick up a workstream and build it without
+      re-doing the research.
+    </div>
+    <div class="facts">
+      <div class="fact"><b>441</b><span>villages scored (Kolhapur 306 · Nashik 135)</span></div>
+      <div class="fact"><b>814</b><span>specific assets (schools, hospitals, road spots, water points)</span></div>
+      <div class="fact"><b>9,352</b><span>schools with live UDISE+ data available</span></div>
+      <div class="fact"><b>79 · 65 · 46</b><span>tests passing (scoring · backend · pipeline)</span></div>
+    </div>
+  </div>
+  <div class="foot">
+    Snapshot: 14 September 2026 · Branch <code>submission</code> · Pilot districts Kolhapur and Nashik, Maharashtra.
+    Every data source marked "verified" returned real data to a live request on this date. Sources marked otherwise say why.
+  </div>
+</section>
+
+<!-- ============================================================ CONTENTS -->
+<h1>Contents</h1>
+<div class="toc">
+<ol>
+  <li>How to use this document</li>
+  <li>What AwaazIQ is, and our white space</li>
+  <li>What is already built and verified</li>
+  <li>Team work split (4 workstreams)</li>
+  <li>Ground rules for everyone</li>
+  <li>Data source catalogue</li>
+  <li>How the priority score works today</li>
+  <li>Workstream A: Data pipelines</li>
+  <li>Workstream B: Scoring engine</li>
+  <li>Workstream C: Photo checks and fake-complaint defence</li>
+  <li>Workstream D: Map, roads and the white-space view</li>
+  <li>Blocked and later features</li>
+  <li>Build order and dependencies</li>
+  <li>Decisions still open</li>
+  <li>Appendix: exact endpoints and code</li>
+  <li>Appendix: sources ruled out, and why</li>
+</ol>
+</div>
+
+<h2>1. How to use this document</h2>
+<ul>
+  <li><b>Section 4</b> gives each person one workstream. Read your workstream section (8, 9, 10 or 11) in full; it has
+      the data, the files to change, the formulas and the tests.</li>
+  <li><b>Section 6</b> is the single list of every data source we checked, with its real status. If a source is not
+      marked <span class="pill ok">VERIFIED</span>, do not build on it without re-checking it yourself.</li>
+  <li><b>Section 15</b> has the exact URLs, request formats and code snippets, including the encryption trick the
+      water-quality site uses, so you don't have to rediscover them.</li>
+  <li>Longer research write-ups live in the repo root: <code>FEATURE_ROADMAP.md</code> (master list),
+      <code>LIVE_GOV_DATA_RESEARCH.md</code>, <code>STALE_INFRA_DEFICIT_RESEARCH.md</code>,
+      <code>ASSET_LEVEL_PRIORITIZATION_RESEARCH.md</code>, <code>PHOTO_VERIFICATION_RESEARCH.md</code>.</li>
+</ul>
+
+<p class="small">Status labels used throughout:
+<span class="pill ok">VERIFIED</span> real data pulled live ·
+<span class="pill maybe">LIKELY</span> reachable, data not yet pulled ·
+<span class="pill no">BLOCKED</span> CAPTCHA, login or dead server ·
+<span class="pill todo">TO BUILD</span> designed, not started ·
+<span class="pill block">WAITING</span> needs an outside approval.</p>
+
+<!-- ============================================================ 2 -->
+<h1>2. What AwaazIQ is, and our white space</h1>
+<p>AwaazIQ takes citizen complaints about rural infrastructure (roads, water, health, schools) in Hindi, Marathi,
+English or a mix, by text or voice. It removes personal details, places each report on the map, groups related reports,
+and ranks what needs fixing first using a 9-part priority score built mostly from government records.</p>
+
+<h2>The white space (from our research report)</h2>
+<div class="callout">
+  <b>Capability E: prioritising citizen demand against government investment data.</b>
+  Our research report (section 9) found this absent in every system checked, in India and globally. Other systems have
+  multilingual intake, maps, or budget data, but none combines citizen demand with investment data to decide where money
+  should go. The report's matching engine should compare demand and investment on <b>location plus asset type</b>, with
+  three results: <i>funded but not delivered</i>, <i>demanded but not funded</i>, and <i>funded where nobody asked</i>.
+</div>
+<p>The village → specific-asset view we built is the report's <b>feature #21, "Grievance-to-Infrastructure
+Reclassification"</b> ("which road segment, which health sub-centre catchment"). The report calls it "the deepest
+structural move in the whole design." It is the unit that Capability E should match against: once each complaint is
+tied to a specific school, hospital or road, we can ask "was money already sanctioned for <i>this</i> asset?"</p>
+
+<h2>Where the white space stands today</h2>
+<table>
+<thead><tr><th style="width:30%">White-space piece</th><th style="width:16%">Status</th><th>What's missing</th></tr></thead>
+<tbody>
+<tr><td>Demand vs investment matching (<code>intelligence/investment.py</code>, "Demand vs Investment" button)</td>
+    <td><span class="pill maybe">BUILT, BUGGY</span></td>
+    <td>Counts <b>every</b> complaint within 5 km (health, school, water, road) against <b>road-only</b> PMGSY works.
+    Result: 762 villages wrongly flagged "demanded but unfunded" (Hajgoli Bk: 141 reports of all kinds vs 0 road works).
+    Fix in B4.</td></tr>
+<tr><td>"Already funded here" warning</td><td><span class="pill ok">BUILT</span></td>
+    <td>Roads only, and village-level. Only 184 of 552 PMGSY works are linked to a village.</td></tr>
+<tr><td>Scheme eligibility (PMGSY / IPHS / RTE / JJM rules)</td><td><span class="pill ok">BUILT</span></td>
+    <td>Rule-based, worth +4 points.</td></tr>
+<tr><td>What-if budget simulation</td><td><span class="pill maybe">PARTIAL</span></td>
+    <td>Fixed points per crore, not "people reached per rupee" (B6).</td></tr>
+<tr><td>Investment data beyond roads</td><td><span class="pill todo">TO BUILD</span></td>
+    <td>Schools: UDISE+ grants are verified (A1). Water: JJM scheme money not yet verified. Health: no per-facility
+    budget exists online. Whole-village budget (GPDP) is CAPTCHA-blocked.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ 3 -->
+<h1>3. What is already built and verified</h1>
+<table>
+<thead><tr><th style="width:28%">Feature</th><th style="width:14%">Status</th><th>Details</th></tr></thead>
+<tbody>
+<tr><td><b>Exact report location</b> (map pin, "use my location")</td><td><span class="pill ok">DONE</span></td>
+  <td>Commits <code>4b83dff</code>→<code>0040806</code>. Pin must be within 5 km of the chosen village
+  (<code>PIN_MAX_DISTANCE_KM</code>). Pin is never exposed on public endpoints.</td></tr>
+<tr><td><b>Groundwater evidence (NWDP)</b></td><td><span class="pill ok">DONE</span></td>
+  <td>Commit <code>03c26d9</code>. 9 real telemetry stations; shows "groundwater level: X m below ground, trend: falling" on
+  water clusters. Values checked against the live NWDP CSV. Evidence only, no score effect.</td></tr>
+<tr><td><b>Rainfall (MOSDAC)</b></td><td><span class="pill block">WAITING</span></td>
+  <td>Commit <code>d6ee662</code>. Real dataset, but bulk download needs an ISRO login. Loader exits honestly with no
+  data. An earlier version made up rainfall numbers and was reverted.</td></tr>
+<tr><td><b>Village → specific-asset view</b></td><td><span class="pill ok">DONE</span></td>
+  <td>Commits <code>910142e</code>→<code>4dbe99e</code>, plus same-day fixes (see below). District map shows one bubble
+  per village. One click zooms in and opens the village priority panel. Each school, hospital, road spot and water point has
+  its own pin and its own 9-part score. Village score = its most-in-need asset's score.</td></tr>
+<tr><td><b>Citizen picks the specific school/hospital</b></td><td><span class="pill ok">DONE</span></td>
+  <td>Dropdown in the report form (<code>/gazetteer/facilities</code>).</td></tr>
+<tr><td><b>Demo data</b></td><td><span class="pill ok">DONE</span></td>
+  <td>1,000 sample complaints attached to real registered schools and hospitals, with road/water reports placed around
+  their village (<code>backend/assign_synthetic_assets.py</code>, has <code>--undo</code>). The DEMO labels are hidden
+  in the UI by owner decision; the data still carries <code>is_demo</code>.</td></tr>
+</tbody>
+</table>
+
+<div class="callout warn"><b>Before anyone branches:</b> the village-view fixes made on 14 September are <b>not committed
+yet</b>. They fix: giant white circles, report dots cluttering village mode, zoom-to-fit, pin sizes going wrong after the
+panel opens, overlapping pins, the "demo-assigned" label, and hidden DEMO badges. They touch <code>frontend/css/app.css</code>,
+<code>frontend/js/app.js</code>, <code>frontend/index.html</code>, <code>frontend/report.html</code>,
+<code>intelligence/recompute.py</code> and <code>intelligence/test_intelligence.py</code>. Commit them first, so everyone
+starts from the same code.</div>
+
+<h2>Current database snapshot</h2>
+<table>
+<thead><tr><th>Item</th><th>Count</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Citizen reports</td><td>1,209</td><td>1,000 are sample (demo) reports; the rest are real or test submissions.</td></tr>
+<tr><td>Category clusters</td><td>116</td><td>Top score 74.73. Used by what-if and compare.</td></tr>
+<tr><td>Specific assets</td><td>814</td><td>Schools 220, health 177, road 199, water 218.</td></tr>
+<tr><td>Villages with a priority</td><td>441</td><td>Kolhapur 306, Nashik 135.</td></tr>
+<tr><td>Named facilities (register)</td><td>10,464</td><td>9,352 UDISE schools + 1,112 NIC health facilities.</td></tr>
+<tr><td>PMGSY road works</td><td>552</td><td>184 linked to a village by name; 368 unlinked.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ 4 -->
+<h1>4. Team work split (4 workstreams)</h1>
+<p>The work splits into four workstreams that touch mostly different files, so four people can build in parallel.
+Each person works on <b>their own git branch</b> and merges through a pull request. Never run two people or two AI agents
+in the same folder at the same time: that caused three rounds of stray, corrupted files on 14 September.</p>
+
+<div class="team">
+  <div class="card">
+    <div class="who">Workstream A · Member 1</div>
+    <h3>Data pipelines</h3>
+    <ul>
+      <li>A1 UDISE+ school loader: teachers, classroom condition, grants (verified)</li>
+      <li>A2 JJM water-testing loader, using the AES method (verified)</li>
+      <li>A3 CWC river-level loader (verified)</li>
+      <li>A4 SACHET disaster-alert loader (verified)</li>
+      <li>A5 Retry MGNREGA, JJM scheme money, Mission Antyodaya</li>
+    </ul>
+    <p class="small">Files: new <code>backend/load_*.py</code>, <code>backend/models.py</code>, <code>intelligence/realdata.py</code> (lookup functions only).</p>
+  </div>
+  <div class="card">
+    <div class="who">Workstream B · Member 2</div>
+    <h3>Scoring engine</h3>
+    <ul>
+      <li>B1 Stale-record discount (trust-blend, 10-year half-life)</li>
+      <li>B2 Emergency urgency (bridge/building damage, cap 15)</li>
+      <li>B3 Corroboration softening for 1–2 reporter assets</li>
+      <li>B4 Fix the demand-vs-investment category bug</li>
+      <li>B5 Use UDISE+ data in the school score</li>
+      <li>B6 What-if: people reached per rupee</li>
+    </ul>
+    <p class="small">Files: <code>intelligence/scoring.py</code>, <code>config.py</code>, <code>recompute.py</code>, <code>investment.py</code>, <code>whatif.py</code>, tests.</p>
+  </div>
+  <div class="card">
+    <div class="who">Workstream C · Member 3</div>
+    <h3>Photo checks and fake-complaint defence</h3>
+    <ul>
+      <li>C1 Camera-only capture with GPS and time at capture</li>
+      <li>C2 Count distinct accounts, not wording</li>
+      <li>C3 Duplicate-photo check (<code>imagehash</code>)</li>
+      <li>C4 Edit detection (error-level analysis)</li>
+      <li>C5 Pothole model (team's own) as road evidence</li>
+      <li>C6 Building/bridge damage model for emergencies</li>
+      <li>C7 Screen-replay (moiré) check</li>
+    </ul>
+    <p class="small">Files: <code>frontend/js/report.js</code>, <code>backend/routes_citizen_report.py</code>, new <code>backend/photo_checks.py</code>, model folder.</p>
+  </div>
+  <div class="card">
+    <div class="who">Workstream D · Member 4 (owner)</div>
+    <h3>Map, roads and the white-space view</h3>
+    <ul>
+      <li>D1 Task 5: PMGSY GeoSadak real road names</li>
+      <li>D2 Show funding status on village and asset panels</li>
+      <li>D3 Map polish: label overlap, panel height, state view</li>
+      <li>D4 Demo script, sample-data disclosure, final test pass</li>
+    </ul>
+    <p class="small">Files: <code>frontend/js/app.js</code>, <code>panels.js</code>, <code>css/app.css</code>, new <code>backend/load_pmgsy_geosadak.py</code>.</p>
+  </div>
+</div>
+
+<div class="callout"><b>Shared contracts, so the pieces fit.</b>
+New data shows up in two places only: (1) a <code>*_lookup</code> function in <code>intelligence/realdata.py</code> that returns
+<code>(value, evidence_dict)</code> or <code>(None, {})</code> when there is no data; (2) a named key in the asset/cluster
+<code>evidence</code> JSON (for example <code>evidence["school_condition"]</code>, <code>evidence["water_testing"]</code>,
+<code>evidence["hazard_alert"]</code>). Workstream A agrees the key names with B and D before starting. Every tunable number
+goes in <code>intelligence/config.py</code> with a comment explaining it.</div>
+
+<!-- ============================================================ 5 -->
+<h1>5. Ground rules for everyone</h1>
+<ol>
+  <li><b>Never make up data.</b> If a source can't be fetched, return <code>None</code> and mark the feature "found, not
+      confirmed". This already happened once: a rainfall loader invented numbers with a formula and labelled them as satellite data.
+      It was reverted. Demo complaints are the only sample data allowed, and they must stay flagged <code>is_demo</code>.</li>
+  <li><b>Check it live before building on it.</b> A search result is not proof. Mission Antyodaya looked real in search
+      results, but its domain is dead. Pull at least one real row for Kolhapur or Nashik before writing a loader.</li>
+  <li><b>Never bypass a CAPTCHA or a login.</b> eMARG and eGramSwaraj are off-limits for scraping for this reason.</li>
+  <li><b>Scrape politely:</b> at most about 1 request per second, an honest User-Agent, cache results, and refresh on a
+      schedule (UDISE yearly, JJM monthly, CWC and SACHET every 15–60 minutes).</li>
+  <li><b>No complaint is ever auto-rejected.</b> Verification signals only raise or lower confidence and flag reports for an
+      officer. A score may be damped, never zeroed.</li>
+  <li><b>The score must stay explainable:</b> the 9 breakdown numbers must add up to the priority score. A test enforces it;
+      don't break it.</li>
+  <li><b>Tests before and after every change:</b> <code>python -m intelligence.test_intelligence</code> (79/79),
+      <code>cd backend &amp;&amp; python test_citizen_report_endpoint.py</code> (65/65; it writes to the database, so back
+      up <code>backend/hackathon.db</code> first), <code>cd pipeline &amp;&amp; python test_pipeline.py</code> (46/46).</li>
+  <li><b>After every commit run <code>git status</code>.</b> Only untracked research files may remain. If a tracked file
+      shows as modified after you committed, an editor wrote an old copy back; fix it before moving on.</li>
+  <li><b>When you change any frontend file, bump the version tag</b> in <code>index.html</code>/<code>report.html</code>
+      (currently <code>?v=village5</code>). Otherwise browsers keep the old file and you'll think your change didn't work.</li>
+  <li><b>Privacy stays as built:</b> citizen identity lives only in <code>citizen_identity</code>, exact pins are never
+      returned by public endpoints, and pin-based asset coordinates are rounded to 3 decimals (about 110 m).</li>
+</ol>
+
+<!-- ============================================================ 6 -->
+<h1>6. Data source catalogue</h1>
+<p>Every source we looked at, with what it gives and whether we can use it. Exact request formats are in section 15.</p>
+
+<h2>Verified: real data pulled live</h2>
+<table>
+<thead><tr><th style="width:20%">Source</th><th style="width:28%">What it gives</th><th style="width:22%">Access</th><th>Used for</th></tr></thead>
+<tbody>
+<tr><td><b>UDISE+ Know Your School</b><br/><span class="small">kys.udiseplus.gov.in/web-app/api/</span></td>
+  <td>Per school, <b>2024-25</b>: teachers (regular/contract/part-time), classrooms by condition (good / minor repair /
+  major repair), toilets, drinking water, electricity, boundary wall, <b>grant received and spent</b>.</td>
+  <td>JSON API, no login, no CAPTCHA, by 11-digit UDISE code (we hold all 9,352). School search is CAPTCHA'd but not needed.</td>
+  <td>Education infra_deficit per school asset (A1, B5); school investment (D2). Test: Vidya Mandir, Mhalunge Khalsa:
+  5 teachers, 4 good + 1 minor-repair classroom, ₹25,000 grant, ₹25,000 spent.</td></tr>
+<tr><td><b>JJM WQMIS water testing</b><br/><span class="small">ejalshakti.gov.in/WQMIS</span></td>
+  <td>Per village, <b>current year 2026-27</b>: number of water samples tested and for which parameters (pH, FRC,
+  turbidity, TDS, hardness, arsenic/fluoride/nitrate/iron), and villages where testing wasn't done.</td>
+  <td>ASP.NET forms. Every value is AES-encrypted with a fixed key found in the site's own JavaScript. Replicated in Python.</td>
+  <td>Water infra_deficit and evidence (A2). Test: Ardal village, Kolhapur: 30 samples tested this year.
+  Kolhapur has 12 blocks, Nashik 15.</td></tr>
+<tr><td><b>CWC flood forecasting</b><br/><span class="small">ffs.india-water.gov.in/iam/api/</span></td>
+  <td>168,019 stations; live river level and rainfall readings.</td>
+  <td>Open JSON API. Needs a <code>class-name</code> header and a JSON filter.</td>
+  <td>Emergency corroboration (A3, B2). Test: Nashik station <code>MHSWIWRM026</code> read at 17:00 on 14 Sept.
+  The station named "KOLHAPUR" is dead (last reading 2017, wrong coordinates).</td></tr>
+<tr><td><b>NDMA SACHET alerts</b><br/><span class="small">sachet.ndma.gov.in</span></td>
+  <td>Live disaster alerts (heavy rain, flood, lightning) from IMD, CWC and the state, by district.</td>
+  <td>Public RSS feed <code>rss_maharashtra.xml</code>, each item links to a CAP XML message.</td>
+  <td>Emergency corroboration (A4, B2). Test: 10 current Maharashtra alerts in Marathi. Alerts expire, so store history.</td></tr>
+<tr><td><b>NWDP groundwater</b><br/><span class="small">nwdp.nwic.gov.in</span></td>
+  <td>Groundwater level telemetry, Maharashtra GW department.</td><td>Direct CSV download, no login.</td>
+  <td><span class="pill ok">ALREADY LOADED</span> 9 stations, water evidence.</td></tr>
+<tr><td><b>PMGSY works</b><br/><span class="small">pmgsy.dord.gov.in</span></td>
+  <td>552 road works: sanctioned cost, status, year.</td><td>Dashboard API with session token.</td>
+  <td><span class="pill ok">ALREADY LOADED</span> Road deficit, "already funded".</td></tr>
+<tr><td><b>PMGSY GeoSadak</b><br/><span class="small">github.com/datameet/pmgsy-geosadak</span></td>
+  <td>Road geometry shapefiles (<code>Road_DRRP</code>), road type and surface.</td>
+  <td>GitHub mirror (Government Open Data Licence). The official portal's domain is dead.</td>
+  <td>Real road names for road pins (D1).</td></tr>
+<tr><td><b>Census 2011, BharatNet 2022, LGD, NIC HealthGIS</b></td>
+  <td>Village amenities, fibre status, admin hierarchy, health facility locations.</td><td>Bulk files.</td>
+  <td><span class="pill ok">ALREADY LOADED</span> The current score's base.</td></tr>
+<tr><td><b>NFHS-5 (2019-21)</b></td><td>District health and nutrition indicators.</td>
+  <td>DHS Maharashtra PDF downloads directly.</td><td>Fresher health context (district-level only).</td></tr>
+</tbody>
+</table>
+
+<h2>Likely, blocked, or waiting</h2>
+<table>
+<thead><tr><th style="width:22%">Source</th><th style="width:14%">Status</th><th>Why, and what to do</th></tr></thead>
+<tbody>
+<tr><td>JJM contamination results (<code>Contaminantwise</code>, lab reports)</td><td><span class="pill maybe">LIKELY</span></td>
+  <td>Same site and same AES method as the water-testing report; not yet pulled. Would give actual unsafe-water findings.</td></tr>
+<tr><td>JJM scheme money (cost, spending, status)</td><td><span class="pill maybe">LIKELY</span></td>
+  <td>Same ejalshakti site. Would give water investment data for the white space. Not verified.</td></tr>
+<tr><td>MGNREGA works per panchayat</td><td><span class="pill maybe">SERVER DOWN</span></td>
+  <td>State page works (Maharashtra code 18), but every report server returned 503 or refused the connection. Retry later.</td></tr>
+<tr><td>eGramSwaraj GPDP (whole-village budget plan)</td><td><span class="pill no">CAPTCHA</span></td>
+  <td>The richest village budget source (every planned work, cost, sector, Finance Commission grants), but every report
+  page has a CAPTCHA. Download a few showcase villages by hand, or request data from the Panchayati Raj department.</td></tr>
+<tr><td>eMARG road inspections</td><td><span class="pill no">CAPTCHA</span></td>
+  <td>PMGSY's own current road-condition inspections. Public lookup is CAPTCHA'd. Request data from NRIDA.</td></tr>
+<tr><td>MOSDAC GSMaP rainfall</td><td><span class="pill block">LOGIN</span></td>
+  <td>Needs an ISRO MOSDAC account: ordinary email sign-up, approval sent by email. Then the loader can be finished.</td></tr>
+<tr><td>Planet Labs imagery (3.7 m)</td><td><span class="pill block">APPLICATION</span></td>
+  <td>Free Education &amp; Research programme (university email, 3,000 km²/month). For bridge/road-collapse confirmation only.</td></tr>
+<tr><td>Mission Antyodaya (yearly village survey)</td><td><span class="pill no">UNREACHABLE</span></td>
+  <td>Old domain dead; new domain resolves but won't connect from here. Retry from another network.</td></tr>
+<tr><td>Health budgets (NHM)</td><td><span class="pill no">NOT ONLINE</span></td>
+  <td>Only state/district PDFs. Fallback: NHM's fixed yearly allowance per facility, clearly labelled as an entitlement, not spending.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ 7 -->
+<h1>7. How the priority score works today</h1>
+<p>Every cluster and every asset gets the same 9-part score (0–100). Four "need" terms are each 0–1 and weighted 25%:</p>
+<div class="formula">gap points = 81 × confidence_gate × (0.25·demand + 0.25·population + 0.25·infra_deficit + 0.25·vulnerability)
+priority   = gap points + equity (0–10) + strategic (0–4) + urgency (0–3) + feasibility (0–2) − cost penalty (0–3)</div>
+<table>
+<thead><tr><th style="width:18%">Term</th><th>What feeds it now</th><th style="width:32%">Planned change</th></tr></thead>
+<tbody>
+<tr><td>demand</td><td>Distinct reporters (by wording), capped at 25</td><td>Count distinct accounts (C2); soften below 3 reporters (B3)</td></tr>
+<tr><td>population</td><td>Census population in the category catchment (road 5 km, water 3, health 8, school 4), log-scaled</td><td>—</td></tr>
+<tr><td>infra_deficit</td><td>Government records (Census 2011, PMGSY, JJM tap coverage, IPHS norms); citizen severity only if no record exists</td><td>Stale-record discount (B1); UDISE+ per-school data (B5); JJM testing (A2)</td></tr>
+<tr><td>vulnerability</td><td>Census: distance to HQ, power hours, drainage, internet</td><td>Stale-record discount (B1)</td></tr>
+<tr><td>equity</td><td>BharatNet fibre down = hard to report from here (+10)</td><td>—</td></tr>
+<tr><td>strategic</td><td>Qualifies under a published scheme rule (+4)</td><td>—</td></tr>
+<tr><td>urgency</td><td>Flat +3 for every road and water complaint</td><td><b>Replaced</b> by emergency score, cap 15 (B2)</td></tr>
+<tr><td>feasibility</td><td>Near a block HQ (+2)</td><td>—</td></tr>
+<tr><td>cost penalty</td><td>Larger catchments cost more (−3)</td><td>—</td></tr>
+</tbody>
+</table>
+<div class="callout"><b>Why a village can rank #1 on one complaint.</b> Halewadi (Kolhapur) scores 68.18 with only 1.62
+points from complaints. The rest comes from the government record: 2 doctor posts sanctioned, 0 filled; 46,992 people
+within 8 km; 84 km from the district HQ; fibre down in all 16 nearby villages. That is the "need, not noise" design
+working as intended. But the old 3-report minimum was dropped in the asset view, so one complaint (possibly fake) can
+reach #1. B3 fixes that. And health tends to lead the ranking because its catchment (8 km) is the largest.</div>
+
+<!-- ============================================================ 8 A -->
+<h1>8. Workstream A: Data pipelines</h1>
+<p>Goal: bring in the four verified live sources as clean, cached, honest data that the scoring engine and the map can use.
+Every loader follows the pattern of <code>backend/load_nwdp_groundwater.py</code>: fetch, parse, store in a table,
+save a snapshot file, and print a clear summary. On failure it stores nothing and exits with code 1.</p>
+
+<div class="spec">
+<h3>A1 · UDISE+ school loader <span class="meta">Size: M · Priority: 1 · <span class="pill ok">VERIFIED</span></span></h3>
+<div class="kv">
+  <div>Why</div><div>Current (2024-25) condition, staffing and money for each specific school, replacing the 2011 fact "this village has a middle school". The biggest data upgrade we found.</div>
+  <div>Data</div><div><code>GET /web-app/api/school/report-card?udiseSchCode=&lt;code&gt;</code> and <code>/school/facility?udiseSchCode=&lt;code&gt;</code>. Codes come from <code>public_facility.external_id</code> where <code>source='udise'</code>.</div>
+  <div>New table</div><div><code>school_condition</code>: <code>facility_id, udise_code, year_desc, teachers_regular, teachers_contract, teachers_part_time, classrooms_total, classrooms_good, classrooms_minor_repair, classrooms_major_repair, toilet_boys_functional, toilet_girls_functional, drinking_water, electricity, boundary_wall, total_grant, total_expenditure, fetched_at</code></div>
+  <div>Fields</div><div>report-card: <code>yearDesc, tchReg, tchCont, tchPart, totalGrant, totalExpediture</code> (their spelling). facility: <code>clsrmsInst, clsrmsGd, clsrmsMin, clsrmsMaj, toiletbFun, toiletgFun, drinkWaterYn, electricityYn, bndrywallType</code>.</div>
+  <div>Volume</div><div>9,352 schools × 2 calls ≈ 18,700 requests. At 1 request per second that's about 5 hours: run it once, resumable (skip codes already fetched), refresh yearly.</div>
+  <div>Lookup</div><div><code>realdata.school_condition(facility_id) → (value, evidence)</code>.</div>
+  <div>Tests</div><div>Parse a saved JSON sample into the table row; missing fields become None, not 0; resume skips existing codes.</div>
+</div>
+</div>
+
+<div class="spec">
+<h3>A2 · JJM water-testing loader <span class="meta">Size: M · Priority: 2 · <span class="pill ok">VERIFIED</span></span></h3>
+<div class="kv">
+  <div>Why</div><div>Current water-testing coverage per village, replacing 2011 Census tap columns. Villages where water was never tested are a real deficit signal.</div>
+  <div>Method</div><div>1) GET <code>/WQMIS/Report/rpt_ftk_testing_village</code> to get a session cookie and <code>__RequestVerificationToken</code>. 2) Encrypt every value with AES-128-CBC, key = IV = <code>8080808080808080</code>, PKCS7, base64 (snippet in 15.2). 3) POST <code>/WQMIS/Common/District_Bind_without_session</code> → blocks → panchayats → villages. 4) POST <code>/WQMIS/Report/Get_rpt_ftk_testing_village</code>.</div>
+  <div>Key trick</div><div>Results come back <b>one level below</b> the filter you send. To get per-village rows, send district + block + <b>panchayat</b> with <code>villid=0</code>. Sending a specific village returns nothing.</div>
+  <div>IDs</div><div>Maharashtra 18 · Kolhapur 285 · Nashik 277 · e.g. Ajara block 3264, Ardal panchayat 101418, Ardal village 240666. Financial year format <code>2026-2027</code>.</div>
+  <div>New table</div><div><code>water_testing</code>: <code>fin_year, district_id, block_id, gp_id, village_id, village_name, samples_tested, ph, frc, turbidity, tds, hardness, ar_fl_ni_iron, villages_not_tested, gazetteer_id</code> (match village names to our gazetteer like the existing JJM loader).</div>
+  <div>Next</div><div>Same method on <code>/WQMIS/Report/Contaminantwise</code> to get actual unsafe-water findings. Check it live first.</div>
+  <div>Tests</div><div>AES output for "18" equals <code>4rB5wpBtnmBBmFEyZRZokg==</code>; parser handles the "--Select--" placeholder rows.</div>
+</div>
+</div>
+
+<div class="spec">
+<h3>A3 · CWC river-level loader <span class="meta">Size: M · Priority: 4 · <span class="pill ok">VERIFIED</span></span></h3>
+<div class="kv">
+  <div>Why</div><div>A river in flood near a "bridge collapsed" report is strong independent confirmation of an emergency.</div>
+  <div>Data</div><div><code>GET /iam/api/layer-station/specification/sorted-page</code> (header <code>class-name: LayerStationDto</code>) to find stations; <code>/layer-station-geo/...</code> (<code>LayerStationGeoDto</code>) for coordinates; <code>/new-entry-data/specification/sorted-page</code> (<code>NewEntryDataDto</code>) for readings, sorted by <code>id.dataTime</code> DESC.</div>
+  <div>Step 1</div><div>Build a station list for Kolhapur (Panchganga/Krishna basin) and Nashik (Godavari). Keep only stations with a reading in the last 7 days <b>and</b> coordinates inside the district. The "KOLHAPUR" station fails both checks.</div>
+  <div>Step 2</div><div>Map the reading codes (<code>GBD</code>, <code>GBT</code>, <code>GEP</code>, …) to "water level", "rainfall" etc. from the site's own station pages. Don't guess.</div>
+  <div>Table</div><div><code>river_reading</code>: <code>station_code, name, lat, lon, datatype_code, value, observed_at</code>. Poll hourly.</div>
+  <div>Lookup</div><div><code>realdata.hazard_near(lat, lon, hours=72) → (flag, evidence)</code>, shared with A4.</div>
+</div>
+</div>
+
+<div class="spec">
+<h3>A4 · SACHET disaster-alert loader <span class="meta">Size: S · Priority: 3 · <span class="pill ok">VERIFIED</span></span></h3>
+<div class="kv">
+  <div>Data</div><div><code>https://sachet.ndma.gov.in/cap_public_website/rss/rss_maharashtra.xml</code>. Each <code>&lt;item&gt;</code> links to <code>FetchXMLFile?identifier=…</code>, a CAP message with event, severity, urgency, area/district and expiry.</div>
+  <div>Build</div><div>Poll every 15 minutes, fetch each new CAP message, store <code>hazard_alert</code>: <code>identifier, event, severity, urgency, area_desc, districts, effective, expires, sender</code>. Keep history, because alerts expire and we need "was there an alert 2 days ago?"</div>
+  <div>Match</div><div>By district name in the area description (text is often Marathi; keep a small name map for Kolhapur/कोल्हापूर, Nashik/नाशिक).</div>
+</div>
+</div>
+
+<div class="spec">
+<h3>A5 · Retry list <span class="meta">Size: S each · Priority: 5</span></h3>
+<ul>
+  <li><b>JJM scheme money</b> (cost, spending, status per village) on ejalshakti: would give the white space water investment data.</li>
+  <li><b>MGNREGA</b> panchayat works: retry the report servers on a different day or network.</li>
+  <li><b>Mission Antyodaya</b>: retry <code>missionantyodaya.dord.gov.in</code> from another network; if reachable, inspect columns before building.</li>
+  <li><b>MOSDAC</b>: once someone registers an ISRO account, finish <code>backend/load_mosdac_rainfall.py</code> with a login session.</li>
+</ul>
+</div>
+
+<!-- ============================================================ 9 B -->
+<h1>9. Workstream B: Scoring engine</h1>
+<p>Goal: make the score react to current reality, not only 2011 records, while staying explainable and hard to fake.
+All changes go in <code>intelligence/</code>, constants in <code>config.py</code>, tests in <code>test_intelligence.py</code>.</p>
+
+<div class="spec">
+<h3>B1 · Stale-record discount (trust-blend) <span class="meta">Size: M · Priority: 1 · decided</span></h3>
+<p><b>Problem it fixes:</b> in the Shinganapur test, 22 people reported a collapsed bridge but the cluster ranked #63 of 114,
+because Census 2011 says the road is fine and a government record always wins. Now an old record loses weight only when
+a real burst of recent, severe, independent reports contradicts it.</p>
+<div class="formula">burst_ratio   = (distinct reports in last 72 h / 72) ÷ (all distinct reports / hours since first report)
+velocity      = 0 if burst_ratio ≤ 1, else min(1, ln(1 + burst_ratio) / ln(1 + 20))
+freshness     = 0.5 ^ (record_age_years / 10)          # half-life 10 years (owner decision)
+contradiction = velocity × share_of_reports_with_high_severity
+trust         = 1 − (1 − freshness) × contradiction
+infra_deficit = trust × government_value + (1 − trust) × citizen_severity_value</div>
+<ul>
+  <li>Add <code>created_at</code> to <code>_load_reports()</code> in <code>recompute.py</code>; count <b>distinct reporters</b>, not rows (anti-spam).</li>
+  <li>Constants: <code>BURST_WINDOW_HOURS = 72</code> (already exists), <code>VELOCITY_RATIO_CEILING = 20</code>, <code>RECORD_TRUST_HALF_LIFE_YEARS = 10</code>.</li>
+  <li>Record age: Census = current year − 2011 (compute it, don't hardcode 15); PMGSY = sanction year; UDISE = 2024; JJM testing = current year.</li>
+  <li>Apply to <code>real_infra_deficit</code> and <code>real_vulnerability</code> in all four categories. The burst signal does <b>not</b> go into urgency.</li>
+  <li>Show a third evidence state in the panels: "blended: 48% government record (2011, 15 yrs) + 52% citizen reports".</li>
+  <li><b>Worked example:</b> Census record 15 years old → freshness 0.354. Shinganapur contradiction ≈ 0.8 → trust ≈ 0.48 → about 10 of the 20 lost infra_deficit points come back.</li>
+  <li><b>Tests:</b> no burst + old record → record wins; real burst + old record → blend shifts; real burst + fresh record → record still wins; identical copy-pasted reports don't create a burst.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>B2 · Emergency urgency <span class="meta">Size: L · Priority: 2 · decided</span></h3>
+<p><b>Owner's definition:</b> urgency means an emergency only, meaning bridge or building damage <b>including cracks</b>, graded
+crack &lt; partial damage &lt; collapse. It is not for potholes, missing staff or water supply (those use demand,
+infra_deficit and B1). There is no separate emergency list; it lives inside the score.</p>
+<div class="formula">urgency = URGENCY_MAX × grade × confidence            # replaces today's flat +3
+grade      : crack 1/3 · partial damage 2/3 · collapse 1   (from the damage model or catastrophic wording)
+confidence : 0–1, built from independent signals (none decisive alone):
+             damage-model score on the photo (C6) · catastrophic wording · burst of reports (B1)
+             · active SACHET alert for the district (A4) · river in flood nearby (A3) · satellite later
+URGENCY_MAX = 15, GAP_SCORE_MAX_POINTS = 69   (was 3 and 81; total stays 100)</div>
+<p><b>Why 15:</b> tested against the real 116 clusters. A mid-ranked cluster with a confirmed collapse jumps to <b>#8</b>
+(partial damage #23), while 9 of the current top 10 stay in the top 10 and clusters move about 4 places on average. A cap
+of 9 only reaches #28 for a collapse; 20 lets emergencies dominate (#4).</p>
+<ul>
+  <li>Update <code>test_breakdown_sums_to_score</code> and <code>test_score_stays_within_scale</code> for the new caps.</li>
+  <li>Evidence key <code>evidence["emergency"]</code> lists each signal and its contribution, so officers see why.</li>
+  <li>Build the term with every signal optional (missing = 0). It works on wording and bursts first, and gets stronger as A3, A4 and C6 land. No fake inputs.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>B3 · Corroboration softening <span class="meta">Size: S · Priority: 3 · needs owner decision</span></h3>
+<p>The old clusters needed 3 independent reports to be ranked; the asset view needs 1, so a single complaint can reach #1.
+<b>Recommended option:</b> an asset with fewer than 3 distinct reporters keeps a reduced share of its need points
+(1 reporter 60%, 2 reporters 80%, 3+ 100%) and shows an "unconfirmed" badge. Implement as an extra factor on the
+confidence gate in <code>score_cluster</code> so the breakdown still sums. Alternative: fewer than 3 reporters means
+the asset is not ranked and goes to a separate "unconfirmed" list.</p>
+</div>
+
+<div class="spec">
+<h3>B4 · Fix the demand-vs-investment category bug <span class="meta">Size: S · Priority: 1</span></h3>
+<ul>
+  <li>In <code>intelligence/investment.py</code> <code>build_village_investment()</code>, count only reports whose
+      <code>issue_category</code> matches the works' category (PMGSY = <code>road</code>). Today it counts all categories.</li>
+  <li>Return the category in each row, so when school (A1 grants) and water (A5) money arrives the same code handles them.</li>
+  <li>Re-check the headline counts (currently 98 funded-undelivered, 762 demanded-unfunded, 37 funded-not-demanded). They
+      should drop sharply. Remember the demand side is sample data: mismatches are a demonstration, not findings.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>B5 · Use UDISE+ in the school score <span class="meta">Size: M · Priority: 2 · needs A1</span></h3>
+<div class="formula">school_deficit = max( major_repair_classrooms / classrooms_total,
+                      teacher_shortfall = max(0, 1 − teachers / RTE_required_teachers),
+                      no_drinking_water, no_functional_toilet )      # all 0–1</div>
+<ul>
+  <li>For education assets tied to a UDISE school, use this as the asset's <code>real_infra_deficit</code> instead of the village share. Record age = 2024 (fresh).</li>
+  <li>RTE teacher norm: use enrolment from the report card if present; otherwise report the teacher count as evidence only. Don't invent enrolment.</li>
+  <li>Evidence key <code>evidence["school_condition"]</code>: teachers, classroom condition, grant received/spent, year.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>B6 · What-if: people reached per rupee <span class="meta">Size: M · Priority: 4</span></h3>
+<p>Replace "0.4 points per crore" (<code>whatif.py</code>) with the research report's version: given a budget, pick
+assets in priority order until the money runs out, using real unit costs (the PMGSY median cost per km already computed in
+<code>realdata.cost_benchmark</code>; school grants from A1), and report the <b>population reached per rupee</b>. Show which
+assets get funded and which just miss out.</p>
+</div>
+
+<!-- ============================================================ 10 C -->
+<h1>10. Workstream C: Photo checks and fake-complaint defence</h1>
+<p>Three separate questions, three layers. None of them rejects a complaint; each raises or lowers confidence and flags it.</p>
+<table>
+<thead><tr><th style="width:24%">Layer</th><th style="width:34%">Question it answers</th><th>How</th></tr></thead>
+<tbody>
+<tr><td>1 · Corroboration</td><td>Did several independent people report it recently?</td><td>Already built (cap 25, 3-report clusters) plus B1, B3, C2</td></tr>
+<tr><td>2 · Photo is genuine</td><td>Is it a real, new photo taken here, not edited, reused or shown on a screen?</td><td>C1, C3, C4, C7</td></tr>
+<tr><td>3 · Photo shows the problem</td><td>Does the photo actually show a pothole, crack or collapse?</td><td>C5, C6</td></tr>
+</tbody>
+</table>
+<p class="small">This mirrors how insurance companies check photo claims: metadata, edit detection, reverse image search, and an
+AI-image check used only to flag for review. Staffing complaints ("no teacher", "no doctor") can never be photo-verified;
+only corroboration backs them up.</p>
+
+<div class="spec">
+<h3>C1 · Camera-only capture, GPS and time at capture <span class="meta">Size: M · Priority: 1</span></h3>
+<ul>
+  <li>In <code>frontend/js/report.js</code>, capture photos with <code>navigator.mediaDevices.getUserMedia</code> + the Image Capture API instead of <code>&lt;input type="file"&gt;</code>. <code>capture="camera"</code> is only a hint and still allows gallery uploads on many phones.</li>
+  <li>Take a short burst of 3–5 frames, not one still (used by C7), and read GPS at the same moment (reuse the Task 1 geolocation button).</li>
+  <li>Needs HTTPS (or localhost), same as geolocation.</li>
+  <li>Backend: store <code>capture_lat/lon</code> and <code>captured_at</code> per attachment; flag if the capture point is more than 5 km from the chosen village.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>C2 · Count distinct accounts <span class="meta">Size: S · Priority: 1</span></h3>
+<p>Reports already carry <code>user_id</code>. In <code>recompute.py</code>, count distinct reporters as distinct accounts (fall back to
+distinct wording only for anonymous/old reports). One person filing the same complaint in different words then counts once.</p>
+</div>
+
+<div class="spec">
+<h3>C3 · Duplicate-photo check <span class="meta">Size: S · Priority: 2</span></h3>
+<p>Use <code>imagehash</code> (v4.3.1, installs cleanly with Pillow). Store a perceptual hash per attachment; flag any new photo within
+a small Hamming distance of an existing one from a different village or asset. This catches the same photo reused, even
+resized or recompressed.</p>
+</div>
+
+<div class="spec">
+<h3>C4 · Edit detection (error-level analysis) <span class="meta">Size: S · Priority: 3</span></h3>
+<p>Free and local, no API. Re-save the JPEG at a known quality, compare with the original, and flag regions with unusually
+different error levels (a sign of pasting or retouching). Output a 0–1 "possibly edited" score as evidence for the officer.</p>
+</div>
+
+<div class="spec">
+<h3>C5 · Pothole model as road evidence <span class="meta">Size: M · Priority: 2 · team already has the model</span></h3>
+<ul>
+  <li>Run the team's pothole model on road photos in a small service (<code>backend/photo_checks.py</code>). YOLOv8n-size models run on a normal CPU.</li>
+  <li>Output: detections with confidence. Store as <code>evidence["photo_defect"]</code>. It feeds road <b>condition</b> (as extra citizen-severity weight in B1's blend), <b>not urgency</b>.</li>
+  <li>Honest limit: the best published road-damage models reach about 77% F1 (RDD2022 benchmark, which includes Indian roads). Treat the output as a signal, never a verdict.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>C6 · Building and bridge damage model (for emergencies) <span class="meta">Size: L · Priority: 3</span></h3>
+<ul>
+  <li><b>Buildings: realistic.</b> A published ground-photo classifier (ResNet50) sorts not damaged / damaged / collapsed at 93.5%. GitHub starting points: <code>najmulmowla1/Earthquake-Building-Damage-Detection</code> (cracked / partially damaged / collapsed). Crack detection (SDNET2018, 56,000 images) reaches 95%+ but only answers "is there a crack", not "is it safe".</li>
+  <li><b>Bridges: no ready model.</b> Published bridge models detect cracks and corrosion on close-up inspection photos and are weak (mAP50 0.445). A collapse model needs collected, labelled examples.</li>
+  <li>Output the grade (crack / partial / collapse) and confidence for B2.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>C7 · Screen-replay check <span class="meta">Size: M · Priority: 4 · research needed</span></h3>
+<p>Someone could photograph a picture shown on another screen. Photographing a screen leaves <b>moiré patterns</b> (interference
+between the screen's pixel grid and the camera sensor), screen glare and bezel edges. Research models exist (CNN/Vision
+Transformer "recapture detection"); KYC companies use the same idea. Cheap first step with C1's burst: a real handheld scene
+shows small movement between frames; a screen is suspiciously flat. Use it as a signal only.</p>
+</div>
+
+<!-- ============================================================ 11 D -->
+<h1>11. Workstream D: Map, roads and the white-space view</h1>
+
+<div class="spec">
+<h3>D1 · Real road names (Task 5, PMGSY GeoSadak) <span class="meta">Size: M · Priority: 1</span></h3>
+<ul>
+  <li>Download the Maharashtra <code>Road_DRRP</code> shapefile from <code>github.com/datameet/pmgsy-geosadak</code>. <b>First inspect its attribute table</b> for Kolhapur and Nashik and report which fields exist (name, surface, category). Don't commit large shapefiles.</li>
+  <li><code>backend/load_pmgsy_geosadak.py</code> → table <code>pmgsy_road_segment</code> (road id/code, name if present, category, surface, a list of points).</li>
+  <li><code>realdata.load_road_segment_index(db)</code> and <code>realdata.nearest_road_segment(lat, lon, segments, max_distance_m=150)</code>. Then road asset naming prefers the nearest segment's name over "Road near X". Missing fields are None, never invented.</li>
+  <li>Also links the 552 PMGSY works to specific roads instead of village names, which makes "already funded" road-specific.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>D2 · Show funding status on village and asset panels <span class="meta">Size: M · Priority: 1 · after B4</span></h3>
+<ul>
+  <li>On each asset panel, show the matching investment line for that asset's type: roads from PMGSY (and D1), schools from UDISE+ grants (A1), water from JJM scheme money when A5 lands.</li>
+  <li>Example: "₹729 lakh sanctioned since 2006 across 4 works, not delivered" on the road asset; "School grant ₹25,000 received, ₹25,000 spent (2024-25)" on the school asset.</li>
+  <li>On the village panel, a one-line summary per category: funded-undelivered / demanded-unfunded / no mismatch. This connects the asset view to the white space.</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>D3 · Map polish <span class="meta">Size: S–M · Priority: 3</span></h3>
+<ul>
+  <li>Labels of the top-3 pins can still overlap when pins are very close: add simple label collision (hide a label that overlaps a higher-ranked one).</li>
+  <li>The map strip above the detail panel is short (the panel takes about two-thirds of the screen): add a drag handle or a smaller default panel height.</li>
+  <li>Optional: village bubbles at state level (today villages appear only after entering a district).</li>
+</ul>
+</div>
+
+<div class="spec">
+<h3>D4 · Demo and disclosure <span class="meta">Size: S · Priority: 2</span></h3>
+<ul>
+  <li>DEMO labels are hidden by owner decision, so the pitch must say the pilot runs on sample complaints. The "Halewadi #1" ranking is a demonstration, not a finding.</li>
+  <li>Prepare 3 demo walk-throughs: (1) district → village → asset; (2) an "already funded here" road; (3) the Shinganapur-style bridge case before and after B1/B2.</li>
+  <li>Final pass: all three test suites green, <code>git status</code> clean, version tag bumped.</li>
+</ul>
+</div>
+
+<!-- ============================================================ 12 -->
+<h1>12. Blocked and later features</h1>
+<table>
+<thead><tr><th style="width:26%">Feature</th><th style="width:22%">Blocked on</th><th>Plan once unblocked</th></tr></thead>
+<tbody>
+<tr><td>Satellite confirmation of disasters</td><td>Planet Labs Education &amp; Research application (university email)</td>
+  <td>Only for catastrophic road/bridge claims that already have a burst of reports and contradict a clean record. Before/after
+  image comparison near the asset. Never for potholes, staffing or water (a school building is too small even at 3.7 m).</td></tr>
+<tr><td>Rainfall evidence</td><td>ISRO MOSDAC account</td><td>Finish the loader with a login session; show "X mm in the last 72 h" on road and water evidence.</td></tr>
+<tr><td>Whole-village budget (GPDP)</td><td>CAPTCHA on every report page</td><td>Hand-download a few showcase villages; request bulk data from the Panchayati Raj department.</td></tr>
+<tr><td>Road condition inspections (eMARG)</td><td>CAPTCHA</td><td>Formal data request to NRIDA; would give current condition of PMGSY roads.</td></tr>
+<tr><td>Reverse image search</td><td>Paid API (Google Vision, TinEye)</td><td>Catches photos stolen from the web; decide on cost later.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ 13 -->
+<h1>13. Build order and dependencies</h1>
+<table>
+<thead><tr><th style="width:12%">Phase</th><th style="width:22%">A · Data</th><th style="width:22%">B · Scoring</th><th style="width:22%">C · Photos</th><th>D · Map</th></tr></thead>
+<tbody>
+<tr><td><b>0 · Day one</b></td><td colspan="4">Commit the pending village-view fixes on <code>submission</code>. Everyone branches from that commit. Agree evidence key names (section 4).</td></tr>
+<tr><td><b>1</b></td><td>A1 UDISE+ loader<br/>A4 SACHET loader</td><td>B4 category bug<br/>B1 stale-record discount</td><td>C2 distinct accounts<br/>C1 camera capture</td><td>D1 GeoSadak roads</td></tr>
+<tr><td><b>2</b></td><td>A2 JJM water testing<br/>A3 CWC stations</td><td>B5 UDISE+ in score (needs A1)<br/>B3 softening (needs decision)</td><td>C3 duplicate photos<br/>C5 pothole model</td><td>D2 funding on panels (needs B4, A1)</td></tr>
+<tr><td><b>3</b></td><td>A5 retries (JJM money, MGNREGA)</td><td>B2 emergency urgency (uses A3, A4, C6 when ready)<br/>B6 what-if per rupee</td><td>C6 damage model<br/>C4 edit detection</td><td>D3 polish</td></tr>
+<tr><td><b>4</b></td><td colspan="4">C7 screen-replay research · D4 demo walk-throughs · full test pass · merge to <code>submission</code>.</td></tr>
+</tbody>
+</table>
+<div class="callout"><b>Hard dependencies:</b> B5 needs A1 · D2 needs B4 (and A1 for schools) · B2 is built with optional
+inputs and gets stronger as A3, A4 and C6 land · B1 and B2 both change <code>scoring.py</code>, so the same person (Member 2)
+owns both to avoid merge conflicts.</div>
+
+<!-- ============================================================ 14 -->
+<h1>14. Decisions still open</h1>
+<table>
+<thead><tr><th style="width:36%">Decision</th><th style="width:34%">Options</th><th>Recommendation</th></tr></thead>
+<tbody>
+<tr><td>Assets with only 1–2 reporters (B3)</td><td>(a) keep a reduced share of need points + "unconfirmed" badge; (b) don't rank them</td><td>(a): damp, never erase</td></tr>
+<tr><td>Health budget fallback</td><td>Use NHM fixed per-facility entitlements, or show "no data"</td><td>Entitlements, clearly labelled "entitled, not spent"</td></tr>
+<tr><td>Should shared hospitals count fully for every village they serve?</td><td>Yes (today), or split by population share</td><td>Keep for now; revisit if health keeps dominating the top 10</td></tr>
+<tr><td>Register ISRO MOSDAC account; apply to Planet Labs</td><td>Owner or a team member with a university email</td><td>Do both early; approvals take time</td></tr>
+<tr><td>Formal data requests (Panchayati Raj for GPDP, NRIDA for eMARG)</td><td>Send now, or skip for the hackathon</td><td>Send now; mention in the pitch as the path to full coverage</td></tr>
+</tbody>
+</table>
+<p class="small">Already decided (don't reopen): village score = most-in-need asset · urgency = bridge/building emergencies only,
+graded, inside the score, cap 15 · stale-record half-life 10 years · nothing fabricated · no auto-rejection · satellite for
+disasters only · DEMO labels hidden in the UI, data still flagged.</p>
+
+<!-- ============================================================ 15 -->
+<h1>15. Appendix: exact endpoints and code</h1>
+
+<h3>15.1 UDISE+ school data</h3>
+<pre>import requests
+H = {"User-Agent": "AwaazIQ/1.0 (+contact)", "Accept": "application/json",
+     "Referer": "https://kys.udiseplus.gov.in/"}
+B = "https://kys.udiseplus.gov.in/web-app/api/"
+code = "27341212203"   # 11-digit UDISE code from public_facility.external_id
+card = requests.get(B + f"school/report-card?udiseSchCode={code}", headers=H, timeout=30).json()["data"]
+fac  = requests.get(B + f"school/facility?udiseSchCode={code}",    headers=H, timeout=30).json()["data"]
+# card: yearDesc '2024-25', tchReg 5, tchCont 0, tchPart 0, totalGrant 25000.0, totalExpediture 25000.0
+# fac : clsrmsInst 5, clsrmsGd 4, clsrmsMin 1, clsrmsMaj 0, toiletbFun 1, toiletgFun 1, drinkWaterYn 1 ...
+# PDF report card: B + f"reportCardPdfByUdiseCode/{code}"</pre>
+
+<h3>15.2 JJM WQMIS water testing (AES method)</h3>
+<pre>import re, base64, requests
+from Crypto.Cipher import AES              # pip install pycryptodome
+from Crypto.Util.Padding import pad
+KEY = IV = b"8080808080808080"            # hardcoded in the site's frmValidate.js
+def enc(v):
+    return base64.b64encode(AES.new(KEY, AES.MODE_CBC, IV).encrypt(pad(str(v).encode(), 16))).decode()
+
+BASE = "https://ejalshakti.gov.in/WQMIS"
+s = requests.Session(); s.headers["User-Agent"] = "AwaazIQ/1.0 (+contact)"
+page  = s.get(f"{BASE}/Report/rpt_ftk_testing_village", timeout=30)
+token = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]*)"', page.text).group(1)
+def common(path, **data):
+    return s.post(f"{BASE}/Common/{path}", data={"__RequestVerificationToken": token, **data},
+                  headers={"X-Requested-With": "XMLHttpRequest"}, timeout=25).json()
+
+districts = common("District_Bind_without_session", state_id=enc(18))            # Kolhapur 285, Nashik 277
+blocks    = common("Block_Bind_without_session", state_id=enc(18), District_id=enc(285))
+gps       = common("GetGramPanchayat_Bind_without_session", state_id=enc(18),
+                   District_id=enc(285), Block_id=enc(3264))                     # rows: JJM_PanchayatId, PanchayatName
+rows = s.post(f"{BASE}/Report/Get_rpt_ftk_testing_village", headers={"X-Requested-With": "XMLHttpRequest"},
+    data={"__RequestVerificationToken": token, "draw": 1, "start": 0, "length": 100,
+          "finY": enc("2026-2027"), "stid": enc(18), "dtid": enc(285), "blid": enc(3264),
+          "gpid": enc(101418), "villid": enc(0),          # villid=0 -&gt; one row PER VILLAGE of this panchayat
+          "type_hgjv": enc(0), "type_ftkLab": enc(0), "type_household": enc(0)}).json()["data"]
+# Ardal (240666): Nos_of_Sample_tested 30, pH 1, FRC 1, Turbidity 1, TDS 1, Nos_of_Villages_FTK_testing_not_carried 0
+# Skip placeholder rows whose name is "--Select--".</pre>
+
+<h3>15.3 CWC flood forecasting</h3>
+<pre>import json, requests
+B = "https://ffs.india-water.gov.in/iam/api"
+def spec(field, op, value):   # operators: eq neq gt gte lt lte in nin btn like null empty member notmember
+    return json.dumps({"where": {"expression": {"valueIsRelationField": False,
+                       "fieldName": field, "operator": op, "value": value}}})
+# stations whose name contains NASHIK ("like" means contains; do NOT add % wildcards)
+st = requests.get(f"{B}/layer-station/specification/sorted-page",
+        headers={"Accept": "application/json", "class-name": "LayerStationDto"},
+        params={"specification": spec("name", "like", "NASHIK"), "sort-criteria": "{}",
+                "page-number": 0, "page-size": 20}, timeout=40).json()
+# latest readings for one station
+sort = json.dumps({"sortOrderDtos": [{"sortDirection": "DESC", "field": "id.dataTime"}]})
+rd = requests.get(f"{B}/new-entry-data/specification/sorted-page",
+        headers={"Accept": "application/json", "class-name": "NewEntryDataDto"},
+        params={"specification": spec("id.stationCode", "eq", "MHSWIWRM026"), "sort-criteria": sort,
+                "page-number": 0, "page-size": 5}, timeout=40).json()
+# coordinates: /layer-station-geo/specification/sorted-page with class-name LayerStationGeoDto
+# count all stations: /layer-station/specification/count?specification={}  -&gt; 168019</pre>
+
+<h3>15.4 SACHET alerts</h3>
+<pre>Feed : https://sachet.ndma.gov.in/cap_public_website/rss/rss_maharashtra.xml   (all-India: rss_india.xml)
+Item : &lt;link&gt;https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=&lt;id&gt;&lt;/link&gt;
+CAP  : read event, severity, urgency, certainty, areaDesc, effective, expires, senderName
+Note : expired messages return "No Active Alert" -&gt; store every alert when first seen.</pre>
+
+<h3>15.5 Other verified endpoints</h3>
+<table>
+<thead><tr><th style="width:24%">Source</th><th>Endpoint</th></tr></thead>
+<tbody>
+<tr><td>NWDP groundwater CSV</td><td><code>https://nwdp.nwic.gov.in/dataset/85bb464f-bcd5-440b-be2c-fadb2725df4c/resource/817c6429-5853-4198-99e1-20ddf3d9f3bc/download/gwl_tel_6_hourly_maharashtra-gw_mh_1991_2020.csv</code> (2021–2025 stream: <code>…/3e0f97ab-…/resource/5b0a8a48-…/gwl_tel_6_hourly_maharashtra_gw_mh_2021_2025.csv</code>, 529 MB)</td></tr>
+<tr><td>PMGSY works</td><td><code>POST https://pmgsy.dord.gov.in/dbweb/ChiefSecretary/GetRoadTenderDetails</code> (session + anti-forgery token; see <code>backend/load_pmgsy_works.py</code>)</td></tr>
+<tr><td>PMGSY GeoSadak</td><td><code>https://github.com/datameet/pmgsy-geosadak</code> (<code>Road_DRRP</code> shapefile by state)</td></tr>
+<tr><td>NFHS-5 Maharashtra</td><td><code>https://dhsprogram.com/pubs/pdf/FR374/FR374_Maharashtra.pdf</code></td></tr>
+<tr><td>AwaazIQ API (ours)</td><td><code>GET /villages?district=</code> · <code>GET /villages/{gazetteer_id}</code> · <code>GET /assets/{id}</code> · <code>GET /gazetteer/facilities</code> · <code>GET /investment-alignment</code> · <code>POST /recompute-scores</code></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ 16 -->
+<h1>16. Appendix: sources ruled out, and why</h1>
+<table>
+<thead><tr><th style="width:26%">Source</th><th>Why it doesn't work for us</th></tr></thead>
+<tbody>
+<tr><td>Sentinel-1/2 satellites</td><td>10 m pixels: can't see potholes, taps, staff or school roofs. Only 1 of 238 road complaints (0.4%) even mentions flooding.</td></tr>
+<tr><td>Google Earth Engine</td><td>24–48 h account approval and a high risk of false "damage" from clouds or seasons, bad in front of judges.</td></tr>
+<tr><td>Bhuvan high-resolution imagery</td><td>1 m only for about 200 cities; rural Kolhapur/Nashik get 2.5 m, worse than Planet's 3.7 m-everywhere; login needed.</td></tr>
+<tr><td>Mapillary, KartaView, OpenStreetMap</td><td>No internal village roads: only 5 mapped through-roads within 3 km of Borhate.</td></tr>
+<tr><td>MSRTC bus GPS, PWD pothole portal, HMIS, Meri Sadak</td><td>Citizen- or staff-facing apps with no public data.</td></tr>
+<tr><td>MORTH accident data</td><td>State/national totals only.</td></tr>
+<tr><td>NITI Aspirational Districts dashboard</td><td>Real-time, but Maharashtra's districts in it are Nandurbar, Osmanabad, Washim, Gadchiroli, not Kolhapur or Nashik.</td></tr>
+<tr><td>IMD rainfall (imdpune / data.gov.in)</td><td>Connection failed and needs an API key; MOSDAC or CWC/SACHET cover the need.</td></tr>
+<tr><td>AI deepfake detection, AI severity scoring</td><td>Unreliable and adversarial; photos are evidence for an officer, not an automatic score.</td></tr>
+</tbody>
+</table>
+<p class="small">Research sources behind these findings (datasets, papers, portals) are listed with links in
+<code>LIVE_GOV_DATA_RESEARCH.md</code>, <code>PHOTO_VERIFICATION_RESEARCH.md</code> and <code>STALE_INFRA_DEFICIT_RESEARCH.md</code>.</p>
+
+</body>
+</html>
