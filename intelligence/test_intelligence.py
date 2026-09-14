@@ -918,3 +918,70 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def test_water_testing_evidence():
+    index = {100: {"samples_tested": 30, "villages_not_tested": 0}}
+    row, text = realdata.water_testing_evidence(100, index)
+    check("water testing evidence format", text == "30 samples tested this year, 0 villages untested nearby", f"got {text}")
+    r2, t2 = realdata.water_testing_evidence(999, index)
+    check("water testing evidence absent", r2 is None and t2 is None)
+
+class MockRiverReading:
+    def __init__(self, lat, lon, observed_at, name, value, datatype_code):
+        self.lat = lat
+        self.lon = lon
+        self.observed_at = observed_at
+        self.name = name
+        self.value = value
+        self.datatype_code = datatype_code
+
+class MockHazardAlert:
+    def __init__(self, districts, effective, expires, event):
+        self.districts = districts
+        self.effective = effective
+        self.expires = expires
+        self.event = event
+
+class MockDBQuery:
+    def __init__(self, items):
+        self.items = items
+    def filter(self, *args, **kwargs):
+        return self
+    def all(self):
+        return self.items
+
+class MockDB:
+    def __init__(self, readings=[], alerts=[]):
+        self.readings = readings
+        self.alerts = alerts
+    def query(self, model):
+        from models import RiverReading, HazardAlert
+        if model == RiverReading: return MockDBQuery(self.readings)
+        if model == HazardAlert: return MockDBQuery(self.alerts)
+        return MockDBQuery([])
+
+def test_hazard_near():
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    
+    # 1. Nearby river reading
+    rr = MockRiverReading(16.7, 74.2, now, "Test River", 123.4, "MSD")
+    db1 = MockDB(readings=[rr])
+    is_haz, ev = realdata.hazard_near(16.7, 74.2, db1)
+    check("hazard_near detects nearby river warning", is_haz and "cwc_river_warnings" in ev)
+    
+    # 2. Distant river reading
+    rr_far = MockRiverReading(28.0, 77.0, now, "Far River", 10.0, "MSD")
+    db2 = MockDB(readings=[rr_far])
+    is_haz2, ev2 = realdata.hazard_near(16.7, 74.2, db2)
+    check("hazard_near ignores distant river reading", not is_haz2 and not ev2)
+    
+    # 3. SACHET alert in Kolhapur bounds
+    alert = MockHazardAlert("Kolhapur", now - timedelta(days=1), now + timedelta(days=1), "Heavy Rain")
+    db3 = MockDB(alerts=[alert])
+    is_haz3, ev3 = realdata.hazard_near(16.7, 74.2, db3)
+    check("hazard_near detects active SACHET alert in bounds", is_haz3 and ev3.get("sachet_alerts") == 1)
+
+test_water_testing_evidence()
+test_hazard_near()
