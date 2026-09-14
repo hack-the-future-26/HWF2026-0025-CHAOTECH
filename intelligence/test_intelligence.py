@@ -483,6 +483,30 @@ def test_citizen_selected_beats_nearby_pin() -> None:
     check("citizen-selected beats pin: name_basis is citizen_selected", assets[0].name_basis == "citizen_selected")
 
 
+def test_demo_seeded_facility_is_not_labelled_citizen_picked() -> None:
+    """A facility attached by the demo-seeding script must say so, not claim a citizen chose it."""
+    gazetteer = [{"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200}]
+    facilities_by_category = {
+        "education": [
+            {"id": 10, "name": "Z.P. School Girgaon", "category": "education", "lat": 16.701, "lon": 74.201, "source": "udise", "external_id": "Z10"},
+        ],
+    }
+    base = {
+        "issue_category": "education", "facility_id": 10, "village": "Girgaon",
+        "district": "Kolhapur", "block": "Karvir", "latitude": 16.701, "longitude": 74.201,
+        "precise_lat": 16.701, "precise_lon": 74.201, "severity": "medium", "confidence": 0.9,
+    }
+    demo_only = [{**base, "id": 1, "pin_source": "synthetic_seed", "raw_text": "demo complaint"}]
+    assets = _build_assets(demo_only, facilities_by_category=facilities_by_category, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("demo-seeded facility pick: name_basis is demo_assigned",
+          assets[0].name_basis == "demo_assigned", f"got {assets[0].name_basis}")
+
+    mixed = demo_only + [{**base, "id": 2, "pin_source": "citizen_gps", "raw_text": "real complaint"}]
+    assets = _build_assets(mixed, facilities_by_category=facilities_by_category, works_by_village={}, gazetteer=gazetteer, amenity_index=[], works_index=[], gw_stations=[])
+    check("one real citizen pick outranks demo picks: name_basis is citizen_selected",
+          assets[0].name_basis == "citizen_selected", f"got {assets[0].name_basis}")
+
+
 def test_asset_breakdown_sums_to_priority_score() -> None:
     import json
     gazetteer = [{"id": 1, "name": "Girgaon", "district": "Kolhapur", "block": "Karvir", "population": 4000, "lat": 16.700, "lon": 74.200}]
@@ -583,6 +607,7 @@ def main() -> None:
         test_nwdp_groundwater_lookup,
         test_asset_identity_five_rules,
         test_citizen_selected_beats_nearby_pin,
+        test_demo_seeded_facility_is_not_labelled_citizen_picked,
         test_asset_breakdown_sums_to_priority_score,
         test_village_score_equals_max_asset_score,
         test_hospital_reports_from_two_villages_one_asset,

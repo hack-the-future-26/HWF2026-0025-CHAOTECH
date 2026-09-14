@@ -95,6 +95,33 @@
     };
   }
 
+  // On-screen asset pin size in pixels (zoom-compensated like every other mark).
+  const ASSET_PIN_R = 14;
+  const ASSET_ICON_PX = 15;
+  const ASSET_LABEL_PX = 11.5;
+
+  /**
+   * Transform that fits a set of [lon, lat] points on screen, clamped to
+   * [kMin, kMax]. Used for the village level: a village's assets can sit
+   * well away from its centroid (a PHC in the next village), so a fixed zoom
+   * either cut them off-screen or zoomed out so far the pins were specks.
+   */
+  function fitPoints(lonlats, kMin, kMax, padding = 0.55) {
+    const pts = lonlats
+      .filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]))
+      .map((p) => projection(p));
+    if (!pts.length) return null;
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const dx = Math.max(x1 - x0, 1e-6);
+    const dy = Math.max(y1 - y0, 1e-6);
+    let k = Math.min(width / dx, height / dy) * padding;
+    k = Math.max(kMin, Math.min(kMax, Number.isFinite(k) ? k : kMax));
+    return { k, x: width / 2 - k * (x0 + x1) / 2, y: height / 2 - k * (y0 + y1) / 2 };
+  }
+
   /** Transform for a point (used when diving into a single cluster).
    *  `rightInset` is the width of any panel covering the right edge, so the
    *  point is centred in what the user can actually see. Unused since the
@@ -124,6 +151,12 @@
       console.warn("Invalid animateTo target:", target);
       return;
     }
+    // Stop any in-flight size compensation from a previous zoom. It runs on
+    // its own transition (below), so interrupting `root` alone left it alive:
+    // opening the village dock triggers an instant refit, and the old 900 ms
+    // tween then kept resizing every mark back toward the PREVIOUS zoom --
+    // asset pins ended up ~2x too big, overlapping, and hard to click.
+    d3.select(document.documentElement).interrupt("zoomcomp");
     const currentTransform = root.attr("transform") || "";
     if (duration === 0 || currentTransform.includes("NaN")) {
       root.interrupt().attr("transform", `translate(${target.x},${target.y}) scale(${target.k})`);
@@ -137,7 +170,7 @@
       .attr("transform", `translate(${target.x},${target.y}) scale(${target.k})`)
       .on("end", () => applyZoomCompensation(target.k));
     // Compensate continuously so lines don't visibly thicken mid-flight.
-    d3.transition()
+    d3.transition("zoomcomp")
       .duration(duration)
       .ease(d3.easeCubicInOut)
       .tween("compensate", () => {
@@ -168,14 +201,13 @@
       .attr("r", (d) => (vRadiusScale ? vRadiusScale(d.report_count || 1) : 5) / z)
       .attr("stroke-width", 1.2 / z);
     gAssets.selectAll(".asset-circle")
-      .attr("r", 10 / z)
-      .attr("stroke-width", 1.5 / z);
+      .attr("r", ASSET_PIN_R / z);
     gAssets.selectAll(".asset-icon")
-      .attr("font-size", `${10 / z}px`);
+      .attr("font-size", `${ASSET_ICON_PX / z}px`);
     gAssets.selectAll(".asset-label")
-      .attr("font-size", `${9.5 / z}px`)
-      .attr("stroke-width", 2.5 / z)
-      .attr("y", 16 / z);
+      .attr("font-size", `${ASSET_LABEL_PX / z}px`)
+      .attr("stroke-width", 3 / z)
+      .attr("y", (ASSET_PIN_R + 10) / z);
     gReports.selectAll("circle").attr("r", 1.9 / z);
     gLabels.selectAll("text").attr("font-size", `${11 / z}px`)
       .attr("stroke-width", 3 / z);
@@ -508,9 +540,22 @@
     }
   }
 
+  function locationBasisLabel(basis) {
+    switch (basis) {
+      case "register_coordinates": return "facility register";
+      case "citizen_gps_pin": return "citizen GPS pin";
+      case "synthetic_seed": return "approximate location";
+      case "mixed": return "mixed sources";
+      default: return "village centre";
+    }
+  }
+
   function nameBasisLabel(basis) {
     switch (basis) {
       case "citizen_selected": return "citizen picked";
+      // The facility's name really does come from the government register;
+      // only the complaint linked to it is sample data (flagged in is_demo).
+      case "demo_assigned": return "facility register";
       case "nearest_register": return "nearest register — not confirmed";
       case "pmgsy_work": return "PMGSY work";
       case "unnamed_pin": return "location only";
@@ -997,7 +1042,7 @@
       [fmt(aData.report_count ?? 0), "citizen reports"],
       [fmt(aData.distinct_reporters ?? 0), "distinct reporters"],
       [nameBasisLabel(aData.name_basis), "naming source"],
-      [aData.location_basis ? aData.location_basis.replace(/_/g, " ") : "village centroid", "location source"],
+      [locationBasisLabel(aData.location_basis), "location source"],
     ].forEach(([v, l]) => {
       const f = facts.append("div").attr("class", "fact");
       f.append("div").attr("class", "fact__v").style("font-size", "14px").text(v);
@@ -1215,12 +1260,50 @@
       gAssets.selectAll(".asset-pin").remove();
       return;
     }
+    // Spread pins that would sit on top of each other on screen. Several
+    // assets can share almost the same coordinates (two colleges on one
+    // campus, water points around the village centre); stacked pins hid each
+    // other and a click landed on the wrong one. Each crowded pin is nudged
+    // onto a small ring around the one it collides with -- a display offset
+    // only, the stored coordinates are untouched.
+    const MIN_GAP_PX = ASSET_PIN_R * 2 + 6;
+    const k = view.k || 1;
+    const placed = [];
+    const offsets = new Map();
+    list.slice()
+      .sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0))
+      .forEach((d) => {
+        const [px, py] = projection([d.lon, d.lat]);
+        let sx = px * k, sy = py * k;
+        const hit = placed.find((p) => Math.hypot(p.sx - sx, p.sy - sy) < MIN_GAP_PX);
+        if (hit) {
+          hit.ring = (hit.ring || 0) + 1;
+          const angle = hit.ring * 2.4;             // golden-angle-ish spread
+          const radius = MIN_GAP_PX * (1 + Math.floor(hit.ring / 6) * 0.9);
+          sx = hit.sx + Math.cos(angle) * radius;
+          sy = hit.sy + Math.sin(angle) * radius;
+        }
+        placed.push({ sx, sy });
+        offsets.set(d.id, [sx / k, sy / k]);
+      });
+    const pinXY = (d) => offsets.get(d.id) || projection([d.lon, d.lat]);
+
+    // Only the three highest-need assets carry a permanent label; the rest
+    // show their name on hover. Every asset is also listed, ranked, in the
+    // village panel below, so nothing is hidden -- the map just stops being
+    // a pile of overlapping text.
+    const labelled = new Set(
+      list.slice()
+        .sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0))
+        .slice(0, 3)
+        .map((d) => d.id));
+
     const sel = gAssets.selectAll(".asset-pin").data(list, (d) => d.id);
 
     const enter = sel.enter().append("g")
       .attr("class", "asset-pin")
       .attr("transform", (d) => {
-        const [px, py] = projection([d.lon, d.lat]);
+        const [px, py] = pinXY(d);
         return `translate(${px},${py})`;
       })
       .on("click", (e, d) => {
@@ -1241,26 +1324,30 @@
 
     enter.append("circle")
       .attr("class", "asset-circle")
-      .attr("r", 10 / view.k)
+      .attr("r", ASSET_PIN_R / view.k)
       .attr("fill", (d) => scoreColour(d.priority_score));
 
     enter.append("text")
       .attr("class", "asset-icon")
-      .attr("font-size", `${10 / view.k}px`)
+      .attr("font-size", `${ASSET_ICON_PX / view.k}px`)
       .text((d) => assetIcon(d.asset_type));
 
     enter.append("text")
       .attr("class", "asset-label")
-      .attr("y", 16 / view.k)
-      .attr("font-size", `${9.5 / view.k}px`)
-      .attr("stroke-width", 2.5 / view.k)
+      .attr("y", (ASSET_PIN_R + 10) / view.k)
+      .attr("font-size", `${ASSET_LABEL_PX / view.k}px`)
+      .attr("stroke-width", 3 / view.k)
       .text((d) => d.name);
 
-    enter.merge(sel)
+    const merged = enter.merge(sel)
       .attr("transform", (d) => {
-        const [px, py] = projection([d.lon, d.lat]);
+        const [px, py] = pinXY(d);
         return `translate(${px},${py})`;
       });
+    merged.select(".asset-label")
+      .classed("asset-label--hover", (d) => !labelled.has(d.id));
+    // Raise pins so the highest-need ones draw on top of any neighbour.
+    merged.sort((a, b) => (a.priority_score ?? 0) - (b.priority_score ?? 0));
 
     sel.exit().remove();
   }
@@ -1415,8 +1502,16 @@
         applyZoomCompensation(view.k);
       }
 
-      const pts = await ensureReports();
-      drawReports(pts.filter((f) => f.properties.district === targetDistrict));
+      // Individual report dots only belong to the category-cluster view. In
+      // village mode each synthetic report now sits at its own school /
+      // hospital / road spot, so drawing them made every village look like
+      // three or four separate clusters.
+      if (mode === "villages") {
+        drawReports([]);
+      } else {
+        const pts = await ensureReports();
+        drawReports(pts.filter((f) => f.properties.district === targetDistrict));
+      }
     }
 
     if (level === "village") {
@@ -1427,30 +1522,43 @@
       Object.assign(nav, { level, state: targetState, district: targetDistrict, cluster: null, village: v, asset: null });
       gStates.selectAll("path").remove();
       gClusters.selectAll("circle").remove();
+      drawReports([]);
+      hideTip();
 
       const districtFeat = districtsFC.features.find(
         (d) => d.properties.st_nm === targetState && d.properties.district === targetDistrict);
       const base = districtFeat ? fitTransform(districtFeat).k : view.k;
-      view = pointTransform(v.lon, v.lat, base * 5);
-      drawDistricts(targetState);
-      drawOutline(districtFeat);
 
-      const vList = await fetchDistrictVillages(targetDistrict);
-      drawVillages(vList);
-      gVillages.selectAll("circle").classed("village-bubble--faded", (d) => d.gazetteer_id !== v.gazetteer_id);
-
-      animateTo(view, dur);
-      applyZoomCompensation(view.k);
-
+      // Fetch the village's assets BEFORE choosing the zoom, so the view can
+      // fit the village and every one of its pins in one move -- one click,
+      // one zoom, everything on screen.
       let vData = null;
       try {
         vData = await d3.json(`${API}/villages/${v.gazetteer_id}`);
       } catch (err) {
         console.error("Could not fetch village detail:", err);
       }
+      const pts = [[v.lon, v.lat], ...((vData && vData.assets) || []).map((a) => [a.lon, a.lat])];
+      // Up to 40x the district fit: a village's own spots sit within ~1 km,
+      // which needs that much zoom to separate. A far-off PHC widens the fit
+      // automatically, because fitPoints only zooms as far as fits them all.
+      view = fitPoints(pts, base * 3, base * 40) || pointTransform(v.lon, v.lat, base * 6);
+      drawDistricts(targetState);
+      drawOutline(districtFeat);
+
+      const vList = await fetchDistrictVillages(targetDistrict);
+      drawVillages(vList);
+      gVillages.selectAll("circle")
+        .classed("village-bubble--faded", (d) => d.gazetteer_id !== v.gazetteer_id)
+        .classed("village-bubble--open", (d) => d.gazetteer_id === v.gazetteer_id);
+
+      animateTo(view, dur);
+      applyZoomCompensation(view.k);
+
       if (vData) {
         currentVillageData = vData;
         drawAssets(vData.assets || [], vData.name);
+        applyZoomCompensation(view.k);
         renderVillagePanel(vData);
         d3.select("#legendNote").text(
           `${vData.name} — ${vData.report_count} citizen reports across ${(vData.assets || []).length} assets.`);
@@ -1515,7 +1623,9 @@
 
     if (level !== "cluster") gClusters.selectAll("circle").classed("cluster--faded", false);
     if (level !== "village" && level !== "asset") {
-      gVillages.selectAll("circle").classed("village-bubble--faded", false);
+      gVillages.selectAll("circle")
+        .classed("village-bubble--faded", false)
+        .classed("village-bubble--open", false);
       gAssets.selectAll(".asset-pin").remove();
     }
 

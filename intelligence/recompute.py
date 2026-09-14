@@ -515,7 +515,11 @@ def _build_assets(
             if fid is not None and fid in facilities_by_id:
                 fac = facilities_by_id[fid]
                 if fac.get("category") == cat:
-                    asset_groups.setdefault(("facility", fac["id"]), []).append((r, "citizen_selected"))
+                    # A facility attached by the demo-seeding script was never
+                    # picked by a citizen; labelling it "citizen picked" would
+                    # claim a choice nobody made.
+                    basis = "demo_assigned" if r.get("pin_source") == "synthetic_seed" else "citizen_selected"
+                    asset_groups.setdefault(("facility", fac["id"]), []).append((r, basis))
                     assigned = True
 
             # Rule 2: Pin next to a facility (within ASSET_PIN_SNAP_M)
@@ -585,7 +589,12 @@ def _build_assets(
             fac = facilities_by_id[fid]
             cat = fac["category"]
             name = fac["name"]
-            name_basis = "citizen_selected" if "citizen_selected" in name_bases else "nearest_register"
+            if "citizen_selected" in name_bases:
+                name_basis = "citizen_selected"
+            elif "demo_assigned" in name_bases:
+                name_basis = "demo_assigned"
+            else:
+                name_basis = "nearest_register"
             facility_id = fac["id"]
             source = fac.get("source")
             external_id = fac.get("external_id")

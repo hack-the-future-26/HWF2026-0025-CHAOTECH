@@ -946,10 +946,16 @@ html, body {
   color: #fff;
 }
 
+/* `vector-effect: non-scaling-stroke` keeps the outline a constant on-screen
+   width. Without it, a CSS stroke-width beats the zoom-compensated attribute
+   set in applyZoomCompensation, so a 1px outline was multiplied by the map
+   zoom (up to ~80x at village level) into giant white discs that covered
+   the map and swallowed clicks. */
 .village-bubble {
   cursor: pointer;
   stroke: #fff;
   stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
   fill-opacity: 0.88;
   transition: fill-opacity 140ms var(--ease), stroke 140ms var(--ease);
 }
@@ -957,8 +963,15 @@ html, body {
   fill-opacity: 1;
   stroke: var(--navy);
 }
+/* Neighbours stay visible for context inside a village, but must not
+   intercept clicks meant for that village's asset pins. */
 .village-bubble--faded {
-  opacity: 0.2;
+  opacity: 0.15;
+  pointer-events: none;
+}
+/* The open village's own bubble would sit underneath its asset pins. */
+.village-bubble--open {
+  display: none;
 }
 
 .asset-pin {
@@ -970,11 +983,12 @@ html, body {
 }
 .asset-pin--selected .asset-circle {
   stroke: var(--navy);
-  stroke-width: 2.5px;
+  stroke-width: 3px;
 }
 .asset-circle {
   stroke: #fff;
-  stroke-width: 1.5px;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
   cursor: pointer;
 }
 .asset-icon {
@@ -983,6 +997,10 @@ html, body {
   dominant-baseline: central;
   pointer-events: none;
 }
+/* Non-top-3 labels appear only while the pin is hovered or selected. */
+.asset-label--hover { display: none; }
+.asset-pin:hover .asset-label--hover,
+.asset-pin--selected .asset-label--hover { display: block; }
 .asset-label {
   font-family: var(--sans);
   font-weight: 600;
@@ -1008,6 +1026,10 @@ html, body {
   border-radius: 4px;
   vertical-align: middle;
 }
+/* Owner decision 2026-09-14: hide the per-item DEMO labels in the UI. The
+   data still carries is_demo (village_priority, asset), so deleting this one
+   rule brings every label back. */
+.badge--demo { display: none; }
 
 .badge--name-basis {
   display: inline-block;
