@@ -21,6 +21,7 @@ Status: ✅ done · 🔨 being built · 📝 designed, not started · ⏸ parked
 | 8 | **Stale-record discount (trust-blend)**: trust an old government record less when a burst of recent reports contradicts it | 📝 Unblocked (half-life = 10 years decided) | `STALE_INFRA_DEFICIT_RESEARCH.md` §2 |
 | 9 | **Fresher or live government data** | 📝 UDISE+, CWC and SACHET confirmed scrapable; JJM water quality likely; eMARG blocked by CAPTCHA | `LIVE_GOV_DATA_RESEARCH.md` §4A |
 | 10 | **Satellite confirmation (Planet Labs)**, disasters only | ⛔ Needs the Planet Education & Research application (university email) | `STALE_INFRA_DEFICIT_RESEARCH.md` §2A |
+| 11 | **Silent Need Detector** (equity term): flag villages that likely need help but under-report, instead of the current flat BharatNet-only proxy | 📝 Designed; not in Workstream B yet, no build prompt written | `SILENT_NEED_DETECTOR_RESEARCH.md` |
 
 ## The project's white space (research PDF §9), checked against the code 2026-09-14
 
@@ -193,6 +194,24 @@ Scraping check results, 2026-09-14 (see `LIVE_GOV_DATA_RESEARCH.md` §4A):
 5. **eMARG**: ❌ behind a CAPTCHA, so not scrapable. It needs a formal
    data request to NRIDA.
 
+## Priority-score research status, all 9 terms (checked 2026-09-14)
+
+`demand · population · infra_deficit · vulnerability · equity · strategic ·
+urgency · feasibility · cost_penalty`. Research status per term, so nothing
+gets assumed "handled" just because a neighboring term is:
+
+| Term | Research | Notes |
+|---|---|---|
+| infra_deficit | ✅ Researched & decided | `STALE_INFRA_DEFICIT_RESEARCH.md` — half-life=10yrs. Design done, code not (#8). |
+| urgency | ✅ Researched & decided | Bridge/building only, cap 15. Design done, code not (#7). |
+| equity (Silent Need Detector) | ✅ Researched | `SILENT_NEED_DETECTOR_RESEARCH.md`. Design done, code not, **and not yet a numbered Workstream B item** (#11 above). |
+| demand (Evidence Fusion) | 🟡 Partially researched | Real gap identified: current fusion is additive, not the Bayesian multiplicative design the team PDF specifies (§10.4). Only Census/PMGSY/groundwater are actually live; JJM/UDISE/CWC/SACHET are still unbuilt prompts. Corroboration softening for 1–2 reporter assets flagged but not designed in detail. |
+| strategic (scheme-eligibility / investment / white space) | 🟡 Partially built, partially researched | `investment.py` exists with a known bug. Real budget data (GPDP, JJM scheme money) is the ongoing captcha-scraping effort, unfinished. |
+| population | Not an open problem | Simple log-transform, already decided, nothing to research. |
+| vulnerability | Not flagged as broken | Already pulls real Census/BharatNet data; no gap identified this session. |
+| feasibility | ❌ Zero research done | Terrain, land status, partial-existing-infrastructure proxy — untouched. |
+| cost_penalty | ❌ Zero research done | The team's own PDF calls this "the weakest-verified data category" (§14/§16.3) — no research yet on what real cost data exists. |
+
 ## Ruled out, with reasons
 
 - **Sentinel satellites:** 10 m resolution is too coarse.
@@ -218,6 +237,7 @@ Scraping check results, 2026-09-14 (see `LIVE_GOV_DATA_RESEARCH.md` §4A):
 - `PHOTO_VERIFICATION_RESEARCH.md`
 - `PRIORITY_SCORE_ALTERNATIVES_SUMMARY.md`
 - `LIVE_GOV_DATA_RESEARCH.md`
+- `SILENT_NEED_DETECTOR_RESEARCH.md`
 - `BUILD_PROMPT_FOR_AGENT.md`
 - `BUILD_PROMPT_VILLAGE_ASSET_VIEW.md`
 - `SESSION_LOG_2026-09-12.md`
