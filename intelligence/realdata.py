@@ -40,7 +40,9 @@ MEASURED LIMITS OF THE UNDERLYING DATA (see REAL_DATA_RESEARCH.md §5.5)
 
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 
 from . import config
 
@@ -725,3 +727,85 @@ def name_work_group(
         result["external_id"] = facility["external_id"]
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# MOSDAC GSMaP Rainfall (Feature 6)
+# ---------------------------------------------------------------------------
+
+_RAINFALL_CACHE_PATH = Path(__file__).resolve().parents[1] / "backend" / "mosdac_rainfall_cache.json"
+
+
+def load_rainfall_index(db=None) -> dict[tuple[float, float], float]:
+    """
+    Load recent rainfall accumulation by 0.1° grid cell from the database
+    or fallback JSON cache file.
+
+    Returns:
+        {(round(grid_lat, 1), round(grid_lon, 1)): rainfall_mm, ...}
+    """
+    index: dict[tuple[float, float], float] = {}
+
+    # 1. Try reading from database table mosdac_rainfall
+    if db is not None:
+        try:
+            from models import MosdacRainfall
+            rows = db.query(MosdacRainfall).all()
+            for r in rows:
+                if r.grid_lat is not None and r.grid_lon is not None and r.rainfall_mm is not None:
+                    index[(round(float(r.grid_lat), 1), round(float(r.grid_lon), 1))] = float(r.rainfall_mm)
+            if index:
+                return index
+        except Exception:
+            pass
+
+    # 2. Fallback to mosdac_rainfall_cache.json if available
+    if _RAINFALL_CACHE_PATH.is_file():
+        try:
+            with open(_RAINFALL_CACHE_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for item in data:
+                lat = item.get("grid_lat")
+                lon = item.get("grid_lon")
+                rain = item.get("rainfall_mm")
+                if lat is not None and lon is not None and rain is not None:
+                    index[(round(float(lat), 1), round(float(lon), 1))] = float(rain)
+        except Exception:
+            pass
+
+    return index
+
+
+def lookup_rainfall(
+    lat: float,
+    lon: float,
+    rainfall_index: dict[tuple[float, float], float],
+    window_hours: float = 72.0,
+) -> tuple[float | None, str | None]:
+    """
+    Spatial join to nearest 0.1° MOSDAC GSMaP grid cell.
+
+    Returns:
+        (rainfall_mm, evidence_text) or (None, None) if no data nearby.
+    """
+    if not rainfall_index:
+        return None, None
+
+    target_key = (round(lat, 1), round(lon, 1))
+    if target_key in rainfall_index:
+        mm = rainfall_index[target_key]
+        return mm, f"{mm:.1f}mm rainfall in this area in the last {int(window_hours)}h"
+
+    # Nearest neighbour search within ~15km
+    best_dist = float("inf")
+    best_val = None
+    for (glat, glon), mm in rainfall_index.items():
+        d = haversine_km(lat, lon, glat, glon)
+        if d < best_dist:
+            best_dist = d
+            best_val = mm
+
+    if best_dist <= 15.0 and best_val is not None:
+        return best_val, f"{best_val:.1f}mm rainfall in this area in the last {int(window_hours)}h"
+
+    return None, None

@@ -346,6 +346,36 @@ def test_precise_coords_split_work_groups() -> None:
           f"got {groups_centroid[0].get('location_basis')}")
 
 
+def test_mosdac_rainfall_lookup() -> None:
+    """Feature 6: Test MOSDAC GSMaP rainfall grid spatial lookup and evidence formatting."""
+    from intelligence import realdata
+
+    # Synthetic 0.1° grid
+    grid = {
+        (16.7, 74.2): 42.5,
+        (16.8, 74.3): 35.0,
+    }
+
+    # 1. Exact match on 0.1° grid
+    val, text = realdata.lookup_rainfall(16.7, 74.2, grid, window_hours=72.0)
+    check("exact grid cell lookup returns rainfall mm", val == 42.5, f"got {val}")
+    check("evidence string mentions mm and 72h window",
+          text == "42.5mm rainfall in this area in the last 72h",
+          f"got {text}")
+
+    # 2. Nearest neighbour within ~15km
+    val_near, text_near = realdata.lookup_rainfall(16.71, 74.21, grid, window_hours=72.0)
+    check("nearby point within cell resolution snaps to nearest cell", val_near == 42.5, f"got {val_near}")
+
+    # 3. Far point (>15km away) returns None
+    val_far, text_far = realdata.lookup_rainfall(19.0, 75.0, grid, window_hours=72.0)
+    check("distant point returns None", val_far is None and text_far is None, f"got {val_far}")
+
+    # 4. Empty index returns None
+    val_empty, text_empty = realdata.lookup_rainfall(16.7, 74.2, {}, window_hours=72.0)
+    check("empty rainfall index returns None", val_empty is None and text_empty is None, "")
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -367,6 +397,7 @@ def main() -> None:
         test_weights_sum_to_one,
         test_apply_precise_coords,
         test_precise_coords_split_work_groups,
+        test_mosdac_rainfall_lookup,
     ]:
         test()
 
