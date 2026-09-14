@@ -889,9 +889,10 @@ html, body {
 .app--railclosed { grid-template-columns: 0 1fr; }
 .app--railclosed .rail { overflow: hidden; border-right: none; }
 
-/* The dock covers most of the page: at cluster level the map only needs to
-   show where the cluster is, and the evidence below is what is being read. */
-.dock { height: 74%; }
+/* The dock takes most of the page, since the evidence below is what is being
+   read -- but not so much that the map above it becomes a strip (74% left
+   ~245px of map on a 1000px screen). */
+.dock { height: 62%; }
 
 /* -------------------------------------------- named assets in work groups -- */
 
