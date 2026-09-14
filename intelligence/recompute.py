@@ -299,7 +299,6 @@ def recompute(db, verbose: bool = True) -> dict:
     # back to its proxy -- the engine degrades rather than failing.
     amenity_index = realdata.load_amenity_index(db)
     works_index = realdata.load_works_index(db)
-    rainfall_index = realdata.load_rainfall_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -413,15 +412,6 @@ def recompute(db, verbose: bool = True) -> dict:
         infra_value, infra_evidence = realdata.real_infra_deficit(
             category, nearby_villages, works_index, population_affected
         )
-        # MOSDAC GSMaP rainfall corroboration for road washout and water deficit (Feature 6)
-        rain_mm, rain_text = None, None
-        if category in ("road", "water"):
-            rain_mm, rain_text = realdata.lookup_rainfall(
-                centroid_lat, centroid_lon, rainfall_index, config.BURST_WINDOW_HOURS
-            )
-            if rain_text:
-                infra_evidence["rainfall_corroboration"] = rain_text
-
         vulnerability_value, vulnerability_evidence = realdata.real_vulnerability(
             nearby_villages
         )
@@ -492,8 +482,6 @@ def recompute(db, verbose: bool = True) -> dict:
             "work_groups": len(groups),
             "villages_examined": len(nearby_villages),
         }
-        if rain_text:
-            result["evidence"]["rainfall_last_72h"] = rain_text
         scored.append((cluster, result))
 
     db.commit()
