@@ -583,6 +583,80 @@ def test_road_pins_clustering_distance() -> None:
     check("two road pins 100m apart give one group", len(groups_100) == 1)
 
 
+def test_pmgsy_road_segment_lookup() -> None:
+    from .realdata import nearest_road_segment, load_road_segment_index
+
+    # 1. None coordinates return None
+    res, dist = nearest_road_segment(None, None, [])
+    check("nearest road: None coords returns (None, None)", res is None and dist is None)
+
+    # 2. Empty segments returns None
+    res, dist = nearest_road_segment(16.5, 74.5, [])
+    check("nearest road: empty segments returns (None, None)", res is None and dist is None)
+
+    # 3. Test road segment: straight line from (16.500, 74.200) to (16.510, 74.200) (~1.1 km long)
+    test_seg = {
+        "id": 1,
+        "road_name": "Test Village Road",
+        "drrp_road_code": "VR-1",
+        "road_category": "RR(VR)",
+        "district": "Kolhapur",
+        "block": "Karvir",
+        "points": [[16.500, 74.200], [16.505, 74.200], [16.510, 74.200]],
+        "min_lat": 16.500,
+        "max_lat": 16.510,
+        "min_lon": 74.200,
+        "max_lon": 74.200,
+    }
+
+    # Point at (16.505, 74.2002): ~21 meters East of midpoint
+    res, dist = nearest_road_segment(16.505, 74.2002, [test_seg], max_distance_m=150.0)
+    check("nearest road: point ~21m away matches", res is not None and res["id"] == 1)
+    check("nearest road: matched distance is ~21m", dist is not None and 18.0 <= dist <= 25.0)
+
+    # Point at (16.505, 74.205): ~515 meters away
+    res, dist = nearest_road_segment(16.505, 74.205, [test_seg], max_distance_m=150.0)
+    check("nearest road: point >150m away returns None", res is None and dist is None)
+
+    # Point at (16.505, 74.205) with max_distance_m=600.0 matches
+    res, dist = nearest_road_segment(16.505, 74.205, [test_seg], max_distance_m=600.0)
+    check("nearest road: point matches with wider threshold", res is not None and dist is not None and dist > 450.0)
+
+    # 4. Test load_road_segment_index with mock DB session
+    class MockRow:
+        id = 10
+        external_id = 999
+        district = "Kolhapur"
+        block = "Karvir"
+        drrp_road_code = "VR 10"
+        road_name = "Mock Road"
+        road_category = "RR(VR)"
+        road_owner = "RWD"
+        start_lat = 16.500
+        start_lon = 74.200
+        end_lat = 16.510
+        end_lon = 74.200
+        points_json = '[[16.500, 74.200], [16.510, 74.200]]'
+        point_count = 2
+        min_lat = 16.500
+        max_lat = 16.510
+        min_lon = 74.200
+        max_lon = 74.200
+
+    class MockQuery:
+        def all(self):
+            return [MockRow()]
+
+    class MockDB:
+        def query(self, model):
+            return MockQuery()
+
+    loaded = load_road_segment_index(MockDB())
+    check("load_road_segment_index: returns records from db", len(loaded) == 1)
+    check("load_road_segment_index: parses road_name", loaded[0]["road_name"] == "Mock Road")
+    check("load_road_segment_index: parses points list", len(loaded[0]["points"]) == 2)
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -613,6 +687,7 @@ def main() -> None:
         test_hospital_reports_from_two_villages_one_asset,
         test_candidate_list_sorted_and_capped,
         test_road_pins_clustering_distance,
+        test_pmgsy_road_segment_lookup,
     ]:
         test()
 

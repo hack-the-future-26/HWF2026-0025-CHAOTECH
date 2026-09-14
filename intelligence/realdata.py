@@ -847,3 +847,157 @@ def lookup_groundwater(
     result["distance_km"] = round(min_dist, 1)
     return result, evidence_text
 
+
+# ---------------------------------------------------------------------------
+# PMGSY GeoSadak Road Segments (Feature 5)
+# ---------------------------------------------------------------------------
+
+DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M = 150.0
+
+
+def load_road_segment_index(db) -> list[dict]:
+    """
+    Load physical PMGSY GeoSadak road segments from the database.
+    Provides line geometry, road name, category, and ownership.
+    """
+    import json
+    from models import PMGSYRoadSegment  # noqa: E402
+
+    segments = []
+    try:
+        rows = db.query(PMGSYRoadSegment).all()
+        for r in rows:
+            points = []
+            if r.points_json:
+                try:
+                    points = json.loads(r.points_json)
+                except Exception:
+                    points = []
+
+            segments.append(
+                {
+                    "id": r.id,
+                    "external_id": r.external_id,
+                    "district": r.district,
+                    "block": r.block,
+                    "drrp_road_code": r.drrp_road_code,
+                    "road_name": r.road_name,
+                    "road_category": r.road_category,
+                    "road_owner": r.road_owner,
+                    "start_lat": r.start_lat,
+                    "start_lon": r.start_lon,
+                    "end_lat": r.end_lat,
+                    "end_lon": r.end_lon,
+                    "points": points,
+                    "point_count": r.point_count or len(points),
+                    "min_lat": r.min_lat,
+                    "max_lat": r.max_lat,
+                    "min_lon": r.min_lon,
+                    "max_lon": r.max_lon,
+                }
+            )
+    except Exception:
+        segments = []
+
+    return segments
+
+
+def nearest_road_segment(
+    lat: float | None,
+    lon: float | None,
+    segments: list[dict],
+    max_distance_m: float = DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M,
+) -> tuple[dict | None, float | None]:
+    """
+    Find the nearest PMGSY GeoSadak road segment to (lat, lon) within max_distance_m.
+
+    Uses bounding box pruning, followed by exact point-to-polyline distance
+    using equirectangular projection (accurate to centimeters within local bounds).
+
+    Returns:
+        (nearest_segment_dict, distance_meters) if within max_distance_m,
+        else (None, None).
+    """
+    if lat is None or lon is None or not segments:
+        return None, None
+
+    if not math.isfinite(lat) or not math.isfinite(lon):
+        return None, None
+
+    max_dist_km = max_distance_m / 1000.0
+    lat_buf = (max_dist_km / 111.0) * 1.5
+    cos_lat = max(0.1, math.cos(math.radians(lat)))
+    lon_buf = (max_dist_km / (111.0 * cos_lat)) * 1.5
+
+    m_per_deg_lat = 111139.0
+    m_per_deg_lon = 111139.0 * cos_lat
+
+    nearest = None
+    min_dist_m = float("inf")
+
+    for seg in segments:
+        s_min_lat = seg.get("min_lat")
+        s_max_lat = seg.get("max_lat")
+        s_min_lon = seg.get("min_lon")
+        s_max_lon = seg.get("max_lon")
+
+        # Fast bounding box rejection if bbox is present
+        if s_min_lat is not None and s_max_lat is not None:
+            if lat < s_min_lat - lat_buf or lat > s_max_lat + lat_buf:
+                continue
+        if s_min_lon is not None and s_max_lon is not None:
+            if lon < s_min_lon - lon_buf or lon > s_max_lon + lon_buf:
+                continue
+
+        points = seg.get("points")
+        if not points:
+            p_list = []
+            if seg.get("start_lat") is not None and seg.get("start_lon") is not None:
+                p_list.append([seg["start_lat"], seg["start_lon"]])
+            if seg.get("end_lat") is not None and seg.get("end_lon") is not None:
+                p_list.append([seg["end_lat"], seg["end_lon"]])
+            points = p_list
+
+        if not points:
+            continue
+
+        # Project point-to-line segments
+        seg_min_d = float("inf")
+        if len(points) == 1:
+            plat, plon = points[0][0], points[0][1]
+            seg_min_d = haversine_km(lat, lon, plat, plon) * 1000.0
+        else:
+            for j in range(len(points) - 1):
+                p1_lat, p1_lon = points[j][0], points[j][1]
+                p2_lat, p2_lon = points[j + 1][0], points[j + 1][1]
+
+                x1 = (p1_lon - lon) * m_per_deg_lon
+                y1 = (p1_lat - lat) * m_per_deg_lat
+                x2 = (p2_lon - lon) * m_per_deg_lon
+                y2 = (p2_lat - lat) * m_per_deg_lat
+
+                dx = x2 - x1
+                dy = y2 - y1
+                seg_len_sq = dx * dx + dy * dy
+
+                if seg_len_sq == 0:
+                    d = math.hypot(x1, y1)
+                else:
+                    t = max(0.0, min(1.0, -(x1 * dx + y1 * dy) / seg_len_sq))
+                    proj_x = x1 + t * dx
+                    proj_y = y1 + t * dy
+                    d = math.hypot(proj_x, proj_y)
+
+                if d < seg_min_d:
+                    seg_min_d = d
+
+        if seg_min_d < min_dist_m:
+            min_dist_m = seg_min_d
+            nearest = seg
+
+    if nearest is None or min_dist_m > max_distance_m:
+        return None, None
+
+    return nearest, round(min_dist_m, 1)
+
+

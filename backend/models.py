@@ -640,3 +640,37 @@ class VillagePriority(Base):
     is_demo = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+
+class PMGSYRoadSegment(Base):
+    """
+    Physical road segment from PMGSY GeoSadak (Road_DRRP layer).
+    Provides real line geometry, official road name, category, and agency ownership
+    for rural road infrastructure in Maharashtra.
+    """
+
+    __tablename__ = "pmgsy_road_segment"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    external_id = Column(Integer, index=True, nullable=True)  # ER_ID from shapefile
+    state_id = Column(Integer, default=21)
+    district_id = Column(Integer, index=True)
+    block_id = Column(Integer, index=True)
+    district = Column(Text, index=True)                       # "Kolhapur", "Nashik"
+    block = Column(Text, index=True, nullable=True)           # block name resolved from MasterData
+    drrp_road_code = Column(Text, nullable=True)              # DRRP_ROAD_ (e.g. "VR 18", "ODR-36")
+    road_name = Column(Text, nullable=True)                   # RoadName (e.g. "MDR 39 To Gaganbavda...")
+    road_category = Column(Text, nullable=True)               # RoadCatego (e.g. "RR(VR)", "MDR", "SH")
+    road_owner = Column(Text, nullable=True)                  # RoadOwner (e.g. "RWD", "PWD", "MRRDA")
+    start_lat = Column(Float)
+    start_lon = Column(Float)
+    end_lat = Column(Float)
+    end_lon = Column(Float)
+    points_json = Column(Text)                                # JSON list of [lat, lon] coordinates
+    point_count = Column(Integer, default=0)
+    min_lat = Column(Float, index=True)
+    max_lat = Column(Float, index=True)
+    min_lon = Column(Float, index=True)
+    max_lon = Column(Float, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
