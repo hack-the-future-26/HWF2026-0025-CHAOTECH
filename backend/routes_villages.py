@@ -122,6 +122,11 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
 
     assets_list = []
     for a in assets:
+        # Road shape is public PMGSY data, so it goes out at full precision --
+        # unlike the citizen pin above, which _format_coord rounds.
+        road_geometry = None
+        if a.name_basis == "geosadak_segment" and a.evidence:
+            road_geometry = json.loads(a.evidence).get("road_geometry")
         assets_list.append({
             "id": a.id,
             "name": a.name,
@@ -133,6 +138,7 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
             "lat": _format_coord(a.latitude, a.location_basis),
             "lon": _format_coord(a.longitude, a.location_basis),
             "is_demo": a.is_demo,
+            "road_geometry": road_geometry,
         })
 
     top_asset = db.query(Asset).filter(Asset.id == vp.top_asset_id).first() if vp.top_asset_id else None
