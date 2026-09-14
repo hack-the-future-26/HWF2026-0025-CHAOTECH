@@ -806,6 +806,7 @@ html, body {
 }
 .dock__col {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 20px 22px;
   border-right: 1px solid var(--border);
   min-width: 0;
