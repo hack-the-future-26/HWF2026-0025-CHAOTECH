@@ -780,4 +780,28 @@ class VillageBudgetPlan(Base):
     fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class GpdpDistrictSummary(Base):
+    """
+    District-level GPDP (Gram Panchayat Development Plan) planning totals
+    from eGramSwaraj's public dashboard (index.do). District-level only --
+    the dashboard does not expose per-village line items. Not wired into
+    scoring; see the ground rules in the task that added this table.
+    """
+    __tablename__ = "gpdp_district_summary"
 
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    district = Column(Text, index=True)            # "Kolhapur" / "Nashik"
+    district_code = Column(Integer, index=True)     # 438 / 443
+    state_code = Column(Integer)                    # 27 (Maharashtra)
+    plan_year = Column(Text)                        # "2025-26" / "2026-27"
+    total_panchayats = Column(Integer, nullable=True)
+    panchayats_with_plan = Column(Integer, nullable=True)
+    approved_activities = Column(Integer, nullable=True)
+    gram_sabhas_conducted = Column(Integer, nullable=True)
+    estimated_outlay_lakh = Column(Float, nullable=True)
+    popular_activities_json = Column(Text, nullable=True)      # [{rank, name, count}]
+    underpicked_activities_json = Column(Text, nullable=True)  # [{rank, name, count}]
+    recent_activities_json = Column(Text, nullable=True)       # [{date, activity, location}]
+    data_as_of = Column(Text, nullable=True)        # the page's own "Data as on ..." string
+    fetch_failed = Column(Boolean, default=False)
+    fetched_at = Column(DateTime, nullable=True)

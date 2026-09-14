@@ -936,3 +936,100 @@ def test_hazard_near():
 
 test_water_testing_evidence()
 test_hazard_near()
+
+
+def test_gpdp_district_evidence():
+    # 1. Edge cases: missing district or empty index
+    row, text = realdata.gpdp_district_evidence("Solapur", {})
+    check("gpdp district evidence: empty index returns (None, None)", row is None and text is None)
+
+    sample_index = {
+        "kolhapur": {
+            "id": 1,
+            "district": "Kolhapur",
+            "district_code": 438,
+            "state_code": 27,
+            "plan_year": "2026-27",
+            "total_panchayats": 1025,
+            "panchayats_with_plan": 1025,
+            "approved_activities": 64418,
+            "gram_sabhas_conducted": 1025,
+            "estimated_outlay_lakh": 34082.32,
+            "popular_activities_json": "[]",
+            "underpicked_activities_json": "[]",
+            "recent_activities_json": "[]",
+            "data_as_of": "14 Sep 2026 21:09",
+            "fetched_at": None,
+        }
+    }
+    row_miss, text_miss = realdata.gpdp_district_evidence("Nashik", sample_index)
+    check("gpdp district evidence: missing district returns (None, None)", row_miss is None and text_miss is None)
+
+    # 2. Case-insensitive lookup and sentence formatting
+    row_k, text_k = realdata.gpdp_district_evidence("KOLHAPUR", sample_index)
+    check("gpdp district evidence: returns row dict", row_k is not None and row_k["district_code"] == 438)
+    expected_sentence = "Kolhapur district, FY 2026-27: 1,025 panchayats, all with a registered plan; 64,418 approved activities; ₹34,082.32 lakh estimated outlay (data as of 14 Sep 2026 21:09)."
+    check("gpdp district evidence: sentence format matches specification", text_k == expected_sentence)
+
+    # 3. Partial panchayat plan registered
+    partial_index = {
+        "nashik": {
+            "id": 2,
+            "district": "Nashik",
+            "district_code": 443,
+            "state_code": 27,
+            "plan_year": "2025-26",
+            "total_panchayats": 1375,
+            "panchayats_with_plan": 1374,
+            "approved_activities": 89515,
+            "gram_sabhas_conducted": 1375,
+            "estimated_outlay_lakh": 50094.53,
+            "data_as_of": "14 Sep 2026 21:09",
+            "fetched_at": None,
+        }
+    }
+    _, text_partial = realdata.gpdp_district_evidence("nashik", partial_index)
+    check("gpdp district evidence: partial panchayats format", "1,374 of 1,375 panchayats with a registered plan" in (text_partial or ""))
+
+    # 4. load_gpdp_district_summary_index with mock DB
+    class MockSummaryRow:
+        def __init__(self, id, district, district_code, plan_year, fetch_failed):
+            self.id = id
+            self.district = district
+            self.district_code = district_code
+            self.state_code = 27
+            self.plan_year = plan_year
+            self.total_panchayats = 1000
+            self.panchayats_with_plan = 1000
+            self.approved_activities = 50000
+            self.gram_sabhas_conducted = 1000
+            self.estimated_outlay_lakh = 25000.0
+            self.popular_activities_json = None
+            self.underpicked_activities_json = None
+            self.recent_activities_json = None
+            self.data_as_of = "14 Sep 2026 21:09"
+            self.fetch_failed = fetch_failed
+            self.fetched_at = None
+
+    class MockSummaryQuery:
+        def filter(self, *args, **kwargs):
+            return self
+        def order_by(self, *args, **kwargs):
+            return self
+        def all(self):
+            return [
+                MockSummaryRow(1, "Kolhapur", 438, "2025-26", False),
+                MockSummaryRow(2, "Kolhapur", 438, "2026-27", False),
+            ]
+
+    class MockSummaryDB:
+        def query(self, model):
+            return MockSummaryQuery()
+
+    loaded = realdata.load_gpdp_district_summary_index(MockSummaryDB())
+    check("load_gpdp_district_summary_index: loads district", "kolhapur" in loaded)
+    check("load_gpdp_district_summary_index: uses latest plan year", loaded["kolhapur"]["plan_year"] == "2026-27")
+
+
+test_gpdp_district_evidence()
+

@@ -1228,3 +1228,109 @@ def hazard_near(lat: float, lon: float, db, hours: int = 72) -> tuple[bool, dict
         pass
 
     return is_hazard, evidence
+
+
+# ---------------------------------------------------------------------------
+# GPDP District Summary (index.do)
+# ---------------------------------------------------------------------------
+
+
+def load_gpdp_district_summary_index(db) -> dict[str, dict]:
+    """
+    district name (lowercased) -> its most recent plan_year's row, as a
+    plain dict. A district with fetch_failed=True or no row at all is
+    simply absent -- callers must treat "not in this dict" as "no data,"
+    never as zero investment.
+    """
+    if db is None:
+        return {}
+    try:
+        from models import GpdpDistrictSummary
+
+        rows = (
+            db.query(GpdpDistrictSummary)
+            .filter(GpdpDistrictSummary.fetch_failed.is_(False))
+            .order_by(GpdpDistrictSummary.plan_year.asc())
+            .all()
+        )
+        result = {}
+        for r in rows:
+            if not r.district:
+                continue
+            key = r.district.strip().lower()
+            # Because we ordered by plan_year.asc(), the latest year ("2026-27" > "2025-26") overwrites earlier ones
+            result[key] = {
+                "id": r.id,
+                "district": r.district,
+                "district_code": r.district_code,
+                "state_code": r.state_code,
+                "plan_year": r.plan_year,
+                "total_panchayats": r.total_panchayats,
+                "panchayats_with_plan": r.panchayats_with_plan,
+                "approved_activities": r.approved_activities,
+                "gram_sabhas_conducted": r.gram_sabhas_conducted,
+                "estimated_outlay_lakh": r.estimated_outlay_lakh,
+                "popular_activities_json": r.popular_activities_json,
+                "underpicked_activities_json": r.underpicked_activities_json,
+                "recent_activities_json": r.recent_activities_json,
+                "data_as_of": r.data_as_of,
+                "fetched_at": r.fetched_at,
+            }
+        return result
+    except Exception:
+        return {}
+
+
+def gpdp_district_evidence(district: str, index: dict[str, dict]) -> tuple[dict | None, str | None]:
+    """
+    Returns (raw_row_dict, a short human evidence sentence) or (None, None)
+    if this district has no data. Example sentence:
+    "Kolhapur district, FY 2026-27: 1,025 panchayats, all with a
+    registered plan; 64,418 approved activities; ₹34,082.32 lakh
+    estimated outlay (data as of 14 Sep 2026 21:09)."
+    This is district-level context, not a per-village or per-asset score
+    input -- do not attribute it to a specific cluster or asset here or
+    anywhere downstream.
+    """
+    if not district or not index:
+        return None, None
+
+    key = district.strip().lower()
+    if key not in index:
+        return None, None
+
+    row = index[key]
+    if not row:
+        return None, None
+
+    dist_name = row.get("district") or district.title()
+    fy = f"FY {row.get('plan_year')}" if row.get("plan_year") else ""
+    header_part = f"{dist_name} district, {fy}:" if fy else f"{dist_name} district:"
+
+    parts = []
+    tot_p = row.get("total_panchayats")
+    with_p = row.get("panchayats_with_plan")
+    if tot_p is not None:
+        if with_p is not None and with_p >= tot_p:
+            parts.append(f"{tot_p:,} panchayats, all with a registered plan")
+        elif with_p is not None:
+            parts.append(f"{with_p:,} of {tot_p:,} panchayats with a registered plan")
+        else:
+            parts.append(f"{tot_p:,} panchayats")
+
+    acts = row.get("approved_activities")
+    if acts is not None:
+        parts.append(f"{acts:,} approved activities")
+
+    outlay = row.get("estimated_outlay_lakh")
+    if outlay is not None:
+        parts.append(f"₹{outlay:,.2f} lakh estimated outlay")
+
+    freshness = f" (data as of {row['data_as_of']})" if row.get("data_as_of") else ""
+
+    if not parts:
+        return row, f"{header_part} GPDP data available{freshness}."
+
+    sentence = f"{header_part} {'; '.join(parts)}{freshness}."
+    return row, sentence
+
