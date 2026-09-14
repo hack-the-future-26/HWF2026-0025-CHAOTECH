@@ -1,12 +1,17 @@
+import math
 import sqlite3
 import sys
+from pathlib import Path
 
 import requests
 
 sys.stdout.reconfigure(encoding="utf-8")
 
+# Ensure backend directory is in path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 API_URL = "http://localhost:8001/citizen-report"
-DB_PATH = "hackathon.db"
+DB_PATH = Path(__file__).resolve().parent / "hackathon.db"
 
 TEST_CASES = [
     {
@@ -42,6 +47,73 @@ TEST_CASES = [
     },
 ]
 
+PIN_TEST_CASES = [
+    {
+        "name": "near pin saved",
+        "report_lat": "16.1165",
+        "report_lon": "74.2105",
+        "expect_saved": True,
+    },
+    {
+        "name": "far pin dropped (>5km from village)",
+        "report_lat": "17.0",
+        "report_lon": "74.2",
+        "expect_saved": False,
+    },
+    {
+        "name": "partial pin ignored (lat only)",
+        "report_lat": "16.1165",
+        "report_lon": None,
+        "expect_saved": False,
+    },
+    {
+        "name": "non-numeric pin ignored",
+        "report_lat": "abc",
+        "report_lon": "def",
+        "expect_saved": False,
+    },
+    {
+        "name": "NaN pin ignored",
+        "report_lat": "nan",
+        "report_lon": "nan",
+        "expect_saved": False,
+    },
+]
+
+
+class HttpClient:
+    """Wrapper that talks to a live server if running, or falls back to TestClient."""
+    def __init__(self):
+        try:
+            r = requests.get("http://localhost:8001/", timeout=0.8)
+            if r.status_code == 200:
+                self.mode = "live"
+                self.base_url = "http://localhost:8001"
+                self.session = requests.Session()
+                print("[HttpClient] Connected to live server at http://localhost:8001")
+                return
+        except Exception:
+            pass
+        from fastapi.testclient import TestClient
+        from main import app
+        self.mode = "testclient"
+        self.client = TestClient(app)
+        print("[HttpClient] Using in-process FastAPI TestClient")
+
+    def post(self, path, **kwargs):
+        if self.mode == "live":
+            url = f"{self.base_url}{path}"
+            return self.session.post(url, **kwargs)
+        else:
+            return self.client.post(path, **kwargs)
+
+    def get(self, path, **kwargs):
+        if self.mode == "live":
+            url = f"{self.base_url}{path}"
+            return self.session.get(url, **kwargs)
+        else:
+            return self.client.get(path, **kwargs)
+
 
 def fetch_rows(request_id):
     con = sqlite3.connect(DB_PATH)
@@ -56,15 +128,45 @@ def fetch_rows(request_id):
     return dict(request_row) if request_row else None, dict(raw_row) if raw_row else None
 
 
+def get_auth_token(client: HttpClient) -> str:
+    email = "pin_tester@example.com"
+    pwd = "password123"
+    login_resp = client.post("/auth/login", json={"email": email, "password": pwd})
+    if login_resp.status_code == 200:
+        return login_resp.json()["token"]
+
+    reg_resp = client.post(
+        "/auth/register",
+        json={
+            "email": email,
+            "password": pwd,
+            "full_name": "Pin Test Citizen",
+            "gender": "female",
+            "mobile": "9876543210",
+            "address": "Near Bazaar, Ajara",
+            "pincode": "416505",
+            "district": "Kolhapur",
+            "block": "Ajra",
+            "village": "Ajara",
+        },
+    )
+    if reg_resp.status_code == 200:
+        return reg_resp.json()["token"]
+    raise RuntimeError(f"Could not authenticate: {reg_resp.text}")
+
+
 def run():
     passed = 0
     total = 0
+    client = HttpClient()
 
+    # --- 1. Original PII redaction test cases (JSON path) ---
+    print("\n=== PII Redaction / JSON path tests ===")
     for case in TEST_CASES:
         print(f"--- {case['note']} ---")
         print(f"input: {case['text']!r}")
 
-        resp = requests.post(API_URL, json={"text": case["text"]})
+        resp = client.post("/citizen-report", json={"text": case["text"]})
         if resp.status_code != 200:
             print(f"FAIL: request failed with HTTP {resp.status_code}: {resp.text}")
             print()
@@ -105,9 +207,103 @@ def run():
         else:
             print("FAIL: citizen_request_raw does not match the original text")
 
+        # Verify JSON path leaves precise coordinates null
+        total += 1
+        if stored_request.get("precise_lat") is None and stored_request.get("precise_lon") is None:
+            print("PASS: JSON path does not set precise coordinates")
+            passed += 1
+        else:
+            print("FAIL: JSON path unexpectedly set precise coordinates")
+
         print()
 
-    print(f"{passed}/{total} checks passed")
+    # --- 2. GPS Pin intake tests ---
+    print("\n=== Feature 3: GPS Pin validation and storage tests ===")
+    token = get_auth_token(client)
+    auth_header = {"Authorization": f"Bearer {token}"}
+
+    for case in PIN_TEST_CASES:
+        print(f"--- {case['name']} ---")
+        form_data = {
+            "district": "Kolhapur",
+            "block": "Ajra",
+            "village": "Ajara",
+            "department": "pwd",
+            "category": "road",
+            "text": "Sadak par bada khadda hai",
+        }
+        if case["report_lat"] is not None:
+            form_data["report_lat"] = case["report_lat"]
+        if case["report_lon"] is not None:
+            form_data["report_lon"] = case["report_lon"]
+
+        resp = client.post("/citizen-report", data=form_data, headers=auth_header)
+        if resp.status_code != 200:
+            print(f"FAIL: form submission failed with HTTP {resp.status_code}: {resp.text}")
+            continue
+
+        resp_data = resp.json()
+        req_id = resp_data["id"]
+        stored_request, _ = fetch_rows(req_id)
+
+        if case["expect_saved"]:
+            expected_lat = float(case["report_lat"])
+            expected_lon = float(case["report_lon"])
+
+            # 1. Saved in DB
+            total += 1
+            lat_ok = stored_request["precise_lat"] is not None and math.isclose(
+                stored_request["precise_lat"], expected_lat, abs_tol=0.0001
+            )
+            lon_ok = stored_request["precise_lon"] is not None and math.isclose(
+                stored_request["precise_lon"], expected_lon, abs_tol=0.0001
+            )
+            if lat_ok and lon_ok:
+                print(f"PASS: precise coordinates saved in DB: ({stored_request['precise_lat']}, {stored_request['precise_lon']})")
+                passed += 1
+            else:
+                print(f"FAIL: expected ({expected_lat}, {expected_lon}) in DB, got ({stored_request['precise_lat']}, {stored_request['precise_lon']})")
+
+            # 2. Echoed in POST response payload
+            total += 1
+            if resp_data.get("precise_lat") is not None and resp_data.get("precise_lon") is not None:
+                print("PASS: precise coordinates echoed in POST response payload")
+                passed += 1
+            else:
+                print("FAIL: precise coordinates missing from POST response payload")
+
+            # 3. Privacy requirement: GET /citizen-report/{id} must NOT leak precise coordinates
+            total += 1
+            get_resp = client.get(f"/citizen-report/{req_id}")
+            if get_resp.status_code == 200:
+                report_data = get_resp.json().get("report", {})
+                if "precise_lat" not in report_data and "precise_lon" not in report_data:
+                    print("PASS (Privacy): precise_lat/lon excluded from public serialize_citizen_request()")
+                    passed += 1
+                else:
+                    print("FAIL (Privacy): precise_lat/lon leaked in public serialize_citizen_request()!")
+            else:
+                print(f"FAIL: GET /citizen-report/{req_id} failed with {get_resp.status_code}")
+        else:
+            total += 1
+            if stored_request["precise_lat"] is None and stored_request["precise_lon"] is None:
+                print("PASS: invalid/distant/partial pin was discarded (stored as None)")
+                passed += 1
+            else:
+                print(f"FAIL: pin should have been None, but got ({stored_request['precise_lat']}, {stored_request['precise_lon']})")
+
+            total += 1
+            if resp_data.get("precise_lat") is None and resp_data.get("precise_lon") is None:
+                print("PASS: invalid/distant/partial pin returned as None in POST response")
+                passed += 1
+            else:
+                print("FAIL: invalid pin returned non-None in POST response")
+
+        print()
+
+    print(f"Result: {passed}/{total} checks passed")
+    if passed != total:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

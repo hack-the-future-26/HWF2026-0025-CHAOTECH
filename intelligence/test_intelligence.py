@@ -277,6 +277,75 @@ def test_weights_sum_to_one() -> None:
     check("Gap Score weights sum to 1.0", math.isclose(total, 1.0), f"sum was {total}")
 
 
+def test_apply_precise_coords() -> None:
+    """Unit-test the coordinate substitution helper."""
+    from intelligence.recompute import _apply_precise_coords
+
+    base = {"id": 1, "latitude": 16.7, "longitude": 74.2}
+
+    # Both present -> pin
+    result = _apply_precise_coords([{**base, "precise_lat": 16.8, "precise_lon": 74.3}])
+    check("both precise coords present -> uses pin lat",
+          result[0]["latitude"] == 16.8, f"got {result[0]['latitude']}")
+    check("both precise coords present -> uses pin lon",
+          result[0]["longitude"] == 74.3, f"got {result[0]['longitude']}")
+
+    # One missing -> centroid
+    result = _apply_precise_coords([{**base, "precise_lat": 16.8, "precise_lon": None}])
+    check("one precise coord missing -> keeps centroid lat",
+          result[0]["latitude"] == 16.7, f"got {result[0]['latitude']}")
+
+    # Both missing -> centroid
+    result = _apply_precise_coords([{**base, "precise_lat": None, "precise_lon": None}])
+    check("both precise coords missing -> keeps centroid",
+          result[0]["latitude"] == 16.7 and result[0]["longitude"] == 74.2, "")
+
+    # No keys at all -> centroid (pre-feature reports)
+    result = _apply_precise_coords([dict(base)])
+    check("no precise keys at all -> keeps centroid",
+          result[0]["latitude"] == 16.7, f"got {result[0]['latitude']}")
+
+
+def test_precise_coords_split_work_groups() -> None:
+    """Two reports >250m apart must form two work groups; at centroid, one."""
+    from intelligence.recompute import _work_groups
+
+    centroid_lat, centroid_lon = 16.7050, 74.2433
+    point_a = (16.7070, 74.2433)  # ~220m north
+    point_b = (16.7034, 74.2433)  # ~180m south (total ~400m apart)
+
+    base = {"id": 1, "raw_text": "road broken", "issue_category": "road",
+            "severity": "high", "district": "Kolhapur", "block": "Karvir",
+            "village": "Shinganapur", "confidence": 0.9,
+            "precise_lat": None, "precise_lon": None}
+
+    # With precise coords >250m apart -> TWO groups
+    members = [
+        {**base, "id": 1, "latitude": point_a[0], "longitude": point_a[1], "precise_lat": point_a[0], "precise_lon": point_a[1]},
+        {**base, "id": 2, "latitude": point_b[0], "longitude": point_b[1], "precise_lat": point_b[0], "precise_lon": point_b[1]},
+    ]
+    groups = _work_groups(members)
+    check("precise coords >250m apart -> two work groups",
+          len(groups) == 2,
+          f"got {len(groups)}")
+    check("both groups record citizen_gps_pin location_basis",
+          all(g.get("location_basis") == "citizen_gps_pin" for g in groups),
+          f"got {[g.get('location_basis') for g in groups]}")
+
+    # At centroid -> ONE group
+    members_centroid = [
+        {**base, "id": 1, "latitude": centroid_lat, "longitude": centroid_lon},
+        {**base, "id": 2, "latitude": centroid_lat, "longitude": centroid_lon},
+    ]
+    groups_centroid = _work_groups(members_centroid)
+    check("same reports at centroid -> one work group",
+          len(groups_centroid) == 1,
+          f"got {len(groups_centroid)}")
+    check("centroid group records village_centroid location_basis",
+          groups_centroid[0].get("location_basis") == "village_centroid",
+          f"got {groups_centroid[0].get('location_basis')}")
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -296,6 +365,8 @@ def main() -> None:
         test_catchment_population_respects_radius,
         test_budget_points_are_capped,
         test_weights_sum_to_one,
+        test_apply_precise_coords,
+        test_precise_coords_split_work_groups,
     ]:
         test()
 
