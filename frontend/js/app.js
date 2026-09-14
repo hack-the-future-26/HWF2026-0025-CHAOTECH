@@ -41,7 +41,6 @@
   const gReports = root.append("g");
   const gClusters = root.append("g");
   const gVillages = root.append("g");
-  const gRoadLines = root.append("g");
   const gAssets = root.append("g");
   const gLabels = root.append("g");
 
@@ -209,8 +208,6 @@
       .attr("font-size", `${ASSET_LABEL_PX / z}px`)
       .attr("stroke-width", 3 / z)
       .attr("y", (ASSET_PIN_R + 10) / z);
-    gRoadLines.selectAll("path")
-      .attr("stroke-width", 3 / z);
     gReports.selectAll("circle").attr("r", 1.9 / z);
     gLabels.selectAll("text").attr("font-size", `${11 / z}px`)
       .attr("stroke-width", 3 / z);
@@ -1259,26 +1256,9 @@
     sel.exit().transition().duration(240).attr("r", 0).remove();
   }
 
-  function drawRoadLines(assets) {
-    gRoadLines.selectAll("path").remove();
-    const lineGen = d3.line()
-      .x((p) => projection([p[1], p[0]])[0])   // points are [lat, lon]
-      .y((p) => projection([p[1], p[0]])[1]);
-    (assets || [])
-      .filter((a) => a.evidence && a.evidence.road_geometry && Array.isArray(a.evidence.road_geometry.points))
-      .forEach((a) => {
-        gRoadLines.append("path")
-          .datum(a.evidence.road_geometry.points)
-          .attr("class", "road-line")
-          .attr("d", lineGen)
-          .attr("data-asset-id", a.id);
-      });
-  }
-
   function drawAssets(list, villageName) {
     if (!list || !list.length) {
       gAssets.selectAll(".asset-pin").remove();
-      gRoadLines.selectAll("path").remove();
       return;
     }
     // Spread pins that would sit on top of each other on screen. Several
@@ -1471,7 +1451,6 @@
       gReports.selectAll("circle").remove();
       gVillages.selectAll("circle").remove();
       gAssets.selectAll(".asset-pin").remove();
-      gRoadLines.selectAll("path").remove();
       const feat = statesFC.features.find((f) => f.properties.st_nm === targetState);
       if (feat) {
         view = fitTransform(feat);
@@ -1498,7 +1477,6 @@
       Object.assign(nav, { level, state: targetState, district: targetDistrict, cluster: null, village: null, asset: null });
       gStates.selectAll("path").remove();
       gAssets.selectAll(".asset-pin").remove();
-      gRoadLines.selectAll("path").remove();
       const feat = districtsFC.features.find(
         (d) => d.properties.st_nm === targetState && d.properties.district === targetDistrict);
       if (feat) {
@@ -1581,18 +1559,11 @@
       if (vData) {
         currentVillageData = vData;
         drawAssets(vData.assets || [], vData.name);
-        drawRoadLines(vData.assets || []);
         applyZoomCompensation(view.k);
         renderVillagePanel(vData);
         d3.select("#legendNote").text(
           `${vData.name} — ${vData.report_count} citizen reports across ${(vData.assets || []).length} assets.`);
       }
-      gAssets.selectAll(".asset-pin")
-        .classed("asset-pin--faded", false)
-        .classed("asset-pin--selected", false);
-      gRoadLines.selectAll("path")
-        .classed("road-line--faded", false)
-        .classed("road-line--highlighted", false);
     }
 
     if (level === "asset") {
@@ -1609,15 +1580,6 @@
       gAssets.selectAll(".asset-pin")
         .classed("asset-pin--faded", (d) => d.id !== a.id)
         .classed("asset-pin--selected", (d) => d.id === a.id);
-
-      // Highlight selected road line, fade others
-      gRoadLines.selectAll("path")
-        .classed("road-line--faded", function() {
-          return d3.select(this).attr("data-asset-id") != a.id;
-        })
-        .classed("road-line--highlighted", function() {
-          return d3.select(this).attr("data-asset-id") == a.id;
-        });
 
       let aData = null;
       try {
@@ -1642,7 +1604,6 @@
       gStates.selectAll("path").remove();
       gVillages.selectAll("circle").remove();
       gAssets.selectAll(".asset-pin").remove();
-      gRoadLines.selectAll("path").remove();
 
       const districtFeat = districtsFC.features.find(
         (d) => d.properties.st_nm === targetState &&
@@ -1667,7 +1628,6 @@
         .classed("village-bubble--faded", false)
         .classed("village-bubble--open", false);
       gAssets.selectAll(".asset-pin").remove();
-      gRoadLines.selectAll("path").remove();
     }
 
     updateModeToggleUI();

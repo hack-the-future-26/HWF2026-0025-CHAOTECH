@@ -985,16 +985,6 @@ html, body {
   stroke: var(--navy);
   stroke-width: 3px;
 }
-.road-line {
-  fill: none;
-  stroke: var(--amber);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  pointer-events: none;
-  opacity: 0.85;
-}
-.road-line.road-line--highlighted { stroke: var(--navy); opacity: 1; }
-.road-line--faded { opacity: 0.2; }
 .asset-circle {
   stroke: #fff;
   stroke-width: 2px;
