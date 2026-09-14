@@ -6,6 +6,12 @@
 <title>AwaazIQ — Report a problem</title>
 <link rel="stylesheet" href="css/app.css?v=auth4" />
 <link rel="stylesheet" href="css/report.css?v=coverage1" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+      integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w=="
+      crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+        integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWe4wYp87/4T2YsBHcg0MOEA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body class="citizen">
 
@@ -97,6 +103,24 @@
           <select id="village" disabled><option value="">Select a block first</option></select>
         </label>
       </div>
+    </section>
+
+    <!-- ------------------------------------------------- exact pin -- -->
+    <section class="card" data-step="1b" id="pinCard" hidden>
+      <div class="card__head">
+        <span class="eyebrow">Exact location <span class="opt">optional</span></span>
+      </div>
+      <p class="card__lead">
+        Tap the map where the problem actually is. This helps us tell apart
+        two problems in the same village. If you cannot pin it, skip this —
+        your village is enough.
+      </p>
+      <div id="pinMap" class="pin-map"></div>
+      <div class="pin-actions">
+        <button type="button" class="btn btn--ghost btn--sm" id="btnGeolocate">📍 Use my current location</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="btnClearPin" hidden>✕ Clear pin</button>
+      </div>
+      <p class="f__hint" id="pinHint">No pin set — the village centre will be used</p>
     </section>
 
     <!-- ------------------------------------------------------- problem -- -->
