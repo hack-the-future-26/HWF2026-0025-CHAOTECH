@@ -49,10 +49,36 @@ def _load_reports(db) -> list[dict]:
             "village": row.village,
             "latitude": row.latitude,
             "longitude": row.longitude,
+            "precise_lat": row.precise_lat,
+            "precise_lon": row.precise_lon,
             "confidence": row.confidence,
         }
         for row in db.query(CitizenRequest).all()
     ]
+
+
+def _apply_precise_coords(reports: list[dict]) -> list[dict]:
+    """
+    Substitute citizen-supplied GPS pins for village centroids.
+
+    When both precise_lat and precise_lon are non-null, overwrite the report's
+    latitude/longitude so that downstream clustering (DBSCAN + _work_groups)
+    uses the actual position.  When either is missing, the village centroid
+    is kept -- today's exact behaviour.
+
+    Pure function: returns a new list of shallow-copied dicts; the originals
+    are not mutated.
+    """
+    out = []
+    for report in reports:
+        r = dict(report)
+        plat = r.get("precise_lat")
+        plon = r.get("precise_lon")
+        if plat is not None and plon is not None:
+            r["latitude"] = plat
+            r["longitude"] = plon
+        out.append(r)
+    return out
 
 
 def _load_gazetteer(db) -> list[dict]:
@@ -228,6 +254,15 @@ def _work_groups(members: list[dict]) -> list[dict]:
         # The longest complaint carries the most detail for an officer; the
         # shortest are usually just "road bad".
         sample = max((m.get("raw_text") or "" for m in group), key=len, default="")
+        pin_count = sum(
+            1 for m in group
+            if m.get("precise_lat") is not None and m.get("precise_lon") is not None
+        )
+        location_basis = (
+            "citizen_gps_pin" if pin_count == len(group)
+            else "mixed" if pin_count > 0
+            else "village_centroid"
+        )
         out.append(
             {
                 "label": village or block or "Unnamed location",
@@ -239,6 +274,7 @@ def _work_groups(members: list[dict]) -> list[dict]:
                 "village": village,
                 "block": block,
                 "sample_text": sample[:300],
+                "location_basis": location_basis,
             }
         )
 
@@ -254,6 +290,7 @@ def recompute(db, verbose: bool = True) -> dict:
             print(message)
 
     reports = _load_reports(db)
+    reports = _apply_precise_coords(reports)
     gazetteer = _load_gazetteer(db)
     log(f"loaded {len(reports)} reports, {len(gazetteer)} gazetteer rows")
 

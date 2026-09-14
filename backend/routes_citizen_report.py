@@ -21,6 +21,7 @@ Identity never lands in `citizen_request`. It goes to `citizen_identity`,
 which nothing in the analytics or dashboard path reads. See models.py.
 """
 
+import math
 import re
 import secrets
 import sys
@@ -316,6 +317,38 @@ def resolve_picked_location(db: Session, district: str, block: str, village: str
     }
 
 
+def _validate_pin(
+    form, village_lat: float, village_lon: float
+) -> tuple[float | None, float | None]:
+    """
+    Parse and validate the citizen's GPS pin against the picked village.
+
+    Both report_lat and report_lon must be present, finite (not NaN/Inf),
+    and within PIN_MAX_DISTANCE_KM of the village centroid returned by
+    resolve_picked_location().  Otherwise both are dropped -- a partial,
+    non-numeric, NaN or impossibly distant pin is never stored.
+
+    This runs ONLY on the intake (village-picked) form path.  The JSON
+    ingest path never calls it, so seeding scripts are unaffected.
+    """
+    from intelligence.clustering import haversine_km
+    from intelligence import config
+
+    try:
+        lat = float(_clean(form, "report_lat") or "")
+        lon = float(_clean(form, "report_lon") or "")
+    except (ValueError, TypeError):
+        return None, None
+
+    if not (math.isfinite(lat) and math.isfinite(lon)):
+        return None, None
+
+    if haversine_km(lat, lon, village_lat, village_lon) > config.PIN_MAX_DISTANCE_KM:
+        return None, None
+
+    return lat, lon
+
+
 async def save_attachments(form, request_id: int, db: Session) -> list[ReportAttachment]:
     """Persist evidence files, enforcing the CPGRAMS limits."""
     uploads = [
@@ -467,6 +500,7 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
         location_raw = result["location_raw"]
         confidence = result["confidence_overall"]
 
+        precise_lat, precise_lon = None, None
         if intake:
             # A village chosen from the dropdown outranks one guessed from the
             # text. This is the fix for reports that used to be stored with no
@@ -474,6 +508,12 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             location_resolved = resolve_picked_location(
                 db, intake["district"], intake["block"], intake["village"]
             )
+            # Validate optional citizen-supplied GPS pin against village centroid.
+            # Kept strictly to the intake path; dropped if non-finite or >5km.
+            if location_resolved.get("lat") is not None and location_resolved.get("lon") is not None:
+                precise_lat, precise_lon = _validate_pin(
+                    form, location_resolved["lat"], location_resolved["lon"]
+                )
             # The picked village replaces whatever the extractor scraped out
             # of the sentence. Left as-is, a complaint that never named a
             # place stored fragments like "din se, bahut samasya" as its
@@ -497,6 +537,8 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             village=location_resolved.get("village"),
             latitude=location_resolved.get("lat"),
             longitude=location_resolved.get("lon"),
+            precise_lat=precise_lat,
+            precise_lon=precise_lon,
             confidence=confidence,
             is_synthetic=result["is_synthetic"],
             department=intake["department"] if intake else None,
@@ -533,6 +575,11 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
         db.commit()
 
         payload = serialize_citizen_request(citizen_request)
+        # Echo the pin back so the receipt can confirm it was recorded.
+        # This response goes only to the citizen who just filed, not to the
+        # public dashboard. serialize_citizen_request() deliberately omits it.
+        payload["precise_lat"] = citizen_request.precise_lat
+        payload["precise_lon"] = citizen_request.precise_lon
         payload["attachments"] = [
             {
                 "id": a.id,
