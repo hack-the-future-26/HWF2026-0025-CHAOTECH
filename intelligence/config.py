@@ -153,8 +153,9 @@ LOW_CONNECTIVITY_BLOCKS = {
     "Kalwan",
 }
 
-# Categories whose failure is monsoon-sensitive -> urgency offset applies.
-MONSOON_SENSITIVE_CATEGORIES = {"road", "water"}
+# MONSOON_SENSITIVE_CATEGORIES (the old flat-urgency mechanism) was removed
+# 2026-09-15 with Feature #7 -- urgency is emergency-only now, see
+# urgency_points() and emergency.py.
 
 # Strategic offset applies when a cluster plausibly clears an existing
 # scheme's population threshold (stand-in for the Scheme-Eligibility

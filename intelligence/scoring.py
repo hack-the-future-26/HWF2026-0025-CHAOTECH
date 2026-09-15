@@ -167,11 +167,6 @@ def strategic_points(population_affected: int) -> float:
     return 0.0
 
 
-def urgency_points(issue_category: str | None) -> float:
-    """Seasonality: roads and water fail hardest in monsoon (SS16.2)."""
-    if issue_category in config.MONSOON_SENSITIVE_CATEGORIES:
-        return config.URGENCY_POINTS
-    return 0.0
 def urgency_points(
     grade: float | str | None = 0.0,
     confidence: float = 0.0,
