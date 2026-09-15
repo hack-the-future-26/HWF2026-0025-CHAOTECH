@@ -731,6 +731,22 @@ def _score_members(
         result["evidence"]["water_testing"] = wt_text
     if category == "water" and jjm_scheme_text:
         result["evidence"]["jjm_schemes"] = jjm_scheme_evidence
+    # Real UDISE+ grant vs. expenditure for this specific school -- separate
+    # from infra_deficit's own school signal (classroom/electricity/water/
+    # toilet condition), since "how much unspent money is sitting here" is a
+    # different question the funding-mismatch warning below needs answered
+    # (§10.2 feature #18, extended to education 2026-09-15).
+    if category == "education" and facility_id is not None:
+        school_row = (school_condition_index or {}).get(facility_id)
+        if school_row and (
+            school_row.get("total_grant") is not None
+            or school_row.get("total_expenditure") is not None
+        ):
+            result["evidence"]["school_funding"] = {
+                "total_grant": school_row.get("total_grant"),
+                "total_expenditure": school_row.get("total_expenditure"),
+                "year": school_row.get("year_desc"),
+            }
     if hazard_flag:
         result["evidence"]["hazard_corroboration"] = hazard_evidence
     result["evidence"]["emergency"] = emergency_eval["evidence"]

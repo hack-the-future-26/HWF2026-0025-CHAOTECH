@@ -21,47 +21,185 @@ from routes_citizen_report import serialize_citizen_request
 router = APIRouter()
 
 
-def _funding_warnings(evidence: dict | None) -> list[dict]:
+def _has_real_deficit(infra: dict, category: str | None) -> bool:
     """
-    Turn the already-computed 'sanctioned but undelivered' evidence into an
-    explicit flag on the recommendation itself (§10.2 feature #18).
+    Whether infra_deficit's own signals show a real, documented shortfall for
+    this category -- used only to decide whether silence (no funding record
+    found) is worth flagging as "unfunded need" at all. A cluster with no
+    deficit and no funding is simply not a priority case; it should stay
+    silent same as before.
+    """
+    if not isinstance(infra, dict):
+        return False
+    if category == "road":
+        return bool(infra.get("share_without_all_weather_road")) or bool(
+            infra.get("share_without_black_topped_road")
+        )
+    if category == "water":
+        pct = infra.get("jjm_tap_coverage_pct")
+        if pct is not None:
+            return pct < 100
+        return bool(infra.get("share_without_treated_tap")) or bool(
+            infra.get("share_failing_in_summer")
+        )
+    if category == "education" and infra.get("source") == "udise_2024_25_this_school":
+        return bool(
+            infra.get("no_electricity")
+            or infra.get("no_drinking_water")
+            or infra.get("no_functional_toilet")
+            or (infra.get("share_classrooms_major_repair") or 0) > 0
+        )
+    return False
 
-    recompute.py already records, on the infra_deficit term, how many PMGSY
-    works near this cluster were sanctioned and never delivered, their rupee
-    value and the oldest sanction year. That informed the score but never
-    surfaced as a caution -- so a cluster could be recommended for funding
-    without anyone being told money is already committed there. This reads
-    that evidence back out and says so, in words, with no new computation.
+
+def _funding_warnings(evidence: dict | None, category: str | None = None) -> list[dict]:
+    """
+    Turn already-computed funding evidence into explicit flags on the
+    recommendation itself (§10.2 feature #18).
+
+    Originally road-only: recompute.py records, on the infra_deficit term,
+    how many PMGSY works near a cluster were sanctioned and never delivered.
+    That informed the score but never surfaced as a caution -- so a cluster
+    could be recommended for funding without anyone being told money is
+    already committed there. Extended 2026-09-15 to read the equivalent real
+    evidence for water (JJM scheme cost/status) and education (UDISE+ grant
+    vs. expenditure), and to say so explicitly, in words, with no new
+    computation -- every number here was already computed by recompute.py.
+
+    Also raises the opposite, previously-silent case: a real, documented
+    deficiency with no funding record at all in the one real dataset that
+    would show it. Before, a cluster like this looked identical to one with
+    no evidence either way; now it says so plainly, using the same
+    classification recompute.py already produced.
     """
     if not isinstance(evidence, dict):
         return []
     infra = evidence.get("infra_deficit")
     if not isinstance(infra, dict):
-        return []
-    works = infra.get("undelivered_sanctioned_works") or 0
-    if not works:
-        return []
-    cost = infra.get("undelivered_sanctioned_cost_lakh")
-    oldest = infra.get("oldest_undelivered_sanction_year")
-    parts = [
-        f"{works} sanctioned PMGSY work{'s' if works != 1 else ''} near this "
-        f"cluster {'are' if works != 1 else 'is'} recorded as still undelivered"
-    ]
-    if cost:
-        parts.append(f"Rs {cost:,.2f} lakh already committed")
-    if oldest:
-        parts.append(f"oldest sanctioned in {oldest}")
-    return [
-        {
-            "type": "already_funded",
-            "severity": "caution",
-            "undelivered_works": works,
-            "undelivered_cost_lakh": cost,
-            "oldest_sanction_year": oldest,
-            "message": " - ".join(parts)
-            + ". Check delivery of the existing sanction before recommending new money.",
-        }
-    ]
+        infra = {}
+
+    warnings: list[dict] = []
+
+    if category == "road":
+        works = infra.get("undelivered_sanctioned_works") or 0
+        if works:
+            cost = infra.get("undelivered_sanctioned_cost_lakh")
+            oldest = infra.get("oldest_undelivered_sanction_year")
+            parts = [
+                f"{works} sanctioned PMGSY work{'s' if works != 1 else ''} near this "
+                f"cluster {'are' if works != 1 else 'is'} recorded as still undelivered"
+            ]
+            if cost:
+                parts.append(f"Rs {cost:,.2f} lakh already committed")
+            if oldest:
+                parts.append(f"oldest sanctioned in {oldest}")
+            warnings.append(
+                {
+                    "type": "already_funded",
+                    "severity": "caution",
+                    "undelivered_works": works,
+                    "undelivered_cost_lakh": cost,
+                    "oldest_sanction_year": oldest,
+                    "message": " - ".join(parts)
+                    + ". Check delivery of the existing sanction before recommending new money.",
+                }
+            )
+        elif _has_real_deficit(infra, "road"):
+            warnings.append(
+                {
+                    "type": "unfunded_need",
+                    "severity": "info",
+                    "message": (
+                        "No PMGSY-sanctioned work is recorded near this cluster despite a "
+                        "documented road deficiency here — this need currently has no "
+                        "funding attached."
+                    ),
+                }
+            )
+
+    elif category == "water":
+        jjm = evidence.get("jjm_schemes")
+        if isinstance(jjm, dict):
+            undelivered = jjm.get("undelivered_schemes") or 0
+            if undelivered:
+                unspent = jjm.get("unspent_estimate_lakh")
+                parts = [
+                    f"{undelivered} JJM water scheme{'s' if undelivered != 1 else ''} near "
+                    f"this cluster {'are' if undelivered != 1 else 'is'} recorded as still ongoing"
+                ]
+                if unspent:
+                    parts.append(f"Rs {unspent:,.2f} lakh of the estimated cost still unspent")
+                warnings.append(
+                    {
+                        "type": "already_funded",
+                        "severity": "caution",
+                        "undelivered_works": undelivered,
+                        "undelivered_cost_lakh": unspent,
+                        "message": " - ".join(parts)
+                        + ". Check delivery of the existing scheme before recommending new money.",
+                    }
+                )
+        elif _has_real_deficit(infra, "water"):
+            warnings.append(
+                {
+                    "type": "unfunded_need",
+                    "severity": "info",
+                    "message": (
+                        "No JJM scheme record is found near this cluster despite a "
+                        "documented water deficiency here — this need currently has no "
+                        "funding attached."
+                    ),
+                }
+            )
+
+    elif category == "education":
+        school_funding = evidence.get("school_funding")
+        if isinstance(school_funding, dict):
+            grant = school_funding.get("total_grant")
+            spent = school_funding.get("total_expenditure")
+            unspent = (
+                round(grant - spent, 2) if grant is not None and spent is not None else None
+            )
+            if unspent is not None and unspent > 0:
+                warnings.append(
+                    {
+                        "type": "already_funded",
+                        "severity": "caution",
+                        "undelivered_cost_lakh": None,
+                        "message": (
+                            f"This school already received Rs {grant:,.0f} in UDISE+ grants "
+                            f"this year with Rs {unspent:,.0f} still unspent against Rs "
+                            f"{spent:,.0f} spent. Check whether the existing grant covers "
+                            "this need before recommending new money."
+                        ),
+                    }
+                )
+            elif _has_real_deficit(infra, "education"):
+                warnings.append(
+                    {
+                        "type": "unfunded_need",
+                        "severity": "info",
+                        "message": (
+                            "This school has a UDISE+ grant record but no unspent balance "
+                            "against a documented physical deficiency here — this need "
+                            "currently has no additional funding attached."
+                        ),
+                    }
+                )
+        elif _has_real_deficit(infra, "education"):
+            warnings.append(
+                {
+                    "type": "unfunded_need",
+                    "severity": "info",
+                    "message": (
+                        "No UDISE+ grant record is found for this school despite a "
+                        "documented physical deficiency here — this need currently has "
+                        "no funding attached."
+                    ),
+                }
+            )
+
+    return warnings
 
 
 def _latest_score_by_cluster(db: Session) -> dict[int, PriorityScore]:
@@ -169,7 +307,7 @@ def get_cluster(cluster_id: int, db: Session = Depends(get_db)):
 
     # An explicit caution when money is already committed where this cluster
     # would be recommended for more (§10.2 feature #18).
-    detail["warnings"] = _funding_warnings(evidence)
+    detail["warnings"] = _funding_warnings(evidence, cluster.issue_category)
 
     # The specific things inside this cluster that are broken, so a crew can
     # be sent somewhere rather than to a district-wide average.

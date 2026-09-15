@@ -553,6 +553,33 @@
     }
   }
 
+  /**
+   * §10.2 #18 -- render one funding-mismatch warning (cluster dock or asset
+   * panel share this exact rendering; the data behind it is computed once,
+   * server-side, in routes_dashboard._funding_warnings). "already_funded"
+   * is the original orange caution (money already committed nearby); the
+   * green "unfunded_need" case says the opposite -- a documented deficiency
+   * with no funding record found at all -- rather than staying silent.
+   */
+  function renderFundingWarning(container, insertBeforeSelector, w) {
+    const isUnfunded = w.type === "unfunded_need";
+    const style = isUnfunded
+      ? "margin:0 0 10px;padding:9px 12px;border-radius:8px;font-size:12px;" +
+        "line-height:1.5;color:var(--body);background:rgba(34,139,34,.12);" +
+        "border:1px solid rgba(34,139,34,.45)"
+      : "margin:0 0 10px;padding:9px 12px;border-radius:8px;font-size:12px;" +
+        "line-height:1.5;color:var(--body);background:rgba(203,120,20,.12);" +
+        "border:1px solid rgba(203,120,20,.45)";
+    const label = isUnfunded
+      ? "&#10003; Confirmed unfunded need."
+      : "&#9888; Already funded here.";
+    const node = insertBeforeSelector
+      ? container.insert("div", insertBeforeSelector)
+      : container.append("div");
+    node.attr("class", "dock__warn").attr("style", style)
+      .html(`<b>${label}</b> ${w.message}`);
+  }
+
   function nameBasisLabel(basis) {
     switch (basis) {
       case "citizen_selected": return "citizen picked";
@@ -824,19 +851,13 @@
     const evidence = detail.evidence || {};
 
     // §10.2 #18 -- a caution surfaced on the recommendation itself when money
-    // is already committed where this cluster would be funded again. Built by
-    // the API from evidence it had already computed; empty for most clusters.
+    // is already committed where this cluster would be funded again, or an
+    // explicit confirmation when a documented need has no funding record at
+    // all. Built by the API from evidence it had already computed; empty for
+    // most clusters.
     const dockEl = d3.select("#dock");
     dockEl.selectAll(".dock__warn").remove();
-    (detail.warnings || []).forEach((w) => {
-      dockEl.insert("div", ".dock__cols")
-        .attr("class", "dock__warn")
-        .attr("style",
-          "margin:0 0 10px;padding:9px 12px;border-radius:8px;font-size:12px;" +
-          "line-height:1.5;color:var(--body);background:rgba(203,120,20,.12);" +
-          "border:1px solid rgba(203,120,20,.45)")
-        .html(`<b>&#9888; Already funded here.</b> ${w.message}`);
-    });
+    (detail.warnings || []).forEach((w) => renderFundingWarning(dockEl, ".dock__cols", w));
 
     // §10.2 #3 -- which terms rested on a real government record and which
     // fell back to a proxy. scoring.py computed this; it is now persisted and
@@ -1030,16 +1051,10 @@
     col2.append("div").attr("class", "dock__hint")
       .text("Registers, location provenance, and scheme records behind this asset.");
 
-    // Warning banner if undelivered works exist
-    const infraEv = (aData.evidence || {}).infra_deficit || {};
-    if (infraEv.undelivered_sanctioned_works > 0) {
-      col2.append("div").attr("class", "dock__warn")
-        .attr("style",
-          "margin:0 0 12px;padding:9px 12px;border-radius:8px;font-size:12px;" +
-          "line-height:1.5;color:var(--body);background:rgba(203,120,20,.12);" +
-          "border:1px solid rgba(203,120,20,.45)")
-        .html(`<b>&#9888; Already funded here.</b> ${infraEv.undelivered_sanctioned_works} sanctioned works not delivered (₹${infraEv.undelivered_sanctioned_cost_lakh || 0} lakh unspent${infraEv.oldest_undelivered_sanction_year ? `, oldest from ${infraEv.oldest_undelivered_sanction_year}` : ""}).`);
-    }
+    // §10.2 #18 -- same funding-mismatch caution/confirmation as the cluster
+    // dock, computed server-side from this asset's own evidence (road, water
+    // and school all covered; see routes_dashboard._funding_warnings).
+    (aData.warnings || []).forEach((w) => renderFundingWarning(col2, null, w));
 
     const facts = col2.append("div").attr("class", "facts");
     [

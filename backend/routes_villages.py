@@ -22,6 +22,7 @@ from database import get_db
 from models import Asset, CitizenRequest, PhotoCheck, VillagePriority
 from intelligence import config
 from routes_citizen_report import serialize_citizen_request
+from routes_dashboard import _funding_warnings
 from routes_photo_checks import serialize_check
 
 router = APIRouter()
@@ -230,6 +231,8 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
                     rank_in_village = rank
                     break
 
+    asset_evidence = json.loads(asset.evidence) if asset.evidence else {}
+
     return {
         "id": asset.id,
         "asset_type": asset.asset_type,
@@ -251,7 +254,10 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
         "priority_score": asset.priority_score,
         "rank_in_village": rank_in_village,
         "breakdown": json.loads(asset.breakdown) if asset.breakdown else {},
-        "evidence": json.loads(asset.evidence) if asset.evidence else {},
+        "evidence": asset_evidence,
+        # Same funding-mismatch caution/confirmation as the cluster dock
+        # (§10.2 feature #18), read from this asset's own evidence.
+        "warnings": _funding_warnings(asset_evidence, asset.asset_type),
         "candidates": json.loads(asset.candidates) if asset.candidates else None,
         "is_demo": asset.is_demo,
         "created_at": asset.created_at,
