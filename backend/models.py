@@ -868,3 +868,28 @@ class JjmVillageScheme(Base):
     status = Column(Text, nullable=True)
     fetched_at = Column(DateTime, nullable=True)
 
+
+class VillageMgnregaExpenditure(Base):
+    """
+    Real per-village-panchayat MGNREGA expenditure and wage/material ratio from
+    the Ministry of Rural Development's official NREGA portal (gp_cummulative_report1.aspx).
+    Tracks total expenditure, wages paid, and material expenditure in Lakhs of rupees,
+    along with wage and material percentage shares.
+    """
+    __tablename__ = "village_mgnrega_expenditure"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True, index=True)
+    village_name = Column(Text)          # as MGNREGA names it, for the fuzzy-match audit trail
+    district = Column(Text)
+    block = Column(Text)
+    fin_year = Column(Text)              # e.g. "2026-2027"
+    total_expenditure_lakh = Column(Float, nullable=True)
+    wages_lakh = Column(Float, nullable=True)
+    material_lakh = Column(Float, nullable=True)
+    wages_percent = Column(Float, nullable=True)
+    material_percent = Column(Float, nullable=True)
+    raw_json = Column(Text, nullable=True)   # full parsed row
+    fetched_at = Column(DateTime, nullable=True)
+
+

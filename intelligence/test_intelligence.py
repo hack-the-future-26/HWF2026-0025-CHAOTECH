@@ -1290,6 +1290,72 @@ def test_village_finance_evidence():
     check("load_village_finance_index: uses latest fin_year", loaded[101]["fin_year"] == "2025-2026")
 
 
+def test_village_mgnrega_evidence():
+    # 1. Missing gazetteer_id or empty index
+    row, text = realdata.village_mgnrega_evidence(9999, {})
+    check("village mgnrega evidence: empty index returns (None, None)", row is None and text is None)
+
+    sample_index = {
+        46: {
+            "id": 1,
+            "gazetteer_id": 46,
+            "village_name": "Aamashi",
+            "district": "Kolhapur",
+            "block": "KARVIR",
+            "fin_year": "2026-2027",
+            "total_expenditure_lakh": 5.37,
+            "wages_lakh": 1.24,
+            "material_lakh": 4.12,
+            "wages_percent": 23.2,
+            "material_percent": 76.8,
+            "fetched_at": None,
+        }
+    }
+    row_miss, text_miss = realdata.village_mgnrega_evidence(999, sample_index)
+    check("village mgnrega evidence: missing id returns (None, None)", row_miss is None and text_miss is None)
+
+    # 2. Formatted sentence
+    row_ok, text_ok = realdata.village_mgnrega_evidence(46, sample_index)
+    check("village mgnrega evidence: returns row dict", row_ok is not None and row_ok["village_name"] == "Aamashi")
+    expected_sentence = "FY 2026-2027: MGNREGA expenditure ₹5.37 lakh (wages ₹1.24 lakh [23%], material ₹4.12 lakh [77%])."
+    check("village mgnrega evidence: sentence format matches specification", text_ok == expected_sentence)
+
+    # 3. Mock DB test for load_village_mgnrega_index
+    class MockMgnregaRow:
+        def __init__(self, id, gaz_id, fin_year):
+            self.id = id
+            self.gazetteer_id = gaz_id
+            self.village_name = "Test Village"
+            self.district = "Kolhapur"
+            self.block = "KARVIR"
+            self.fin_year = fin_year
+            self.total_expenditure_lakh = 5.0
+            self.wages_lakh = 3.0
+            self.material_lakh = 2.0
+            self.wages_percent = 60.0
+            self.material_percent = 40.0
+            self.fetched_at = None
+
+    class MockMgnregaQuery:
+        def filter(self, *args, **kwargs):
+            return self
+        def order_by(self, *args, **kwargs):
+            return self
+        def all(self):
+            return [
+                MockMgnregaRow(1, 101, "2025-2026"),
+                MockMgnregaRow(2, 101, "2026-2027"),
+            ]
+
+    class MockMgnregaDB:
+        def query(self, model):
+            return MockMgnregaQuery()
+
+    loaded = realdata.load_village_mgnrega_index(MockMgnregaDB())
+    check("load_village_mgnrega_index: loads matched gazetteer id", 101 in loaded)
+    check("load_village_mgnrega_index: uses latest fin_year", loaded[101]["fin_year"] == "2026-2027")
+
+
 def test_school_condition_deficit() -> None:
     # 1. No record for this facility -> caller must fall back, never assume 0.
     value, ev = realdata.school_condition_deficit(999, {})
@@ -1535,6 +1601,7 @@ def main() -> None:
         test_hazard_near,
         test_gpdp_district_evidence,
         test_village_finance_evidence,
+        test_village_mgnrega_evidence,
         test_school_condition_deficit,
         test_udise_overrides_census_for_a_specific_school,
         test_village_investment_unspent_grant,

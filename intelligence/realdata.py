@@ -1689,3 +1689,94 @@ def village_finance_evidence(gazetteer_id: int, index: dict[int, dict]) -> tuple
     return row, sentence
 
 
+# ---------------------------------------------------------------------------
+# MGNREGA Village Panchayat Expenditure (gp_cummulative_report1.aspx)
+# ---------------------------------------------------------------------------
+
+
+def load_village_mgnrega_index(db) -> dict[int, dict]:
+    """
+    gazetteer_id -> its most recent fin_year's row, as a plain dict.
+    Rows without gazetteer_id are excluded.
+    """
+    if db is None:
+        return {}
+    try:
+        from models import VillageMgnregaExpenditure
+
+        rows = (
+            db.query(VillageMgnregaExpenditure)
+            .filter(VillageMgnregaExpenditure.gazetteer_id.isnot(None))
+            .order_by(VillageMgnregaExpenditure.fin_year.asc())
+            .all()
+        )
+        result = {}
+        for r in rows:
+            result[r.gazetteer_id] = {
+                "id": r.id,
+                "gazetteer_id": r.gazetteer_id,
+                "village_name": r.village_name,
+                "district": r.district,
+                "block": r.block,
+                "fin_year": r.fin_year,
+                "total_expenditure_lakh": r.total_expenditure_lakh,
+                "wages_lakh": r.wages_lakh,
+                "material_lakh": r.material_lakh,
+                "wages_percent": r.wages_percent,
+                "material_percent": r.material_percent,
+                "fetched_at": r.fetched_at,
+            }
+        return result
+    except Exception:
+        return {}
+
+
+def village_mgnrega_evidence(gazetteer_id: int, index: dict[int, dict]) -> tuple[dict | None, str | None]:
+    """
+    Returns (raw_row_dict, a short human evidence sentence) or (None, None).
+    Example: "FY 2026-2027: MGNREGA expenditure ₹5.37 lakh (wages ₹1.24 lakh [23%], material ₹4.12 lakh [77%])."
+    """
+    if not gazetteer_id or not index:
+        return None, None
+
+    row = index.get(gazetteer_id)
+    if not row:
+        return None, None
+
+    fy = f"FY {row.get('fin_year')}:" if row.get("fin_year") else "MGNREGA expenditure:"
+    tot = row.get("total_expenditure_lakh")
+    wages = row.get("wages_lakh")
+    mat = row.get("material_lakh")
+    w_pct = row.get("wages_percent")
+    m_pct = row.get("material_percent")
+
+    if tot is None and wages is None and mat is None:
+        return row, f"{fy} MGNREGA accounting records available."
+
+    parts = []
+    if tot is not None:
+        parts.append(f"MGNREGA expenditure ₹{tot:,.2f} lakh")
+
+    sub_parts = []
+    if wages is not None:
+        w_str = f"wages ₹{wages:,.2f} lakh"
+        if w_pct is not None:
+            w_str += f" [{w_pct:.0f}%]"
+        sub_parts.append(w_str)
+
+    if mat is not None:
+        m_str = f"material ₹{mat:,.2f} lakh"
+        if m_pct is not None:
+            m_str += f" [{m_pct:.0f}%]"
+        sub_parts.append(m_str)
+
+    if sub_parts:
+        detail_str = f" ({', '.join(sub_parts)})"
+    else:
+        detail_str = ""
+
+    sentence = f"{fy} {'; '.join(parts)}{detail_str}."
+    return row, sentence
+
+
+
