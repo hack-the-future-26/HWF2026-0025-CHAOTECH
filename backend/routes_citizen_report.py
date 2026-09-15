@@ -47,6 +47,7 @@ from models import (  # noqa: E402
 )
 from routes_auth import get_current_user_from_token  # noqa: E402
 from routes_gazetteer import PILOT_STATE, valid_department  # noqa: E402
+from routes_photo_checks import check_report_photos  # noqa: E402
 from intelligence import config  # noqa: E402
 from intelligence.clustering import haversine_km  # noqa: E402
 
@@ -370,7 +371,7 @@ async def save_attachments(form, request_id: int, db: Session) -> list[ReportAtt
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     saved: list[ReportAttachment] = []
 
-    for upload in uploads:
+    for index, upload in enumerate(uploads):
         content_type = (upload.content_type or "").split(";")[0].strip().lower()
         if content_type not in ALLOWED_ATTACHMENT_TYPES:
             raise HTTPException(
@@ -400,6 +401,9 @@ async def save_attachments(form, request_id: int, db: Session) -> list[ReportAtt
             content_type=content_type,
             size_bytes=len(data),
         )
+        # Position in the form, so photo checks can pair this file with its
+        # capture_meta entry and burst_<index> frames. Not a column.
+        row.form_index = index
         db.add(row)
         saved.append(row)
 
@@ -600,6 +604,23 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
 
         db.commit()
 
+        # Workstream C: check every photo (capture provenance, duplicates,
+        # edits, screen replay, road defects, damage grade). Evidence and
+        # flags only -- the report is already stored and stays stored.
+        photo_views = []
+        if attachments:
+            photo_views = await check_report_photos(
+                form,
+                attachments,
+                citizen_request,
+                village_lat=location_resolved.get("lat"),
+                village_lon=location_resolved.get("lon"),
+                text=original_text,
+                db=db,
+            )
+            db.commit()
+            db.refresh(citizen_request)
+
         payload = serialize_citizen_request(citizen_request)
         # Echo the pin back so the receipt can confirm it was recorded.
         # This response goes only to the citizen who just filed, not to the
@@ -617,6 +638,8 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             }
             for a in attachments
         ]
+        payload["photo_checks"] = photo_views
+        payload["photo_trust"] = citizen_request.photo_trust
         # Echoed back so the receipt can confirm what was recorded. Read from
         # the validated input, not from the database -- nothing reads identity
         # back out of storage, including this endpoint.

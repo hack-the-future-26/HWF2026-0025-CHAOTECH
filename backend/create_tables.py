@@ -27,6 +27,9 @@ ADDED_COLUMNS = {
         "pin_source": "TEXT",
         # Specific asset this report was grouped into.
         "asset_id": "INTEGER",
+        # Workstream C photo checks: worst photo authenticity, review flags.
+        "photo_trust": "FLOAT",
+        "review_flags": "TEXT",
     },
     "demand_cluster": {
         "district": "TEXT",

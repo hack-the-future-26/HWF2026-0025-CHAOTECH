@@ -28,6 +28,7 @@ from models import (  # noqa: E402
     CitizenRequest,
     DemandCluster,
     Gazetteer,
+    PhotoCheck,
     PriorityScore,
     VillagePriority,
     WorkGroup,
@@ -41,6 +42,7 @@ from .scoring import score_cluster  # noqa: E402
 
 
 def _load_reports(db) -> list[dict]:
+    photos = _load_photo_checks(db)
     return [
         {
             "id": row.id,
@@ -58,9 +60,87 @@ def _load_reports(db) -> list[dict]:
             "pin_source": row.pin_source,
             "is_synthetic": bool(row.is_synthetic),
             "confidence": row.confidence,
+            "user_id": row.user_id,
+            "created_at": row.created_at,
+            "photos": photos.get(row.id, []),
         }
         for row in db.query(CitizenRequest).all()
     ]
+
+
+def _load_photo_checks(db) -> dict[int, list[dict]]:
+    """Workstream C photo-check results, keyed by report id (compact rows)."""
+    out: dict[int, list[dict]] = {}
+    for row in db.query(PhotoCheck).all():
+        out.setdefault(row.linked_request_id, []).append(
+            {
+                "attachment_id": row.attachment_id,
+                "capture_method": row.capture_method,
+                "pothole_confidence": row.pothole_confidence,
+                "crack_confidence": row.crack_confidence,
+                "defect_seen": row.defect_seen,
+                "damage_grade": row.damage_grade,
+                "damage_confidence": row.damage_confidence,
+                "damage_structure": row.damage_structure,
+                "authenticity": row.authenticity,
+                "verdict": row.verdict,
+                "flags": json.loads(row.flags) if row.flags else [],
+            }
+        )
+    return out
+
+
+_GRADE_ORDER = {"crack": 1, "partial": 2, "collapse": 3}
+
+
+def _photo_evidence(members: list[dict]) -> dict:
+    """
+    Roll the photo checks of an asset's reports up into evidence keys:
+
+      photo_defect      C5 -- what the pothole/crack model saw. Road condition
+                        evidence, not urgency (build plan C5).
+      emergency_damage  C6 -- worst damage grade seen for a bridge/building,
+                        for the emergency urgency term (B2) to consume.
+      photo_verification  C1/C3/C4/C7 -- how many photos, how trustworthy.
+
+    Empty dict when no member report carried a photo: absence of photos is
+    not evidence of anything, so no key is written at all.
+    """
+    photos = [p for m in members for p in (m.get("photos") or [])]
+    if not photos:
+        return {}
+    checked = [p for p in photos if p.get("authenticity") is not None]
+    flagged = [p for p in checked if p.get("verdict") == "needs_review"]
+    with_defect = [p for p in checked if p.get("defect_seen")]
+    evidence = {
+        "photo_verification": {
+            "photos": len(photos),
+            "live_captures": sum(1 for p in photos if p.get("capture_method") == "live_camera"),
+            "verified": sum(1 for p in checked if p.get("verdict") == "verified"),
+            "needs_review": len(flagged),
+            "lowest_authenticity": min((p["authenticity"] for p in checked), default=None),
+            "flags": sorted({f for p in checked for f in p.get("flags", [])}),
+        },
+        "photo_defect": {
+            "photos_checked": len(checked),
+            "photos_showing_defect": len(with_defect),
+            # Only photos that passed the authenticity checks count as support.
+            "trusted_photos_showing_defect": sum(1 for p in with_defect if p.get("verdict") != "needs_review"),
+            "max_pothole_confidence": max((p.get("pothole_confidence") or 0 for p in checked), default=0),
+            "max_crack_confidence": max((p.get("crack_confidence") or 0 for p in checked), default=0),
+            "model": "team YOLOv8 pothole/crack detector (models/pothole_best.pt)",
+        },
+    }
+    graded = [p for p in checked if p.get("damage_grade") and p.get("damage_structure")]
+    if graded:
+        worst = max(graded, key=lambda p: (_GRADE_ORDER.get(p["damage_grade"], 0), p.get("damage_confidence") or 0))
+        evidence["emergency_damage"] = {
+            "structure": worst["damage_structure"],
+            "grade": worst["damage_grade"],
+            "confidence": worst.get("damage_confidence"),
+            "photos_with_damage": len(graded),
+        }
+    return evidence
 
 
 def _apply_precise_coords(reports: list[dict]) -> list[dict]:
@@ -111,17 +191,25 @@ def _modal(values: list) -> object | None:
     return Counter(present).most_common(1)[0][0]
 
 
-def _unique_reporters(reports: list[dict]) -> int:
+def reporter_key(report: dict) -> str:
     """
-    Distinct reporters, approximated by distinct report text.
+    Who a report counts as, for corroboration (build plan C2).
 
-    There is no citizen identity in this dataset, so identical text is
-    treated as one voice repeated rather than several independent ones.
-    That is the "500 people forwarding the same WhatsApp message is not 500
-    corroborations" guard from research report SS10.4, implemented with what
-    the schema actually has. Real per-citizen identity would replace this.
+    A signed-in report counts as its account: one person filing the same
+    complaint five times in five different wordings is one voice, not five.
+    Reports with no account (the JSON ingest path, the seeded demo data,
+    anything filed before accounts existed) fall back to distinct wording --
+    the "500 people forwarding the same WhatsApp message is not 500
+    corroborations" guard from research report SS10.4.
     """
-    return len({(r.get("raw_text") or "").strip().lower() for r in reports})
+    if report.get("user_id") is not None:
+        return f"account:{report['user_id']}"
+    return "text:" + (report.get("raw_text") or "").strip().lower()
+
+
+def _unique_reporters(reports: list[dict]) -> int:
+    """Distinct reporters: distinct accounts, else distinct wording (C2)."""
+    return len({reporter_key(r) for r in reports})
 
 
 def _settlement_count(reports: list[dict]) -> int:
@@ -713,6 +801,7 @@ def _build_assets(
         if candidates is not None:
             evidence["candidates"] = candidates
         evidence["villages_served"] = villages_served
+        evidence.update(_photo_evidence(members))
 
         is_demo = all(bool(m.get("is_synthetic")) for m in members)
 
@@ -980,6 +1069,7 @@ def recompute(db, verbose: bool = True) -> dict:
             gw_stations=gw_stations,
             groups=groups,
         )
+        result["evidence"].update(_photo_evidence(members))
         scored.append((cluster, result))
 
     db.commit()

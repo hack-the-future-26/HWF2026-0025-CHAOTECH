@@ -1,0 +1,919 @@
+{
+ "note": "Hand-checked labels. label 1 = clear road pothole, 0 = no pothole. kind: pothole | clean_road | hard_negative. Images from Wikimedia Commons, fetched at evaluation time (not redistributed).",
+ "tuning": [
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Hsha-2.jpg/1280px-Hsha-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Hsha-2.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Lcb-1.jpg/1280px-Lcb-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Lcb-1.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Lcb-2.jpg/1280px-Lcb-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Lcb-2.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/Otro_bache.jpg/1280px-Otro_bache.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Otro bache.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Potholes_in_Bengaluru_road.jpg/1280px-Potholes_in_Bengaluru_road.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Potholes in Bengaluru road.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Prmy-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Prmy-2.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Broken_Roads_in_India%27s_Capital_New_Delhi.jpg/1280px-Broken_Roads_in_India%27s_Capital_New_Delhi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Broken Roads in India's Capital New Delhi.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Driving_through_potholes.jpg/1280px-Driving_through_potholes.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Driving through potholes.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Pond_heron_near_besalt_rocky_pothole_for_hunting.jpg/1280px-Pond_heron_near_besalt_rocky_pothole_for_hunting.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Pond heron near besalt rocky pothole for hunting.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Potholed_road_outside_Kolkata_Airport.jpg/1280px-Potholed_road_outside_Kolkata_Airport.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Potholed road outside Kolkata Airport.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Potholes_on_road.jpg/1280px-Potholes_on_road.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Potholes on road.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Roads_deformed_T_munnekollala_Bengaluru_2.jpg/1280px-Roads_deformed_T_munnekollala_Bengaluru_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Roads deformed T munnekollala Bengaluru 2.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Roads_deformed_T_munnekollala_Bengaluru.jpg/1280px-Roads_deformed_T_munnekollala_Bengaluru.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Roads deformed T munnekollala Bengaluru.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Roads_in_Bihar_have_potholes.jpg/1280px-Roads_in_Bihar_have_potholes.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Roads in Bihar have potholes.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/169th_St_81st_Av_td_%282019-07-11%29_05.jpg/1280px-169th_St_81st_Av_td_%282019-07-11%29_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:169th St 81st Av td (2019-07-11) 05.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/18ApSeabrookPothole1.jpg/1280px-18ApSeabrookPothole1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:18ApSeabrookPothole1.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/2003-08-18_Sink_hole_in_the_parking_lot.jpg/1280px-2003-08-18_Sink_hole_in_the_parking_lot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2003-08-18 Sink hole in the parking lot.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/2005-03-23_New_York_detail_06.jpg/1280px-2005-03-23_New_York_detail_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2005-03-23 New York detail 06.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/20100702img2.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:20100702img2.png",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/%22Desert_of_asphalt%22_%2812465228594%29.jpg/1280px-%22Desert_of_asphalt%22_%2812465228594%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:\"Desert of asphalt\" (12465228594).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/100_North%2C_newly_constructed_road%2C_curb%2C_gutter.jpg/1280px-100_North%2C_newly_constructed_road%2C_curb%2C_gutter.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:100 North, newly constructed road, curb, gutter.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/100e_aniversaire_d%27Ivry_sur_le_lac.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:100e aniversaire d'Ivry sur le lac.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/106_cunetas_asfalto_calle_sucre_%2812523244613%29.jpg/1280px-106_cunetas_asfalto_calle_sucre_%2812523244613%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:106 cunetas asfalto calle sucre (12523244613).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/2007_xx_xx_-_124%40Goshen_-_NB_01.JPG/1280px-2007_xx_xx_-_124%40Goshen_-_NB_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2007 xx xx - 124@Goshen - NB 01.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/2007_xx_xx_-_124%40Goshen_-_SB.JPG/1280px-2007_xx_xx_-_124%40Goshen_-_SB.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2007 xx xx - 124@Goshen - SB.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/2014-06-22_17_50_43_Newly_paved_segment_of_Alternate_U.S._Route_93_in_Elko_County%2C_Nevada.JPG/1280px-2014-06-22_17_50_43_Newly_paved_segment_of_Alternate_U.S._Route_93_in_Elko_County%2C_Nevada.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2014-06-22 17 50 43 Newly paved segment of Alternate U.S. Route 93 in Elko County, Nevada.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/2014-07-05_12_57_50_Freshly_paved_ramp_at_the_Bonneville_Salt_Flats_Rest_Area_on_Interstate_80_near_the_Bonneville_Salt_Flats%2C_Utah.JPG/1280px-2014-07-05_12_57_50_Freshly_paved_ramp_at_the_Bonneville_Salt_Flats_Rest_Area_on_Interstate_80_near_the_Bonneville_Salt_Flats%2C_Utah.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2014-07-05 12 57 50 Freshly paved ramp at the Bonneville Salt Flats Rest Area on Interstate 80 near the Bonneville Salt Flats, Utah.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/2014-09-07_15_24_08_Lizard_in_Elko%2C_Nevada.JPG/1280px-2014-09-07_15_24_08_Lizard_in_Elko%2C_Nevada.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2014-09-07 15 24 08 Lizard in Elko, Nevada.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/2015-11-03_13_36_53_View_east_along_a_section_of_Nipton_Road_near_Nipton%2C_California_with_reddish_asphaltic_concrete.jpg/1280px-2015-11-03_13_36_53_View_east_along_a_section_of_Nipton_Road_near_Nipton%2C_California_with_reddish_asphaltic_concrete.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2015-11-03 13 36 53 View east along a section of Nipton Road near Nipton, California with reddish asphaltic concrete.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/2016-04-25_13_03_25_Re-paving_and_widening_of_the_south_shoulder_of_Franklin_Farm_Road_near_Tranquility_Lane_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 13 03 25 Re-paving and widening of the south shoulder of Franklin Farm Road near Tranquility Lane in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/2016-04-25_13_03_41_Re-paving_and_widening_of_the_south_shoulder_of_Franklin_Farm_Road_near_Tranquility_Lane_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 13 03 41 Re-paving and widening of the south shoulder of Franklin Farm Road near Tranquility Lane in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/2016-04-25_13_21_46_View_west_along_Franklin_Farm_Road_west_of_Fairfax_County_Parkway_%28Virginia_State_Route_286%29_just_before_repaving_begins_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 13 21 46 View west along Franklin Farm Road west of Fairfax County Parkway (Virginia State Route 286) just before repaving begins in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/2016-04-25_13_27_07_View_east_along_Franklin_Farm_Road_east_of_Wrenn_House_Lane_just_before_shoulder_widening_and_repaving_begins_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 13 27 07 View east along Franklin Farm Road east of Wrenn House Lane just before shoulder widening and repaving begins in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/2016-04-25_14_42_20_View_west_along_Franklin_Farm_Road_west_of_Willow_Glen_Drive_just_before_shoulder_widening_and_repaving_begins_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 14 42 20 View west along Franklin Farm Road west of Willow Glen Drive just before shoulder widening and repaving begins in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/2016-04-25_15_04_47_View_east_along_Franklin_Farm_Road_east_of_Old_Dairy_Road_just_after_the_south_shoulder_was_repaved_and_widened_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 15 04 47 View east along Franklin Farm Road east of Old Dairy Road just after the south shoulder was repaved and widened in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/2016-04-25_15_04_51_View_west_along_Franklin_Farm_Road_west_of_Stone_Heather_Drive_just_after_the_south_shoulder_was_repaved_and_widened_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 15 04 51 View west along Franklin Farm Road west of Stone Heather Drive just after the south shoulder was repaved and widened in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/2016-04-25_15_08_38_View_west_along_Franklin_Farm_Road_west_of_Old_Dairy_Road_just_after_the_south_shoulder_was_repaved_and_widened_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 15 08 38 View west along Franklin Farm Road west of Old Dairy Road just after the south shoulder was repaved and widened in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/2016-04-25_15_08_57_View_west_along_Franklin_Farm_Road_west_of_Old_Dairy_Road_just_after_the_south_shoulder_was_repaved_and_widened_but_before_likewise_was_done_to_the_north_shoulder_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-04-25 15 08 57 View west along Franklin Farm Road west of Old Dairy Road just after the south shoulder was repaved and widened but before likewise was done to the north shoulder in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/2016-05-16_13_00_22_View_west_along_Franklin_Farm_Road_from_near_Tranquility_Lane%2C_just_after_a_new_asphalt_base_for_shoulders_has_been_layed_down_but_before_the_main_lanes_have_been_re-paved.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-05-16 13 00 22 View west along Franklin Farm Road from near Tranquility Lane, just after a new asphalt base for shoulders has been layed down but before the main lanes have been re-paved.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/2016-05-23_14_07_53_View_west_along_Franklin_Farm_Road_from_Tranquility_Lane_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia%2C_just_after_re-paving.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-05-23 14 07 53 View west along Franklin Farm Road from Tranquility Lane in the Franklin Farm section of Oak Hill, Fairfax County, Virginia, just after re-paving.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/2016-05-23_14_07_57_View_east_along_Franklin_Farm_Road_from_Tranquility_Lane_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia%2C_just_after_re-paving.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-05-23 14 07 57 View east along Franklin Farm Road from Tranquility Lane in the Franklin Farm section of Oak Hill, Fairfax County, Virginia, just after re-paving.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/2016-11-10_10_49_54_Recently_sealed_asphalt_parking_lot_along_Old_Ox_Road_%28Virginia_State_Secondary_Route_606%29_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2016-11-10 10 49 54 Recently sealed asphalt parking lot along Old Ox Road (Virginia State Secondary Route 606) in the Dulles section of Sterling, Loudoun County, Virginia.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/2017-08-24_12_27_59_Temporary_No_Parking_sign_placed_along_Stone_Heather_Drive_near_Elevation_Lane_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia_during_paving.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2017-08-24 12 27 59 Temporary No Parking sign placed along Stone Heather Drive near Elevation Lane in the Franklin Farm section of Oak Hill, Fairfax County, Virginia during paving.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/2017-08-24_12_55_52_View_north_along_Stone_Heather_Drive_just_south_of_Kinross_Circle_in_the_Chantilly_Highlands_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia_during_repaving.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2017-08-24 12 55 52 View north along Stone Heather Drive just south of Kinross Circle in the Chantilly Highlands section of Oak Hill, Fairfax County, Virginia during repaving.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/2017-11-14_%28604%29_Bikeway_in_Ybbs_an_der_Donau.jpg/1280px-2017-11-14_%28604%29_Bikeway_in_Ybbs_an_der_Donau.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2017-11-14 (604) Bikeway in Ybbs an der Donau.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/2019-05-21_15_16_19_View_across_U.S._Route_40_%28Philadelphia_Boulevard%29_just_west_of_Maryland_State_Route_715_%28Short_Lane%29_in_Aberdeen%2C_Harford_County%2C_Maryland_during_an_asphalt_paving_project.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2019-05-21 15 16 19 View across U.S. Route 40 (Philadelphia Boulevard) just west of Maryland State Route 715 (Short Lane) in Aberdeen, Harford County, Maryland during an asphalt paving project.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/2019-05-21_15_16_21_View_across_U.S._Route_40_%28Philadelphia_Boulevard%29_just_west_of_Maryland_State_Route_715_%28Short_Lane%29_in_Aberdeen%2C_Harford_County%2C_Maryland_during_an_asphalt_paving_project.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2019-05-21 15 16 21 View across U.S. Route 40 (Philadelphia Boulevard) just west of Maryland State Route 715 (Short Lane) in Aberdeen, Harford County, Maryland during an asphalt paving project.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/2019-05-21_15_16_40_View_west_along_U.S._Route_40_%28Philadelphia_Boulevard%29_just_west_of_Maryland_State_Route_715_%28Short_Lane%29_in_Aberdeen%2C_Harford_County%2C_Maryland_during_an_asphalt_paving_project.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2019-05-21 15 16 40 View west along U.S. Route 40 (Philadelphia Boulevard) just west of Maryland State Route 715 (Short Lane) in Aberdeen, Harford County, Maryland during an asphalt paving project.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Wide_metalled_path_through_Lordship_Recreation_Ground_Haringey_London_England_01.jpg/1280px-Wide_metalled_path_through_Lordship_Recreation_Ground_Haringey_London_England_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Wide metalled path through Lordship Recreation Ground Haringey London England 01.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/65_Asfaltado_de_calles_%2812523687353%29.jpg/1280px-65_Asfaltado_de_calles_%2812523687353%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:65 Asfaltado de calles (12523687353).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/90_Feet_Road_2014-08-08_18-48.jpg/1280px-90_Feet_Road_2014-08-08_18-48.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:90 Feet Road 2014-08-08 18-48.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/A_tourism_vehicle_heading_to_Serengeti_national_park.jpg/1280px-A_tourism_vehicle_heading_to_Serengeti_national_park.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A tourism vehicle heading to Serengeti national park.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/..._along_Kas_Waghali_Road_%2850705058096%29.jpg/1280px-..._along_Kas_Waghali_Road_%2850705058096%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:... along Kas Waghali Road (50705058096).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/..._along_Kas_Waghali_Road_%2850705169776%29.jpg/1280px-..._along_Kas_Waghali_Road_%2850705169776%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:... along Kas Waghali Road (50705169776).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/..._at_Hiranyakshi%2C_Amboli_%286673314037%29.jpg/1280px-..._at_Hiranyakshi%2C_Amboli_%286673314037%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:... at Hiranyakshi, Amboli (6673314037).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/..._enroute_Murud_from_Alibag_%283394895602%29.jpg/1280px-..._enroute_Murud_from_Alibag_%283394895602%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:... enroute Murud from Alibag (3394895602).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Mont%C3%B3n_de_piedras.jpg/1280px-Mont%C3%B3n_de_piedras.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Mont\u00f3n de piedras.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Panorama_Route%2C_Part_II-_Bourke%27s_Luck_Potholes_-_Panorama3882.jpg/1280px-Panorama_Route%2C_Part_II-_Bourke%27s_Luck_Potholes_-_Panorama3882.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Panorama Route, Part II- Bourke's Luck Potholes - Panorama3882.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Panorama_Route%2C_Part_II-_Bourke%27s_Luck_Potholes_-_Panorama3884.jpg/1280px-Panorama_Route%2C_Part_II-_Bourke%27s_Luck_Potholes_-_Panorama3884.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Panorama Route, Part II- Bourke's Luck Potholes - Panorama3884.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Panorama_Route%2C_Part_II-_Bourke%27s_Luck_Potholes_-_Panorama3885.jpg/1280px-Panorama_Route%2C_Part_II-_Bourke%27s_Luck_Potholes_-_Panorama3885.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Panorama Route, Part II- Bourke's Luck Potholes - Panorama3885.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Pot_holes.jpg/1280px-Pot_holes.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Pot holes.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Rocas_partidas.jpg/1280px-Rocas_partidas.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Rocas partidas.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Vddj-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Vddj-1.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/1909_Tyee_-_hurdler_illustration.jpg/1280px-1909_Tyee_-_hurdler_illustration.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:1909 Tyee - hurdler illustration.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  }
+ ],
+ "heldout": [
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Muchos_baches_inundados.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Muchos baches inundados.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Park_dasaki_ka%C5%82u%C5%BCe.jpg/1280px-Park_dasaki_ka%C5%82u%C5%BCe.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Park dasaki ka\u0142u\u017ce.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/d/db/Pgs-2.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Pgs-2.png",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Received_525576424275758.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Received 525576424275758.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Road-811.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Road-811.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Vddj-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Vddj-2.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/A_photo_of_a_pothole_2021-07-11.jpg/1280px-A_photo_of_a_pothole_2021-07-11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A photo of a pothole 2021-07-11.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Epa-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Epa-1.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Fpse-1.jpg/1280px-Fpse-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Fpse-1.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Cear%C3%A1_%286276101325%29.jpg/1280px-Cear%C3%A1_%286276101325%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Cear\u00e1 (6276101325).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Dsvcd.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Dsvcd.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Winter_Road_Recover_%282464720883%29.jpg/1280px-Winter_Road_Recover_%282464720883%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Winter Road Recover (2464720883).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Albertov_%28053%29.jpg/1280px-Albertov_%28053%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Albertov (053).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Albertov_%28057%29.jpg/1280px-Albertov_%28057%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Albertov (057).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Doln%C3%AD_Kralovice%2C_%C5%A0koln%C3%AD%2C_v%C3%BDmol.jpg/1280px-Doln%C3%AD_Kralovice%2C_%C5%A0koln%C3%AD%2C_v%C3%BDmol.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Doln\u00ed Kralovice, \u0160koln\u00ed, v\u00fdmol.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/D%C3%ADra_v_silnici_%281%29.jpg/1280px-D%C3%ADra_v_silnici_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:D\u00edra v silnici (1).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/D%C3%ADra_v_silnici_%282%29.jpg/1280px-D%C3%ADra_v_silnici_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:D\u00edra v silnici (2).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Kr%C4%8D%2C_V%C3%ADde%C5%88sk%C3%A1%2C_d%C3%ADra_v_chodn%C3%ADku.jpg/1280px-Kr%C4%8D%2C_V%C3%ADde%C5%88sk%C3%A1%2C_d%C3%ADra_v_chodn%C3%ADku.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Kr\u010d, V\u00edde\u0148sk\u00e1, d\u00edra v chodn\u00edku.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Nids-de-poule_sur_une_route_communale.jpg/1280px-Nids-de-poule_sur_une_route_communale.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Nids-de-poule sur une route communale.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Pot_holes_in_wa_road.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Pot holes in wa road.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Arany_J%C3%A1nos_Stra%C3%9Fe_und_Tompa_Stra%C3%9Fe_Ecke%2C_Schlagl%C3%B6cher%2C_2023_Csepel.jpg/1280px-Arany_J%C3%A1nos_Stra%C3%9Fe_und_Tompa_Stra%C3%9Fe_Ecke%2C_Schlagl%C3%B6cher%2C_2023_Csepel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Arany J\u00e1nos Stra\u00dfe und Tompa Stra\u00dfe Ecke, Schlagl\u00f6cher, 2023 Csepel.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Concrete_traffic_bollards_and_potholes%2C_G%C3%B6d%C3%B6ll%C5%91i_Road%2C_2020_Mogyor%C3%B3d.jpg/1280px-Concrete_traffic_bollards_and_potholes%2C_G%C3%B6d%C3%B6ll%C5%91i_Road%2C_2020_Mogyor%C3%B3d.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Concrete traffic bollards and potholes, G\u00f6d\u00f6ll\u0151i Road, 2020 Mogyor\u00f3d.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Dunaujvaros_Dozsa_II_karolyi_mihaly_sor_padka5.jpg/1280px-Dunaujvaros_Dozsa_II_karolyi_mihaly_sor_padka5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Dunaujvaros Dozsa II karolyi mihaly sor padka5.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Dunaujvaros_Dozsa_II_karolyi_mihaly_sor_padka6.jpg/1280px-Dunaujvaros_Dozsa_II_karolyi_mihaly_sor_padka6.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Dunaujvaros Dozsa II karolyi mihaly sor padka6.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Dunaujvaros_Dozsa_II_padka2.jpg/1280px-Dunaujvaros_Dozsa_II_padka2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Dunaujvaros Dozsa II padka2.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/2014-09-18_12-23-39_Iceland_Su%C3%B0urland_-_Road_F35.jpg/1280px-2014-09-18_12-23-39_Iceland_Su%C3%B0urland_-_Road_F35.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2014-09-18 12-23-39 Iceland Su\u00f0urland - Road F35.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Pothole_N15.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Pothole N15.png",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Pothole_on_local_Road_in_County_Monaghan.jpg/1280px-Pothole_on_local_Road_in_County_Monaghan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Pothole on local Road in County Monaghan.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Voragine_stradale_Roma_Torrevecchia_2014-08-02.jpg/1280px-Voragine_stradale_Roma_Torrevecchia_2014-08-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Voragine stradale Roma Torrevecchia 2014-08-02.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Lubang_jalan_di_dekat_CAPE_EMS.jpg/1280px-Lubang_jalan_di_dekat_CAPE_EMS.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Lubang jalan di dekat CAPE EMS.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Lubang_jalan_di_Jalan_Berdekatan_VS_Industries_%28VS_Plus%29.jpg/1280px-Lubang_jalan_di_Jalan_Berdekatan_VS_Industries_%28VS_Plus%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Lubang jalan di Jalan Berdekatan VS Industries (VS Plus).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Lubang_jalan_di_Jalan_Tampoi_dan_Jalan_Tampoi_7-3.jpg/1280px-Lubang_jalan_di_Jalan_Tampoi_dan_Jalan_Tampoi_7-3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Lubang jalan di Jalan Tampoi dan Jalan Tampoi 7-3.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Lubang_jalan_di_persimpangan_Jalan_Cyber_1_%2C_Senai_Johor.jpg/1280px-Lubang_jalan_di_persimpangan_Jalan_Cyber_1_%2C_Senai_Johor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Lubang jalan di persimpangan Jalan Cyber 1 , Senai Johor.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/-warszawa_-mokot%C3%B3w_-narbutta_wida%C4%87_bruk._%2820371091282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:-warszawa -mokot\u00f3w -narbutta wida\u0107 bruk. (20371091282).jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Bielsko-Bia%C5%82a%2C_ulica_Widok_-_uszkodzona_dziurawa_droga_01.jpg/1280px-Bielsko-Bia%C5%82a%2C_ulica_Widok_-_uszkodzona_dziurawa_droga_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Bielsko-Bia\u0142a, ulica Widok - uszkodzona dziurawa droga 01.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Bielsko-Bia%C5%82a%2C_ulica_Widok_-_uszkodzona_dziurawa_droga_02.jpg/1280px-Bielsko-Bia%C5%82a%2C_ulica_Widok_-_uszkodzona_dziurawa_droga_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Bielsko-Bia\u0142a, ulica Widok - uszkodzona dziurawa droga 02.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Bielsko-Bia%C5%82a%2C_ulica_Widok_-_uszkodzona_dziurawa_droga_03.jpg/1280px-Bielsko-Bia%C5%82a%2C_ulica_Widok_-_uszkodzona_dziurawa_droga_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Bielsko-Bia\u0142a, ulica Widok - uszkodzona dziurawa droga 03.jpg",
+   "label": 1,
+   "kind": "pothole"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Departement_Materiaalkunde_-_KU_Leuven_%28DSC_2155%29.jpg/1280px-Departement_Materiaalkunde_-_KU_Leuven_%28DSC_2155%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Departement Materiaalkunde - KU Leuven (DSC 2155).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Fontainebleau_place_Decamps_entr%C3%A9e_sud-ouest.jpg/1280px-Fontainebleau_place_Decamps_entr%C3%A9e_sud-ouest.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Fontainebleau place Decamps entr\u00e9e sud-ouest.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Anankur.jpg/1280px-Anankur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Anankur.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Anchal_bypass.jpg/1280px-Anchal_bypass.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Anchal bypass.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Angamaly_Junction.jpg/1280px-Angamaly_Junction.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Angamaly Junction.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Angamaly_Town.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Angamaly Town.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Anvarul_uloom_oldest_building.jpg/1280px-Anvarul_uloom_oldest_building.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Anvarul uloom oldest building.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9f/Beautiful_Kerala.jpg/1280px-Beautiful_Kerala.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Beautiful Kerala.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Choorithod_Village.jpg/1280px-Choorithod_Village.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Choorithod Village.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Green_O_green.jpg/1280px-Green_O_green.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Green O green.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Indian_peafowl_dancing_on_road_-.jpg/1280px-Indian_peafowl_dancing_on_road_-.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Indian peafowl dancing on road -.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Karma_road_Ponnani_%2858481%29.jpg/1280px-Karma_road_Ponnani_%2858481%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Karma road Ponnani (58481).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Karma_road_Ponnani.jpg/1280px-Karma_road_Ponnani.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Karma road Ponnani.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Allalasandra_1544CE_Rachura_narasapaya_Kannada_inscription_02.jpg/1280px-Allalasandra_1544CE_Rachura_narasapaya_Kannada_inscription_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Allalasandra 1544CE Rachura narasapaya Kannada inscription 02.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Azadi_Ka_Amrit_Mahotsav_celebrations_at_Vidyagiri_02.jpg/1280px-Azadi_Ka_Amrit_Mahotsav_celebrations_at_Vidyagiri_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Azadi Ka Amrit Mahotsav celebrations at Vidyagiri 02.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Banakal.jpg/1280px-Banakal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Banakal.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Bike_Trip_To_Coorg.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Bike Trip To Coorg.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Court_road%2C_Mandya.jpg/1280px-Court_road%2C_Mandya.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Court road, Mandya.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Ghats_in_chikmagalur.jpg/1280px-Ghats_in_chikmagalur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Ghats in chikmagalur.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Hdbrt1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Hdbrt1.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/0/05/HospetRue.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:HospetRue.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/India_%28Bengalore%29_Colourful_trucks_and_buses_%2840568550542%29.jpg/1280px-India_%28Bengalore%29_Colourful_trucks_and_buses_%2840568550542%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:India (Bengalore) Colourful trucks and buses (40568550542).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9f/Kanthennahalli_Bridge_Area%2C_Krishnarajanagara%2C_Mysore.jpg/1280px-Kanthennahalli_Bridge_Area%2C_Krishnarajanagara%2C_Mysore.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Kanthennahalli Bridge Area, Krishnarajanagara, Mysore.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Karighatta_road.jpg/1280px-Karighatta_road.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Karighatta road.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/%22NH8b%22_Gujarat_Highway_India_2012.jpg/1280px-%22NH8b%22_Gujarat_Highway_India_2012.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:\"NH8b\" Gujarat Highway India 2012.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/84_Paliat_main_road_%283384012791%29.jpg/1280px-84_Paliat_main_road_%283384012791%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:84 Paliat main road (3384012791).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/A_road_sign_for_Anjani_%28%E0%AA%86%E0%AA%82%E0%AA%9C%E0%AA%A3%E0%AB%80%29_village.jpg/1280px-A_road_sign_for_Anjani_%28%E0%AA%86%E0%AA%82%E0%AA%9C%E0%AA%A3%E0%AB%80%29_village.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A road sign for Anjani (\u0a86\u0a82\u0a9c\u0aa3\u0ac0) village.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/5/5f/A_state_highway_through_the_Rann_of_Kutch.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:A state highway through the Rann of Kutch.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/A_view_of_Mahatma_Gandhi_Expressway_dedicated_to_the_Nation_on_24-08-2004_by_Union_Minister_for_Shipping_Road_Transport_%26_Highways_Shri_T.R._Baalu_at_Vadodara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:A view of Mahatma Gandhi Expressway dedicated to the Nation on 24-08-2004 by Union Minister for Shipping Road Transport & Highways Shri T.R. Baalu at Vadodara.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/1/12/A_view_of_village_amrapur1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:A view of village amrapur1.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/After_Winter_rain_next_day_Morning_NP.jpg/1280px-After_Winter_rain_next_day_Morning_NP.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:After Winter rain next day Morning NP.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Ahmedabad-Vadodara_Expressway-2.jpg/1280px-Ahmedabad-Vadodara_Expressway-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Ahmedabad-Vadodara Expressway-2.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Ahmedabad-Vadodara_Expressway.jpg/1280px-Ahmedabad-Vadodara_Expressway.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Ahmedabad-Vadodara Expressway.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Ambasan_village_near_Mehsana_Gujarat_India_2.jpg/1280px-Ambasan_village_near_Mehsana_Gujarat_India_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Ambasan village near Mehsana Gujarat India 2.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Avinashi_road_near_gandhinagar_-_panoramio.jpg/1280px-Avinashi_road_near_gandhinagar_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Avinashi road near gandhinagar - panoramio.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/%22Chinnasalem_bypass_road%22.JPG/1280px-%22Chinnasalem_bypass_road%22.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:\"Chinnasalem bypass road\".JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/%22coconut_tree%27s.jpg/1280px-%22coconut_tree%27s.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:\"coconut tree's.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/%22THANDALAI_%28name_board%29.jpg/1280px-%22THANDALAI_%28name_board%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:\"THANDALAI (name board).jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/%22THANDALAI.jpg/1280px-%22THANDALAI.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:\"THANDALAI.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/1--NH_7_Indian_natioanal_high_way-.JPG/1280px-1--NH_7_Indian_natioanal_high_way-.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:1--NH 7 Indian natioanal high way-.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/2--NH_7_Indian_natioanal_high_way-.JPG/1280px-2--NH_7_Indian_natioanal_high_way-.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:2--NH 7 Indian natioanal high way-.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/34th_Hairpin_Kolli_Hill_road.jpg/1280px-34th_Hairpin_Kolli_Hill_road.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:34th Hairpin Kolli Hill road.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/A_aesthetic_entrance_in_Sittanavasal.JPG/1280px-A_aesthetic_entrance_in_Sittanavasal.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A aesthetic entrance in Sittanavasal.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/06/A_Chinna_Salem-Kallakurichi_national_highway.JPG/1280px-A_Chinna_Salem-Kallakurichi_national_highway.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A Chinna Salem-Kallakurichi national highway.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/A_national_highway.JPG/1280px-A_national_highway.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A national highway.JPG",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/A_Road_in_Pudukkottai.jpg/1280px-A_Road_in_Pudukkottai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:A Road in Pudukkottai.jpg",
+   "label": 0,
+   "kind": "clean_road"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Concrete_Casting_Defect_Blowhole.jpg/1280px-Concrete_Casting_Defect_Blowhole.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Concrete Casting Defect Blowhole.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Factors_leading_to_pothole_failure_by_fatigue.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Factors leading to pothole failure by fatigue.png",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Fier_river_%40_Auberge_du_Bon_Refuge_%40_Lovagny_%40_Hike_along_the_Fier_river_%2849100814618%29.jpg/1280px-Fier_river_%40_Auberge_du_Bon_Refuge_%40_Lovagny_%40_Hike_along_the_Fier_river_%2849100814618%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Fier river @ Auberge du Bon Refuge @ Lovagny @ Hike along the Fier river (49100814618).jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Marmite_de_G%C3%A9ant_Pont_de_la_Lame_%C3%A0_Bonneval-sur-Arc_%28juillet_2026%29.JPG/1280px-Marmite_de_G%C3%A9ant_Pont_de_la_Lame_%C3%A0_Bonneval-sur-Arc_%28juillet_2026%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "title": "File:Marmite de G\u00e9ant Pont de la Lame \u00e0 Bonneval-sur-Arc (juillet 2026).JPG",
+   "label": 0,
+   "kind": "hard_negative"
+  },
+  {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Dangerous_potholes%2C_Transport_is_only_at_your_own_risk%2C_2018_Oroszl%C3%A1ny.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "title": "File:Dangerous potholes, Transport is only at your own risk, 2018 Oroszl\u00e1ny.jpg",
+   "label": 0,
+   "kind": "hard_negative"
+  }
+ ]
+}

@@ -57,6 +57,9 @@
     ["Placing it on the map", (r) => r.village],
     ["Routing it to a department", (r) => r.department],
     ["Removing phone numbers and names from the description", () => true],
+    // Only shown when photos were sent (see renderSteps).
+    ["Checking your photos: live capture, location, copies, screens, AI damage model",
+      (r) => (r.photo_checks || []).length, "photos"],
   ];
 
   const MAX_FILES = 5;
@@ -67,7 +70,8 @@
   const show = (id, on) => { el(id).hidden = !on; };
 
   let departments = {};          // category -> [{id, name, note}]
-  let chosenFiles = [];
+  let chosenFiles = [];          // PDF letters
+  let shots = [];                // live camera photos: {blob, url, burst, meta}
   let villageCoords = {};            // village name -> {lat, lon}
   let pinMap = null, pinMarker = null;
   let reportLat = null, reportLon = null;
@@ -304,8 +308,44 @@
         .on("click", () => { chosenFiles.splice(i, 1); renderFiles(); });
     });
     el("attachLabel").textContent = chosenFiles.length
-      ? `📎 ${chosenFiles.length} of ${MAX_FILES} chosen — add more`
-      : "📎 Choose photos or PDFs";
+      ? `📄 ${chosenFiles.length} PDF${chosenFiles.length > 1 ? "s" : ""} — add more`
+      : "📄 Attach a PDF letter";
+    el("btnCamera").disabled = shots.length + chosenFiles.length >= MAX_FILES;
+  }
+
+  /** Live camera photos, with what was recorded at the moment of capture. */
+  function renderShots() {
+    const box = el("shotList");
+    box.innerHTML = "";
+    shots.forEach((s, i) => {
+      const m = s.meta;
+      const time = new Date(m.captured_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      let where = "no GPS fix";
+      if (m.lat != null) {
+        const v = villageCoords[val("village")];
+        const km = v ? haversineKm(m.lat, m.lon, v.lat, v.lon) : null;
+        where = km != null ? `${km.toFixed(2)} km from ${val("village")}` : `GPS ±${Math.round(m.accuracy_m)} m`;
+      }
+      const card = document.createElement("div");
+      card.className = "shot";
+      card.innerHTML =
+        `<img src="${s.url}" alt="Photo ${i + 1}">` +
+        `<div class="shot__meta"><b>● Live</b> · ${time} · ${m.burst_count} frames<br>📍 ${where}</div>`;
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "shot__x"; x.setAttribute("aria-label", `Remove photo ${i + 1}`);
+      x.innerHTML = "&times;";
+      x.addEventListener("click", () => { URL.revokeObjectURL(s.url); shots.splice(i, 1); renderShots(); renderFiles(); });
+      card.appendChild(x);
+      box.appendChild(card);
+    });
+    el("btnCamera").textContent = shots.length ? `📷 Take another photo (${shots.length})` : "📷 Take a photo";
+  }
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371.0088, rad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
   }
 
   /* ---------------------------------------------------------- validation -- */
@@ -381,10 +421,10 @@
 
   /* -------------------------------------------------------------- steps -- */
 
-  function renderSteps(result) {
+  function renderSteps(result, hasPhotos) {
     const box = d3.select("#steps");
     box.selectAll("*").remove();
-    STEPS.forEach(([label, check]) => {
+    STEPS.filter(([, , only]) => only !== "photos" || hasPhotos).forEach(([label, check]) => {
       const done = result ? !!check(result) : false;
       const row = box.append("div")
         .attr("class", `step${result ? (done ? " step--done" : "") : " step--on"}`);
@@ -410,17 +450,27 @@
     // not need it -- routing already travels as `department`.
     const declared = val("category");
 
+    const hasPhotos = shots.length > 0;
     el("submit").disabled = true;
     show("form", false);
     show("runCard", true);
-    renderSteps(null);
+    renderSteps(null, hasPhotos);
     el("runCard").scrollIntoView({ behavior: "smooth", block: "center" });
 
     const fd = new FormData();
     Object.entries(data).forEach(([k, v]) => fd.append(k, v));
     const audio = el("audio").files[0];
     if (audio) fd.append("file", audio);
-    chosenFiles.forEach((f) => fd.append("attachments", f));
+    // Photos first, then PDFs. capture_meta[i] and burst_<i> describe the
+    // i-th attachment; PDFs have no capture record.
+    const captureMeta = [];
+    shots.forEach((s, i) => {
+      fd.append("attachments", new File([s.blob], `camera-${i + 1}.jpg`, { type: "image/jpeg" }));
+      captureMeta.push(s.meta);
+      s.burst.forEach((b, k) => fd.append(`burst_${i}`, new File([b], `burst-${i + 1}-${k + 1}.jpg`, { type: "image/jpeg" })));
+    });
+    chosenFiles.forEach((f) => { fd.append("attachments", f); captureMeta.push(null); });
+    if (hasPhotos) fd.append("capture_meta", JSON.stringify(captureMeta));
 
     let saved;
     try {
@@ -442,7 +492,7 @@
       return;
     }
 
-    renderSteps(saved);
+    renderSteps(saved, hasPhotos);
     rememberReport(saved.id);
     renderMine();
     setTimeout(() => {
@@ -505,6 +555,17 @@
           `you picked; the grouping follows the description.`);
     }
 
+    // Workstream C: what the photo checks found, one card per photo.
+    const checks = saved.photo_checks || [];
+    if (checks.length) {
+      const head = box.append("div").attr("class", "pchecks-head");
+      head.append("div").attr("class", "eyebrow").text("Photo checks");
+      head.append("span").style("font-size", "11px").style("color", "var(--muted)")
+        .text(`${checks.length} photo${checks.length > 1 ? "s" : ""} checked`);
+      const holder = box.append("div").node();
+      checks.forEach((c) => holder.appendChild(window.PhotoChecks.render(c, { api: API })));
+    }
+
     const next = box.append("div").attr("class", "next");
     next.append("div").attr("class", "next__title").text("What happens now");
     const ol = next.append("ol");
@@ -535,6 +596,9 @@
     el("audioLabel").textContent = "🎙 Or record it and upload the audio instead";
     el("attachments").value = "";
     chosenFiles = [];
+    shots.forEach((s) => URL.revokeObjectURL(s.url));
+    shots = [];
+    renderShots();
     renderFiles();
     el("submit").disabled = false;
     showErrors([]);
@@ -774,12 +838,14 @@
   el("attachments").addEventListener("change", function () {
     const rejected = [];
     Array.from(this.files).forEach((f) => {
-      if (chosenFiles.length >= MAX_FILES) {
-        rejected.push(`${f.name} — only ${MAX_FILES} files allowed`);
+      if (shots.length + chosenFiles.length >= MAX_FILES) {
+        rejected.push(`${f.name} — only ${MAX_FILES} items allowed`);
       } else if (f.size > MAX_BYTES) {
         rejected.push(`${f.name} — larger than 4 MB`);
-      } else if (!/^image\//.test(f.type) && f.type !== "application/pdf") {
-        rejected.push(`${f.name} — only photos and PDFs`);
+      } else if (f.type !== "application/pdf") {
+        // Photos come from the live camera (build plan C1), never from the
+        // gallery, so they can be checked as taken here and now.
+        rejected.push(`${f.name} — photos must be taken with “Take a photo”; only PDF letters can be attached`);
       } else {
         chosenFiles.push(f);
       }
@@ -787,6 +853,22 @@
     this.value = "";                       // allow re-picking the same file
     renderFiles();
     if (rejected.length) showErrors(rejected.map((m) => ["attachments", m]));
+  });
+
+  el("btnCamera").addEventListener("click", () => {
+    if (shots.length + chosenFiles.length >= MAX_FILES) return;
+    window.CameraCapture.open({
+      title: val("village") ? `Photograph the problem in ${val("village")}` : "Photograph the problem",
+      onCapture: (shot) => {
+        if (shot.blob.size > MAX_BYTES) {
+          showErrors([["attachments", "That photo is larger than 4 MB — please retake it"]]);
+          return;
+        }
+        shots.push(shot);
+        renderShots();
+        renderFiles();
+      },
+    });
   });
 
   el("trackGo").addEventListener("click", () => {

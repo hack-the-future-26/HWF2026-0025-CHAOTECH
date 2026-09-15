@@ -56,6 +56,11 @@ class CitizenRequest(Base):
     pin_source = Column(Text, nullable=True)
     # Specific asset this report was grouped into, rebuilt on every recompute.
     asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    # Workstream C: lowest photo authenticity (0.2-1) across this report's
+    # photos, and the photo flags that need an officer's eye (JSON list).
+    # NULL when no photo was attached. Never a reason to drop a report.
+    photo_trust = Column(Float, nullable=True)
+    review_flags = Column(Text, nullable=True)
 
 
 class CitizenRequestRaw(Base):
@@ -671,6 +676,54 @@ class PMGSYRoadSegment(Base):
     max_lat = Column(Float, index=True)
     min_lon = Column(Float, index=True)
     max_lon = Column(Float, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PhotoCheck(Base):
+    """
+    Workstream C: what the photo checks found for one attached photo.
+
+    One row per image attachment. The columns are the numbers other code
+    filters or aggregates on; `result` holds the full working (every check's
+    inputs and outputs) so an officer can see why a photo was flagged.
+
+    Capture coordinates are stored here, like the report pin, and are never
+    returned by a public endpoint -- only the distance to the village is.
+    """
+
+    __tablename__ = "photo_check"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    attachment_id = Column(Integer, ForeignKey("report_attachment.id"), unique=True, index=True)
+    linked_request_id = Column(Integer, ForeignKey("citizen_request.id"), index=True)
+
+    # C1 capture provenance
+    capture_method = Column(Text)                 # live_camera | file_upload
+    captured_at = Column(DateTime, nullable=True)
+    capture_lat = Column(Float, nullable=True)
+    capture_lon = Column(Float, nullable=True)
+    capture_accuracy_m = Column(Float, nullable=True)
+    capture_distance_km = Column(Float, nullable=True)
+    # C3 duplicate photo
+    phash = Column(Text, index=True)
+    dhash = Column(Text)
+    duplicate_of_attachment_id = Column(Integer, nullable=True)
+    # C4 edit detection, C7 screen replay
+    ela_score = Column(Float, nullable=True)
+    screen_replay_score = Column(Float, nullable=True)
+    # C5 road defect model, C6 damage grade
+    pothole_confidence = Column(Float, nullable=True)
+    crack_confidence = Column(Float, nullable=True)
+    defect_seen = Column(Boolean, nullable=True)
+    damage_grade = Column(Text, nullable=True)    # crack | partial | collapse
+    damage_confidence = Column(Float, nullable=True)
+    damage_structure = Column(Text, nullable=True)  # bridge | building
+    # Combined
+    authenticity = Column(Float)
+    verdict = Column(Text)                        # verified | partly_verified | needs_review
+    flags = Column(Text)                          # JSON list
+    annotated_name = Column(Text, nullable=True)  # boxes drawn, under uploads/
+    result = Column(Text)                         # JSON, full working
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
