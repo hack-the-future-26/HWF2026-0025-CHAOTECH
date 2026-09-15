@@ -725,6 +725,58 @@ def test_pmgsy_road_segment_lookup() -> None:
     check("load_road_segment_index: parses points list", len(loaded[0]["points"]) == 2)
 
 
+def test_distinct_reporters_count_accounts() -> None:
+    """C2: one account is one voice, whatever words it uses."""
+    from intelligence.recompute import _unique_reporters, reporter_key
+
+    same_person = [
+        {"user_id": 7, "raw_text": "road is broken near the temple"},
+        {"user_id": 7, "raw_text": "big potholes on our road"},
+        {"user_id": 7, "raw_text": "sadak kharab hai"},
+    ]
+    check("C2: one account, three wordings -> 1 reporter", _unique_reporters(same_person) == 1)
+
+    two_people_same_words = [
+        {"user_id": 7, "raw_text": "road broken"},
+        {"user_id": 8, "raw_text": "road broken"},
+    ]
+    check("C2: two accounts, identical words -> 2 reporters", _unique_reporters(two_people_same_words) == 2)
+
+    anonymous = [
+        {"user_id": None, "raw_text": "Road broken"},
+        {"user_id": None, "raw_text": "road broken "},
+        {"user_id": None, "raw_text": "no water"},
+    ]
+    check("C2: anonymous reports fall back to distinct wording", _unique_reporters(anonymous) == 2)
+    check("C2: account and anonymous keys never collide",
+          reporter_key({"user_id": 7, "raw_text": "x"}) != reporter_key({"user_id": None, "raw_text": "account:7"}))
+
+
+def test_photo_evidence_rollup() -> None:
+    """C5/C6: asset evidence keys from photo checks; nothing when no photos."""
+    from intelligence.recompute import _photo_evidence
+
+    check("photo evidence: no photos -> no keys", _photo_evidence([{"photos": []}, {}]) == {})
+    members = [
+        {"photos": [
+            {"capture_method": "live_camera", "authenticity": 1.0, "verdict": "verified", "defect_seen": True,
+             "pothole_confidence": 0.8, "crack_confidence": 0.1, "damage_grade": None, "damage_structure": None, "flags": []},
+        ]},
+        {"photos": [
+            {"capture_method": "file_upload", "authenticity": 0.3, "verdict": "needs_review", "defect_seen": True,
+             "pothole_confidence": 0.9, "crack_confidence": 0.4, "damage_grade": "partial", "damage_confidence": 0.7,
+             "damage_structure": "bridge", "flags": ["reused_photo"]},
+        ]},
+    ]
+    ev = _photo_evidence(members)
+    check("photo evidence: counts photos and live captures",
+          ev["photo_verification"]["photos"] == 2 and ev["photo_verification"]["live_captures"] == 1)
+    check("photo evidence: flagged photo not counted as trusted support",
+          ev["photo_defect"]["photos_showing_defect"] == 2 and ev["photo_defect"]["trusted_photos_showing_defect"] == 1)
+    check("photo evidence: worst structure damage surfaces for B2",
+          ev["emergency_damage"]["grade"] == "partial" and ev["emergency_damage"]["structure"] == "bridge")
+
+
 def test_road_asset_matches_geosadak_only_with_a_real_pin() -> None:
     import json
 
@@ -2138,6 +2190,8 @@ def main() -> None:
         test_candidate_list_sorted_and_capped,
         test_road_pins_clustering_distance,
         test_pmgsy_road_segment_lookup,
+        test_distinct_reporters_count_accounts,
+        test_photo_evidence_rollup,
         test_road_asset_matches_geosadak_only_with_a_real_pin,
         test_school_condition_index_and_evidence,
         test_water_testing_evidence,
