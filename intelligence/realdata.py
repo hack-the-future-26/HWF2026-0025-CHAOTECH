@@ -1282,6 +1282,92 @@ def water_testing_catchment_evidence(
     )
     return evidence, sentence
 
+
+def load_jjm_scheme_index(db) -> dict[int, list[dict]]:
+    """
+    Every real JJM water-supply scheme (identity, cost, expenditure,
+    status), grouped by gazetteer_id -- a village can have more than one.
+    Loaded once per recompute() call, same pattern as every other index
+    here. See `backend/load_jjm_village_schemes.py` for the source report.
+    """
+    if db is None:
+        return {}
+    from models import JjmVillageScheme
+
+    index: dict[int, list[dict]] = {}
+    for row in db.query(JjmVillageScheme).all():
+        index.setdefault(row.gazetteer_id, []).append(
+            {
+                "scheme_id": row.scheme_id,
+                "scheme_name": row.scheme_name,
+                "scheme_type": row.scheme_type,
+                "scheme_category": row.scheme_category,
+                "work_order_date": row.work_order_date,
+                "estimated_cost_lakh": row.estimated_cost_lakh,
+                "reported_expenditure_lakh": row.reported_expenditure_lakh,
+                "status": row.status,
+            }
+        )
+    return index
+
+
+# Statuses that mean "sanctioned, not yet delivered" -- same reasoning as
+# investment.py's UNDELIVERED_STATUSES for PMGSY roads, JJM's own wording.
+JJM_UNDELIVERED_STATUSES = {"ongoing", "in progress", "not started"}
+
+
+def jjm_scheme_catchment_evidence(
+    villages: list[dict], index: dict[int, list[dict]]
+) -> tuple[dict | None, str | None]:
+    """
+    Real scheme identity, cost and status for a water cluster's catchment --
+    the Village -> Scheme -> Cost -> Status chain, not just a tap-coverage
+    percentage. Evidence only: this does not change infra_deficit's number,
+    which already has a better real signal (current JJM tap coverage, see
+    `_water_deficit`) -- it answers a different question, "what scheme is
+    this, and is the government's own money for it still unspent."
+
+    Returns (None, None) when no village in this catchment has a scheme
+    record -- most won't, since only 656 of 1,042 gazetteer villages have a
+    matched LGD code to look one up by.
+    """
+    if not index:
+        return None, None
+    matched_schemes = [
+        s
+        for v in villages
+        for s in index.get(v.get("gazetteer_id"), [])
+    ]
+    if not matched_schemes:
+        return None, None
+
+    undelivered = [
+        s for s in matched_schemes
+        if (s.get("status") or "").strip().lower() in JJM_UNDELIVERED_STATUSES
+    ]
+    unspent_lakh = round(
+        sum(
+            max(0.0, (s.get("estimated_cost_lakh") or 0.0) - (s.get("reported_expenditure_lakh") or 0.0))
+            for s in undelivered
+        ),
+        2,
+    )
+    evidence = {
+        "schemes_found": len(matched_schemes),
+        "undelivered_schemes": len(undelivered),
+        "unspent_estimate_lakh": unspent_lakh,
+        "schemes": matched_schemes[:5],
+    }
+    if undelivered:
+        sentence = (
+            f"{len(undelivered)} of {len(matched_schemes)} real JJM scheme(s) in this "
+            f"catchment still ongoing, ₹{unspent_lakh} lakh of the estimated cost unspent"
+        )
+    else:
+        sentence = f"{len(matched_schemes)} real JJM scheme(s) found in this catchment, all completed"
+    return evidence, sentence
+
+
 # ---------------------------------------------------------------------------
 # Task 2 & 3: Hazard Near (CWC River Levels & SACHET Alerts)
 # ---------------------------------------------------------------------------

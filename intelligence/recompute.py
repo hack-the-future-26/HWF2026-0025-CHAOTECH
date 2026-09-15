@@ -310,6 +310,7 @@ def _score_members(
     hazard_alerts: list[dict] | None = None,
     facility_id: int | None = None,
     school_condition_index: dict[int, dict] | None = None,
+    jjm_scheme_index: dict[int, list[dict]] | None = None,
     groups: list[dict] | None = None,
 ) -> dict:
     """
@@ -363,6 +364,11 @@ def _score_members(
         )
         if wt_text:
             infra_evidence["water_testing_corroboration"] = wt_text
+        jjm_scheme_evidence, jjm_scheme_text = realdata.jjm_scheme_catchment_evidence(
+            nearby_villages, jjm_scheme_index or {}
+        )
+        if jjm_scheme_text:
+            infra_evidence["jjm_scheme_corroboration"] = jjm_scheme_text
 
     # Evidence-only for now (see hazard_near's own docstring): corroborates a
     # possible emergency without moving the score, since the urgency-term
@@ -445,6 +451,8 @@ def _score_members(
         result["evidence"]["groundwater"] = gw_text
     if category == "water" and wt_text:
         result["evidence"]["water_testing"] = wt_text
+    if category == "water" and jjm_scheme_text:
+        result["evidence"]["jjm_schemes"] = jjm_scheme_evidence
     if hazard_flag:
         result["evidence"]["hazard_corroboration"] = hazard_evidence
 
@@ -538,6 +546,7 @@ def _build_assets(
     river_readings: list[dict] | None = None,
     hazard_alerts: list[dict] | None = None,
     school_condition_index: dict[int, dict] | None = None,
+    jjm_scheme_index: dict[int, list[dict]] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -795,6 +804,7 @@ def _build_assets(
             hazard_alerts=hazard_alerts,
             facility_id=facility_id,
             school_condition_index=school_condition_index,
+            jjm_scheme_index=jjm_scheme_index,
             groups=None,
         )
         evidence = dict(result["evidence"])
@@ -953,6 +963,7 @@ def recompute(db, verbose: bool = True) -> dict:
     river_readings = realdata.load_river_readings_index(db)
     hazard_alerts = realdata.load_hazard_alerts_index(db)
     school_condition_index = realdata.load_school_condition_index(db)
+    jjm_scheme_index = realdata.load_jjm_scheme_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -983,7 +994,9 @@ def recompute(db, verbose: bool = True) -> dict:
         f"records, {len(works_index)} sanctioned works pinned to a village, "
         f"{len(gw_stations)} groundwater telemetry stations, "
         f"{len(river_readings)} CWC river readings, {len(hazard_alerts)} SACHET alerts, "
-        f"{len(school_condition_index)} UDISE+ school condition records"
+        f"{len(school_condition_index)} UDISE+ school condition records, "
+        f"{sum(len(v) for v in jjm_scheme_index.values())} real JJM schemes across "
+        f"{len(jjm_scheme_index)} villages"
     )
 
     # --- Steps 1-3: embed, gate, cluster -----------------------------------
@@ -1081,6 +1094,7 @@ def recompute(db, verbose: bool = True) -> dict:
             water_testing_index=water_testing_index,
             river_readings=river_readings,
             hazard_alerts=hazard_alerts,
+            jjm_scheme_index=jjm_scheme_index,
             groups=groups,
         )
         scored.append((cluster, result))
@@ -1121,6 +1135,7 @@ def recompute(db, verbose: bool = True) -> dict:
         river_readings=river_readings,
         hazard_alerts=hazard_alerts,
         school_condition_index=school_condition_index,
+        jjm_scheme_index=jjm_scheme_index,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)

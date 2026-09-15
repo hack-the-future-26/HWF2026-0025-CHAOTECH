@@ -998,6 +998,57 @@ def test_hazard_near():
     check("load_river_readings_index: None db returns []", realdata.load_river_readings_index(None) == [])
     check("load_hazard_alerts_index: None db returns []", realdata.load_hazard_alerts_index(None) == [])
 
+
+def test_jjm_scheme_index_and_catchment_evidence():
+    class MockSchemeRow:
+        def __init__(self, gazetteer_id, scheme_id, status, est, spent):
+            self.gazetteer_id = gazetteer_id
+            self.scheme_id = scheme_id
+            self.scheme_name = f"Scheme {scheme_id}"
+            self.scheme_type = "PWS"
+            self.scheme_category = "Single village scheme"
+            self.work_order_date = "10/04/2008"
+            self.estimated_cost_lakh = est
+            self.reported_expenditure_lakh = spent
+            self.status = status
+
+    class MockSchemeQuery:
+        def __init__(self, items):
+            self.items = items
+        def all(self):
+            return self.items
+
+    class MockSchemeDB:
+        def query(self, model):
+            return MockSchemeQuery([
+                MockSchemeRow(101, "S1", "Completed", 10.0, 10.0),
+                MockSchemeRow(101, "S2", "Ongoing", 20.0, 5.0),
+                MockSchemeRow(202, "S3", "Not Started", 8.0, 0.0),
+            ])
+
+    index = realdata.load_jjm_scheme_index(MockSchemeDB())
+    check("load_jjm_scheme_index: groups multiple schemes under one village", len(index[101]) == 2)
+    check("load_jjm_scheme_index: None db returns {}", realdata.load_jjm_scheme_index(None) == {})
+
+    ev, text = realdata.jjm_scheme_catchment_evidence([], {})
+    check("jjm_scheme_catchment_evidence: empty index returns (None, None)", ev is None and text is None)
+
+    villages = [{"gazetteer_id": 101}, {"gazetteer_id": 999}]
+    ev2, text2 = realdata.jjm_scheme_catchment_evidence(villages, index)
+    check("jjm_scheme_catchment_evidence: finds both real schemes for the matched village", ev2["schemes_found"] == 2)
+    check("jjm_scheme_catchment_evidence: counts the ongoing one as undelivered", ev2["undelivered_schemes"] == 1)
+    check(
+        "jjm_scheme_catchment_evidence: unspent estimate is real cost minus real expenditure",
+        math.isclose(ev2["unspent_estimate_lakh"], 15.0),
+        f"{ev2['unspent_estimate_lakh']}",
+    )
+    check("jjm_scheme_catchment_evidence: sentence names the unspent amount", "unspent" in text2)
+
+    all_done = realdata.jjm_scheme_catchment_evidence([{"gazetteer_id": 555}], {555: [
+        {"scheme_id": "S4", "status": "Completed", "estimated_cost_lakh": 5.0, "reported_expenditure_lakh": 5.0}
+    ]})
+    check("jjm_scheme_catchment_evidence: an all-completed catchment reports no unspent money", "completed" in all_done[1])
+
 def test_gpdp_district_evidence():
     # 1. Edge cases: missing district or empty index
     row, text = realdata.gpdp_district_evidence("Solapur", {})
@@ -1412,6 +1463,7 @@ def main() -> None:
         test_udise_overrides_census_for_a_specific_school,
         test_village_investment_unspent_grant,
         test_amenity_lookup_uses_the_categorys_own_catchment_radius,
+        test_jjm_scheme_index_and_catchment_evidence,
     ]:
         test()
 

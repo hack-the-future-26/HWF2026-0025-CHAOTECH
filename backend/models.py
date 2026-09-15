@@ -834,3 +834,37 @@ class VillagePanchayatFinance(Base):
     raw_json = Column(Text, nullable=True)   # the full real row, for anything not modeled above
     fetched_at = Column(DateTime, nullable=True)
 
+
+class JjmVillageScheme(Base):
+    """
+    Real per-scheme JJM water-supply records from ejalshakti.gov.in's
+    village profile report (JJM/JJMReports/profiles/rpt_VillageProfile.aspx),
+    looked up by LGD village code -- a genuinely different report from
+    `load_jjm_water.py`'s Citizen Corner crawl, which only carries current
+    tap-connection coverage, never scheme identity, cost or status.
+
+    A village can have more than one scheme (multiple PWS/MVS works over
+    time), hence one row per scheme, not per village.
+
+    DELIBERATE OMISSION: the same report page also lists O&M staff names,
+    women's committee members, and water-quality sample collectors' names.
+    None of that is loaded -- this table holds only the scheme-level
+    financial/status fields, matching this project's standing rule against
+    storing individual-level data (REAL_DATA_RESEARCH.md §2.3).
+    """
+    __tablename__ = "jjm_village_scheme"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=False, index=True)
+    lgd_village_code = Column(Text, index=True)
+    jjm_village_id = Column(Text, nullable=True)
+    scheme_id = Column(Text, index=True)
+    scheme_name = Column(Text)
+    scheme_type = Column(Text, nullable=True)       # e.g. "PWS"
+    scheme_category = Column(Text, nullable=True)   # e.g. "Single village scheme"
+    work_order_date = Column(Text, nullable=True)   # kept as the source's own dd/mm/yyyy string
+    estimated_cost_lakh = Column(Float, nullable=True)
+    reported_expenditure_lakh = Column(Float, nullable=True)
+    status = Column(Text, nullable=True)
+    fetched_at = Column(DateTime, nullable=True)
+
