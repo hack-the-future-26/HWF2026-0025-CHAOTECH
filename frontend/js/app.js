@@ -346,6 +346,7 @@
     ["equity",        "Equity — silent need",   "BharatNet 2022 fibre status"],
     ["strategic",     "Scheme eligibility",     "PMGSY / IPHS / RTE / JJM rules"],
     ["urgency",       "Urgency",                "recorded seasonal failure"],
+    ["urgency",       "Urgency",                "bridge or building damage emergency"],
     ["feasibility",   "Feasibility",            "Census distance to headquarters"],
     ["cost_penalty",  "Cost penalty",           "scaled by catchment population"],
   ];

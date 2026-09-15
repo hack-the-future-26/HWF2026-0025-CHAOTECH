@@ -38,6 +38,7 @@ from intelligence.recompute import (
     _find_school_candidates,
     _group_by_radius,
 )
+from intelligence.whatif import budget_to_points
 
 _passed = 0
 _failed: list[str] = []
@@ -228,6 +229,9 @@ def test_breakdown_sums_to_score() -> None:
         ("equity block", _baseline_kwargs(block="Chandgad")),
         ("tiny cluster", _baseline_kwargs(unique_reporters=1, population_affected=200, settlement_count=1)),
         ("huge cluster", _baseline_kwargs(unique_reporters=900, population_affected=500_000, settlement_count=40)),
+        ("confirmed collapse", _baseline_kwargs(emergency_grade=1.0, emergency_confidence=1.0, emergency_grade_label="collapse")),
+        ("partial damage", _baseline_kwargs(emergency_grade=2/3, emergency_confidence=0.75, emergency_grade_label="partial")),
+        ("crack", _baseline_kwargs(emergency_grade=1/3, emergency_confidence=0.5, emergency_grade_label="crack")),
     ]:
         result = score_cluster(**kwargs)
         total = sum(result["breakdown"].values())
@@ -258,9 +262,12 @@ def test_score_stays_within_scale() -> None:
         issue_category="road",
         block="Chandgad",
         distance_to_hq_km=1.0,
+        emergency_grade=1.0,
+        emergency_confidence=1.0,
     )
     check(
         "even a maximal cluster stays at or below 100",
+        "even a maximal cluster with full emergency urgency stays at or below 100",
         maxed["priority_score"] <= 100.0,
         f"score was {maxed['priority_score']}",
     )
@@ -338,6 +345,21 @@ def test_catchment_population_respects_radius() -> None:
     ]
     total = population_in_catchment(16.700, 74.240, "road", gazetteer)
     check("only settlements inside the catchment are counted", total == 5_000, f"got {total}")
+
+
+# ---------------------------------------------------------------------------
+# What-if
+# ---------------------------------------------------------------------------
+
+def test_budget_points_are_capped() -> None:
+    huge = budget_to_points(500 * config.RUPEES_PER_CRORE)
+    check(
+        "an enormous budget cannot swamp the formula",
+        huge <= config.WHATIF_MAX_POINTS,
+        f"{huge}",
+    )
+    check("a negative budget delta reduces the score", budget_to_points(-10 * config.RUPEES_PER_CRORE) < 0)
+    check("zero budget change is neutral", budget_to_points(0) == 0.0)
 
 
 def test_weights_sum_to_one() -> None:
@@ -1940,6 +1962,167 @@ def test_stale_record_trust_blend() -> None:
     check("urgency guardrail: urgency_points is unchanged", urgency_points("road") == config.URGENCY_POINTS)
     check("urgency guardrail: URGENCY_POINTS is 3.0", config.URGENCY_POINTS == 3.0)
     check("gap score guardrail: GAP_SCORE_MAX_POINTS is 81.0", config.GAP_SCORE_MAX_POINTS == 81.0)
+    # 6. Guardrail: Urgency points and Gap Score Max Points (Feature #7)
+    check("urgency guardrail: normal road without emergency is 0.0", urgency_points("road") == 0.0)
+    check("urgency guardrail: URGENCY_POINTS is 15.0", config.URGENCY_POINTS == 15.0)
+    check("gap score guardrail: GAP_SCORE_MAX_POINTS is 69.0", config.GAP_SCORE_MAX_POINTS == 69.0)
+
+
+def test_emergency_detection_and_grading() -> None:
+    from intelligence.emergency import detect_report_emergency
+
+    # 1. Bridge collapse (EN, HI, MR)
+    g, lbl, _ = detect_report_emergency("Bridge over the river collapsed near Bhor", "road")
+    check("emergency detection: EN bridge collapsed", g == 1.0 and lbl == "collapse")
+
+    g, lbl, _ = detect_report_emergency("पूल वाहून गेला आहे", "road")
+    check("emergency detection: MR bridge washed away", g == 1.0 and lbl == "collapse")
+
+    g, lbl, _ = detect_report_emergency("pul gir gaya near river", "road")
+    check("emergency detection: HI latin bridge collapsed", g == 1.0 and lbl == "collapse")
+
+    g, lbl, _ = detect_report_emergency("पूल ढह गया है", "road")
+    check("emergency detection: HI devanagari bridge collapsed", g == 1.0 and lbl == "collapse")
+
+    # 2. Building collapse (EN, HI, MR)
+    g, lbl, _ = detect_report_emergency("School classroom roof has collapsed and fallen", "education")
+    check("emergency detection: EN school roof collapsed", g == 1.0 and lbl == "collapse")
+
+    g, lbl, _ = detect_report_emergency("school ki chhat gir gayi hai", "education")
+    check("emergency detection: HI school roof fell down", g == 1.0 and lbl == "collapse")
+
+    g, lbl, _ = detect_report_emergency("दवाखान्याची भिंत पडली आहे", "health")
+    check("emergency detection: MR clinic wall collapsed", g == 1.0 and lbl == "collapse")
+
+    # 3. Partial damage (EN, HI, MR)
+    g, lbl, _ = detect_report_emergency("Bridge over the river near Bhor is damaged", "road")
+    check("emergency detection: EN bridge damaged", math.isclose(g, 2.0 / 3.0) and lbl == "partial")
+
+    g, lbl, _ = detect_report_emergency("पूल खचला आहे", "road")
+    check("emergency detection: MR bridge sinking/damaged", math.isclose(g, 2.0 / 3.0) and lbl == "partial")
+
+    g, lbl, _ = detect_report_emergency("hospital building damaged and unsafe", "health")
+    check("emergency detection: EN hospital damaged", math.isclose(g, 2.0 / 3.0) and lbl == "partial")
+
+    # 4. Cracks (EN, HI, MR)
+    g, lbl, _ = detect_report_emergency("Bridge deck has deep cracks", "road")
+    check("emergency detection: EN bridge crack", math.isclose(g, 1.0 / 3.0) and lbl == "crack")
+
+    g, lbl, _ = detect_report_emergency("दीवार में गंभीर दरारें हैं", "education")
+    check("emergency detection: HI wall crack", math.isclose(g, 1.0 / 3.0) and lbl == "crack")
+
+    g, lbl, _ = detect_report_emergency("भिंतीला मोठे तडे गेले आहेत", "health")
+    check("emergency detection: MR wall crack", math.isclose(g, 1.0 / 3.0) and lbl == "crack")
+
+    # 5. Non-emergencies must return 0.0 (potholes, missing staff, water supply)
+    g, lbl, _ = detect_report_emergency("sadak bahut kharab hai near Ajra", "road")
+    check("emergency detection: pothole/bad road is 0.0", g == 0.0 and lbl is None)
+
+    g, lbl, _ = detect_report_emergency("bahut bada gaddha hai gaon mein", "road")
+    check("emergency detection: gaddha is 0.0", g == 0.0 and lbl is None)
+
+    g, lbl, _ = detect_report_emergency("sadak toot gayi hai", "road")
+    check("emergency detection: road without bridge is 0.0", g == 0.0 and lbl is None)
+
+    g, lbl, _ = detect_report_emergency("school mein shikshak nahi hai near Ajra", "education")
+    check("emergency detection: missing teacher is 0.0", g == 0.0 and lbl is None)
+
+    g, lbl, _ = detect_report_emergency("doctor nahi hai health center mein", "health")
+    check("emergency detection: missing doctor is 0.0", g == 0.0 and lbl is None)
+
+    g, lbl, _ = detect_report_emergency("water supply has been cut off near village", "water")
+    check("emergency detection: water supply cut is 0.0", g == 0.0 and lbl is None)
+
+    g, lbl, _ = detect_report_emergency("school ki chhat kharab hai", "education")
+    check("emergency detection: ordinary school repair (chhat kharab) is 0.0", g == 0.0 and lbl is None)
+
+
+def test_emergency_signal_fusion() -> None:
+    from intelligence.emergency import evaluate_emergency_signals
+
+    # 1. No emergency claimed -> urgency 0.0 even with burst and hazard alerts
+    m_pothole = [{"raw_text": "bada gaddha hai", "severity": "high"}]
+    res_none = evaluate_emergency_signals(
+        m_pothole, "road", velocity=1.0, hazard_flag=True, hazard_evidence={"sachet_alerts": 2}
+    )
+    check("signal fusion: no emergency claimed yields urgency 0.0", res_none["urgency"] == 0.0)
+    check("signal fusion: no emergency grade is 0.0", res_none["grade"] == 0.0)
+
+    # 2. Single wording alone -> confidence <= 0.50 (none decisive alone)
+    m_single = [{"raw_text": "Bridge over the river collapsed", "severity": "high"}]
+    res_single = evaluate_emergency_signals(m_single, "road", velocity=0.0, hazard_flag=False)
+    check("signal fusion: single wording alone has confidence <= 0.50", res_single["confidence"] == config.EMERGENCY_CONF_WORDING_SINGLE)
+    check("signal fusion: single wording urgency scaled by confidence", res_single["urgency"] == round(config.URGENCY_POINTS * 1.0 * config.EMERGENCY_CONF_WORDING_SINGLE, 2))
+
+    # 3. Corroborated wording from 2 distinct reporters -> confidence 0.50
+    m_corrob = [
+        {"raw_text": "Bridge over the river collapsed near Bhor", "severity": "high"},
+        {"raw_text": "Pul toot gaya hai and collapsed", "severity": "high"},
+    ]
+    res_corrob = evaluate_emergency_signals(m_corrob, "road", velocity=0.0, hazard_flag=False)
+    check("signal fusion: corroborated wording confidence is 0.50", res_corrob["confidence"] == config.EMERGENCY_CONF_WORDING_CORROBORATED)
+
+    # 4. Wording + active SACHET alert -> combined confidence (0.50 + 0.20 = 0.70)
+    res_w_sachet = evaluate_emergency_signals(
+        m_corrob, "road", velocity=0.0, hazard_flag=True, hazard_evidence={"sachet_alerts": 1}
+    )
+    check("signal fusion: wording + SACHET combines to 0.70", math.isclose(res_w_sachet["confidence"], 0.70, abs_tol=0.01))
+
+    # 5. Full corroboration: wording (0.50) + burst velocity (0.30) + SACHET alert (0.20) -> 1.0
+    res_full = evaluate_emergency_signals(
+        m_corrob, "road", velocity=1.0, hazard_flag=True, hazard_evidence={"sachet_alerts": 1}
+    )
+    check("signal fusion: full corroboration saturates to 1.0", res_full["confidence"] == 1.0)
+    check("signal fusion: confirmed collapse gets full 15.0 urgency points", res_full["urgency"] == 15.0)
+
+    # 6. Partial damage with full confidence -> 10.0 points (15 * 2/3)
+    m_partial = [
+        {"raw_text": "Bridge over the river is damaged and cracked", "severity": "high"},
+        {"raw_text": "पूल खचला आहे", "severity": "high"},
+    ]
+    res_part = evaluate_emergency_signals(
+        m_partial, "road", velocity=1.0, hazard_flag=True, hazard_evidence={"sachet_alerts": 1}
+    )
+    check("signal fusion: confirmed partial damage gets 10.0 urgency points", math.isclose(res_part["urgency"], 10.0, abs_tol=0.05))
+
+    # 7. Crack with full confidence -> 5.0 points (15 * 1/3)
+    m_crack = [
+        {"raw_text": "Bridge deck has severe cracks", "severity": "high"},
+        {"raw_text": "पूलाला मोठे तडे गेले आहेत", "severity": "high"},
+    ]
+    res_crack = evaluate_emergency_signals(
+        m_crack, "road", velocity=1.0, hazard_flag=True, hazard_evidence={"sachet_alerts": 1}
+    )
+    check("signal fusion: confirmed crack gets 5.0 urgency points", math.isclose(res_crack["urgency"], 5.0, abs_tol=0.05))
+
+    # 8. Photo model signal interface (scoped as optional / not implemented when None)
+    check("signal fusion: photo damage model default status is not_implemented", res_full["evidence"]["signals"]["photo_damage_model"]["status"] == "not_implemented")
+
+
+def test_emergency_urgency_scoring_caps() -> None:
+    from intelligence.scoring import urgency_points
+
+    # 1. Cap checks
+    check("urgency caps: URGENCY_POINTS is exactly 15.0", config.URGENCY_POINTS == 15.0)
+    check("urgency caps: GAP_SCORE_MAX_POINTS is exactly 69.0", config.GAP_SCORE_MAX_POINTS == 69.0)
+
+    # 2. Maximum possible theoretical sum lands on 100.0
+    total_ceiling = (
+        config.GAP_SCORE_MAX_POINTS
+        + config.EQUITY_BOOST_POINTS
+        + config.STRATEGIC_POINTS
+        + config.URGENCY_POINTS
+        + config.FEASIBILITY_POINTS
+    )
+    check("urgency caps: theoretical maximum total equals 100.0", math.isclose(total_ceiling, 100.0))
+
+    # 3. urgency_points function behavior
+    check("urgency_points: default / zero grade is 0.0", urgency_points() == 0.0)
+    check("urgency_points: string argument (legacy road) without emergency is 0.0", urgency_points("road") == 0.0)
+    check("urgency_points: confirmed collapse is 15.0", urgency_points(1.0, 1.0) == 15.0)
+    check("urgency_points: confirmed partial damage is 10.0", urgency_points(2.0 / 3.0, 1.0) == 10.0)
+    check("urgency_points: confirmed crack is 5.0", urgency_points(1.0 / 3.0, 1.0) == 5.0)
+    check("urgency_points: collapse with 0.4 confidence is 6.0", urgency_points(1.0, 0.4) == 6.0)
 
 
 def main() -> None:
@@ -1962,6 +2145,7 @@ def main() -> None:
         test_gate_blocks_distant_pairs,
         test_semantic_distance_separates_meanings,
         test_catchment_population_respects_radius,
+        test_budget_points_are_capped,
         test_weights_sum_to_one,
         test_apply_precise_coords,
         test_precise_coords_split_work_groups,
@@ -1996,6 +2180,9 @@ def main() -> None:
         test_record_freshness,
         test_vintage_years_resolution,
         test_stale_record_trust_blend,
+        test_emergency_detection_and_grading,
+        test_emergency_signal_fusion,
+        test_emergency_urgency_scoring_caps,
     ]:
         test()
 

@@ -49,6 +49,7 @@ depends on this property holding.
 | `W_INFRA_DEFICIT` | 0.25 | " |
 | `W_VULNERABILITY` | 0.25 | " |
 | `GAP_SCORE_MAX_POINTS` | 81.0 | Chosen so the theoretical maximum is exactly 100: 81 + equity 10 + strategic 4 + urgency 3 + feasibility 2. Preferred over clamping at 100, which would break the sum-to-score guarantee. |
+| `GAP_SCORE_MAX_POINTS` | 69.0 | Chosen so the theoretical maximum is exactly 100: 69 + equity 10 + strategic 4 + urgency 15 + feasibility 2. Preferred over clamping at 100, which would break the sum-to-score guarantee. |
 
 ### `demand` — capped, on purpose
 
@@ -101,11 +102,14 @@ returns 0.5, never 0: absence of data is not absence of need.
 | `EQUITY_BOOST_POINTS` | 10.0 | The Silent Need correction — the load-bearing term of the design. |
 | `STRATEGIC_POINTS` | 4.0 | Applied when `population_affected ≥ 5,000`. |
 | `URGENCY_POINTS` | 3.0 | Applied to monsoon-sensitive categories (road, water). |
+| `URGENCY_POINTS` | 15.0 | Emergency-only (Feature #7): bridge/building breakage (including cracks). Graded: crack 1/3, partial damage 2/3, collapse 1.0, scaled by multi-signal confidence [0, 1]. |
 | `FEASIBILITY_POINTS` | 2.0 | Applied within 15 km of a taluka HQ. |
 | `COST_PENALTY_POINTS` | 3.0 | Scales with catchment population, subtracted. |
 
 Offsets are deliberately small relative to the 81-point gap score: they break
 near-ties, they do not decide rankings.
+Offsets are deliberately balanced relative to the 69-point gap score: they break
+near-ties or surface confirmed emergencies.
 
 ### `equity` — ⚠️ HARDCODED LOOKUP, sanctioned by the build plan
 

@@ -38,7 +38,9 @@ from models import (  # noqa: E402
 from . import config  # noqa: E402
 from . import realdata  # noqa: E402
 from .clustering import cluster_all, haversine_km  # noqa: E402
+from .emergency import evaluate_emergency_signals  # noqa: E402
 from .population import nearest_hq_distance_km, population_in_catchment  # noqa: E402
+from .scoring import score_cluster  # noqa: E402
 from .scoring import score_cluster, velocity_term  # noqa: E402
 
 
@@ -496,6 +498,11 @@ def _score_members(
         hazard_flag, hazard_evidence = realdata.hazard_near(
             lat, lon, river_readings or [], hazard_alerts or []
         )
+    # Hazard alerts: SACHET alerts and CWC river warnings. Corroborates emergencies
+    # and seasonal vulnerability across all categories.
+    hazard_flag, hazard_evidence = realdata.hazard_near(
+        lat, lon, river_readings or [], hazard_alerts or []
+    )
 
     vulnerability_value, vulnerability_evidence = realdata.real_vulnerability(
         nearby_villages
@@ -517,6 +524,14 @@ def _score_members(
     high_severity_share = high_count / len(members) if members else 0.0
     b_ratio = burst_ratio(members, now=now)
     velocity = velocity_term(b_ratio)
+
+    emergency_eval = evaluate_emergency_signals(
+        members,
+        category,
+        velocity=velocity,
+        hazard_flag=hazard_flag,
+        hazard_evidence=hazard_evidence,
+    )
 
     infra_vintage_years = (
         resolve_infra_vintage_years(category, infra_evidence, current_year=current_year)
@@ -548,6 +563,9 @@ def _score_members(
         scheme_eligible=eligible if eligibility_evidence else None,
         real_town_distance_km=town_km,
         real_road_connected_share=road_share,
+        emergency_grade=emergency_eval["grade"],
+        emergency_confidence=emergency_eval["confidence"],
+        emergency_grade_label=emergency_eval["grade_label"],
     )
     if infra_value is not None:
         infra_evidence["vintage_years"] = infra_vintage_years
@@ -606,6 +624,7 @@ def _score_members(
         result["evidence"]["jjm_schemes"] = jjm_scheme_evidence
     if hazard_flag:
         result["evidence"]["hazard_corroboration"] = hazard_evidence
+    result["evidence"]["emergency"] = emergency_eval["evidence"]
 
     return result
 

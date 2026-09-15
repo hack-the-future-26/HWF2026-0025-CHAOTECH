@@ -105,17 +105,34 @@ CONFIDENCE_THRESHOLD = 0.75
 EQUITY_BOOST_POINTS = 10.0
 STRATEGIC_POINTS = 4.0
 URGENCY_POINTS = 3.0
+URGENCY_POINTS = 15.0
 FEASIBILITY_POINTS = 2.0
 COST_PENALTY_POINTS = 3.0
 
 # The four Gap Score terms are scaled into this many points so that the
 # theoretical maximum total lands exactly on 100:
 #     81 (gap) + 10 (equity) + 4 (strategic) + 3 (urgency) + 2 (feasibility)
+#     69 (gap) + 10 (equity) + 4 (strategic) + 15 (urgency) + 2 (feasibility)
 #   = 100, before any cost penalty.
 # Chosen over clamping at 100, which would have broken the property that the
 # nine breakdown terms sum to the score -- the one guarantee the whole
 # explainability story rests on.
 GAP_SCORE_MAX_POINTS = 81.0
+GAP_SCORE_MAX_POINTS = 69.0
+
+# Emergency grading multipliers on URGENCY_POINTS (Feature #7: bridge/building breakage)
+EMERGENCY_GRADE_COLLAPSE = 1.0
+EMERGENCY_GRADE_PARTIAL = 2.0 / 3.0
+EMERGENCY_GRADE_CRACK = 1.0 / 3.0
+
+# Emergency confidence signal contribution limits (none is decisive alone)
+EMERGENCY_CONF_WORDING_SINGLE = 0.40
+EMERGENCY_CONF_WORDING_CORROBORATED = 0.50
+EMERGENCY_CONF_BURST_MAX = 0.30
+EMERGENCY_CONF_HAZARD_SACHET = 0.20
+EMERGENCY_CONF_HAZARD_RIVER = 0.15
+EMERGENCY_CONF_HAZARD_MAX = 0.30
+EMERGENCY_CONF_PHOTO_MAX = 0.40
 
 # Equity: blocks with below-median connectivity/literacy get the boost.
 # Build plan Step 6 explicitly sanctions a small hardcoded lookup for MVP.
@@ -306,6 +323,7 @@ NO_REAL_DATA_CONFIDENCE_FACTOR = 0.85
 # RUPEES_PER_CRORE) was removed 2026-09-15, replaced by
 # intelligence/budget_optimizer.py -- a real 0/1 knapsack allocation over
 # actual project costs, not a flat re-scoring simulation.
+
 
 # ---------------------------------------------------------------------------
 # Feature 3 -- precise report location

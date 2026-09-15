@@ -172,6 +172,25 @@ def urgency_points(issue_category: str | None) -> float:
     if issue_category in config.MONSOON_SENSITIVE_CATEGORIES:
         return config.URGENCY_POINTS
     return 0.0
+def urgency_points(
+    grade: float | str | None = 0.0,
+    confidence: float = 0.0,
+    issue_category: str | None = None,
+) -> float:
+    """
+    Emergency urgency (Feature #7): bridge or building breakage only (including cracks).
+    Formula: URGENCY_POINTS * grade * confidence
+    grade: crack (1/3), partial damage (2/3), collapse (1.0).
+    confidence: [0, 1] scaled from independent signals (none decisive alone).
+    If no emergency signals fire, urgency is 0.0 -- never a guess.
+    """
+    if isinstance(grade, str) or grade is None:
+        # Legacy positional call urgency_points(issue_category) -> no emergency signals
+        return 0.0
+    if grade <= 0.0 or confidence <= 0.0:
+        return 0.0
+    val = config.URGENCY_POINTS * grade * min(1.0, max(0.0, confidence))
+    return round(val, 2)
 
 
 def feasibility_points(
@@ -248,6 +267,10 @@ def score_cluster(
     scheme_eligible: bool | None = None,
     real_town_distance_km: float | None = None,
     real_road_connected_share: float | None = None,
+    # --- emergency urgency (Feature #7) -------------------------------------
+    emergency_grade: float = 0.0,
+    emergency_confidence: float = 0.0,
+    emergency_grade_label: str | None = None,
 ) -> dict:
     """
     Full two-stage score for one cluster.
@@ -284,6 +307,8 @@ def score_cluster(
     data_basis: dict[str, str] = {"demand": "citizen_reports", "population": "census"}
 
     if real_infra_deficit is not None:
+        infra = max(0.0, min(1.0, real_infra_deficit))
+        data_basis["infra_deficit"] = "government_records"
         freshness = record_freshness(infra_deficit_vintage_years)
         contradiction = velocity * high_severity_share
         trust = 1.0 - (1.0 - freshness) * contradiction
@@ -298,6 +323,8 @@ def score_cluster(
         data_basis["infra_deficit"] = "proxy_reported_severity"
 
     if real_vulnerability is not None:
+        vulnerability = max(0.0, min(1.0, real_vulnerability))
+        data_basis["vulnerability"] = "census_deprivation"
         freshness = record_freshness(vulnerability_vintage_years)
         contradiction = velocity * high_severity_share
         trust = 1.0 - (1.0 - freshness) * contradiction
@@ -351,6 +378,16 @@ def score_cluster(
     strategic += extra_strategic_points
 
     urgency = urgency_points(issue_category)
+    urgency = urgency_points(
+        grade=emergency_grade,
+        confidence=emergency_confidence,
+        issue_category=issue_category,
+    )
+    if urgency > 0.0:
+        lbl = emergency_grade_label or "emergency"
+        data_basis["urgency"] = f"emergency_{lbl}:{emergency_confidence:.0%}_confidence"
+    else:
+        data_basis["urgency"] = "no_emergency"
 
     if real_town_distance_km is not None:
         feasibility = feasibility_points(real_town_distance_km, real_road_connected_share)
