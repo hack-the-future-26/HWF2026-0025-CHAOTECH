@@ -65,6 +65,13 @@ def _load_reports(db) -> list[dict]:
             "is_synthetic": bool(row.is_synthetic),
             "confidence": row.confidence,
             "created_at": row.created_at,
+            # _photo_evidence() (below) reads this off each member -- without
+            # it, every photo check ever run is invisible to scoring no
+            # matter how correct the rest of the pipeline is. Confirmed live
+            # 2026-09-16: a real "roof destroyed" photo, correctly graded
+            # emergency_candidate=True by C6, still scored urgency 0.0
+            # because this key was never populated.
+            "photos": photos.get(row.id, []),
         }
         for row in db.query(CitizenRequest).all()
     ]
