@@ -15,6 +15,7 @@ import json
 import math
 import sys
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -294,6 +295,71 @@ def _work_groups(members: list[dict]) -> list[dict]:
 
     out.sort(key=lambda g: g["report_count"], reverse=True)
     return out
+
+
+def _normalize_dt(dt: datetime | str | None) -> datetime | None:
+    if dt is None:
+        return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt)
+        except Exception:
+            return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def burst_ratio(members: list[dict], now: datetime | None = None) -> float:
+    """
+    How much faster reports are arriving right now than this cluster's own
+    historical average -- a rate-anomaly check, not a raw report count
+    (that's already handled, capped at 25, by demand_term).
+
+    Deliberately counts DISTINCT REPORTERS, not raw rows -- a bot spamming
+    one copy-pasted message must not move this, matching the same
+    dedup already applied to `unique_reporters` elsewhere in this file.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+    now_norm = _normalize_dt(now)
+    if now_norm is None:
+        return 0.0
+
+    valid_members = []
+    for m in members:
+        t = _normalize_dt(m.get("created_at"))
+        if t is not None:
+            valid_members.append((t, m))
+
+    # Sort by created_at ascending
+    valid_members.sort(key=lambda item: item[0])
+
+    # Dedupe by reporter identity (distinct raw_text, matching _unique_reporters)
+    seen_reporters = set()
+    distinct_timestamps = []
+    for t, m in valid_members:
+        rep_key = (m.get("raw_text") or "").strip().lower()
+        if rep_key not in seen_reporters:
+            seen_reporters.add(rep_key)
+            distinct_timestamps.append(t)
+
+    if len(distinct_timestamps) < config.DBSCAN_MIN_SAMPLES:
+        return 0.0
+
+    window_start = now_norm - timedelta(hours=config.BURST_WINDOW_HOURS)
+    recent = [t for t in distinct_timestamps if t >= window_start]
+    recent_rate = len(recent) / config.BURST_WINDOW_HOURS
+
+    lifetime_hours = max(
+        (now_norm - distinct_timestamps[0]).total_seconds() / 3600.0,
+        config.BURST_WINDOW_HOURS,
+    )
+    baseline_rate = len(distinct_timestamps) / lifetime_hours
+
+    if baseline_rate <= 0:
+        return 1.0 if recent else 0.0
+    return recent_rate / baseline_rate
 
 
 def _score_members(

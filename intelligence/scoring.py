@@ -99,6 +99,20 @@ def vulnerability_term(population_affected: int, settlement_count: int) -> float
     return min(1.0, 0.2 + 0.8 * ratio)
 
 
+def velocity_term(ratio: float) -> float:
+    """Log-scaled 0..1, same reasoning as population_term: one wild outlier can't blow the scale."""
+    if ratio <= 1.0:
+        return 0.0
+    return min(1.0, math.log1p(ratio) / math.log1p(config.VELOCITY_RATIO_CEILING))
+
+
+def record_freshness(vintage_years: float | None) -> float:
+    """None (unknown age, e.g. a live scrape) -> 1.0, assume fresh."""
+    if vintage_years is None:
+        return 1.0
+    return 0.5 ** (max(0.0, float(vintage_years)) / config.RECORD_TRUST_HALF_LIFE_YEARS)
+
+
 def gap_score(demand: float, population: float, infra: float, vulnerability: float) -> float:
     """Stage 1: weighted SUM of the four terms, 0..1."""
     return (

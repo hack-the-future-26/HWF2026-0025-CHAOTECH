@@ -341,6 +341,16 @@ PIN_MAX_DISTANCE_KM = 5.0
 # "rainfall in the last 72h" directly corroborates "reports in the last 72h".
 BURST_WINDOW_HOURS = 72.0
 
+# Rate anomaly ceiling: a burst arrival rate 20x higher than historical baseline
+# saturates the velocity term at 1.0 (log-scaled).
+VELOCITY_RATIO_CEILING = 20.0
+
+# Exponential decay half-life for government record trust (years).
+# 10.0 years (owner decision 2026-09-14) ensures Census 2011 (15 years old)
+# retains meaningful trust (~35%) for slow-moving baseline facts, but yields
+# proportionally when actively contradicted by a corroborated high-severity burst.
+RECORD_TRUST_HALF_LIFE_YEARS = 10.0
+
 
 # ---------------------------------------------------------------------------
 # Village & Asset priority view
