@@ -58,6 +58,7 @@ def _load_reports(db) -> list[dict]:
             "pin_source": row.pin_source,
             "is_synthetic": bool(row.is_synthetic),
             "confidence": row.confidence,
+            "created_at": row.created_at,
         }
         for row in db.query(CitizenRequest).all()
     ]
