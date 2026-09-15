@@ -26,6 +26,55 @@ Status: ✅ done · 🔨 being built · 📝 designed, not started · ⏸ parked
 | 13 | **Whole-village GPDP budget plan** (per-village works, sector, cost — CAPTCHA, human-assisted) | 🔨 Capture tool built (5064c7f) but never run: `village_budget_plan` has 0 rows. **The tool also skipped the prompt's required Step 0** (test whether one captcha covers many villages or only one) — it does a fresh `page.goto()` before every village, so it silently assumes the worst case (441 solves) without ever checking the cheaper alternative | `BUILD_PROMPT_DATA_PIPELINES_REMAINING.md` Task 5 |
 | 14 | **PRIASoft village-panchayat receipt & expenditure** (real ₹ in/out per village, tied/untied 15th Finance Commission grant, no CAPTCHA) | ✅ Loaded (040b3b0), verified live and against the db 2026-09-15: 4,826 rows, Kolhapur matched 1,366/2,050 (66.6%), Nashik 651/2,776 (23.5% — genuine, Nashik's own gazetteer only has 289 villages vs 1,298 PRIASoft names there, not a bug). **Wired into `intelligence/investment.py` and `GET /investment-alignment` 2026-09-15**: every village row now carries its real unspent-grant balance (`unspent_grant_rupees`, whole-panchayat, independent of PMGSY roads) — 685 of 968 villages shown on the panel have a real PRIASoft record. Not folded into the existing funded/demanded classification (that logic has its own known bug, see the white-space table below) — exposed as its own real field alongside it | `BUILD_PROMPT_PRIASOFT_RECEIPT_EXPENDITURE.md` |
 | 16 | **UDISE+ school condition → education infra_deficit** | ✅ Wired 2026-09-15: a specific school's own 2024-25 classroom/electricity/water/toilet condition now overrides the village-wide 2011 Census signal for that exact school (215 of 220 real education assets use it after a recompute); falls back to Census only for the 5 "unresolved" assets with no specific facility matched. New `intelligence/realdata.py::school_condition_deficit`, tests in `test_intelligence.py`. (Numbered #16, not #15, to avoid confusion with the research PDF's own feature #15 referenced in row #12 above.) | `BUILD_PROMPT_UDISE_SCHOOL_DATA.md` |
+| 17 | **Disaster/monsoon flood-exposure layer**: historical flood-inundation evidence per village/cluster, distinct from #9's real-time CWC/SACHET hazard corroboration | 📝 Data source verified live 2026-09-16, not built. See below | this file, below |
+
+### #17 Flood exposure — verified live, not yet built (2026-09-16)
+
+Owner's pitch: add a "Monsoon Exposure" / "Flood Hazard" evidence term
+sourced from Bhuvan + NASA GPM rainfall, on top of the existing
+citizen-demand score. Checked both claimed sources against the live thing
+rather than the pitch's description of them:
+
+- **Bhuvan's own WMS endpoint timed out** live (`bhuvan-vec2.nrsc.gov.in`,
+  20s, TLS handshake completed but no HTTP response) — the same flakiness
+  this project already hit with Overpass/MOSDAC, not a hard block.
+- **Real working alternative, verified by downloading and checking the
+  actual data**: NDEM's satellite-derived flood-inundation extents (the
+  same underlying government data Bhuvan's flood-hazard layer serves) are
+  mirrored as plain downloadable files, no login, at
+  `github.com/ramSeraph/india_natural_disasters` (releases tag `floods`).
+  Downloaded `NDEM_MH_Yearly_Aggregate_Flood_Innundation_2013_2021.parquet`
+  (real file, 14,434 polygons, years 2013 & 2021) and checked it against
+  this project's own 1,042-village Kolhapur+Nashik gazetteer: **527 of
+  1,042 pilot villages have a recorded flood-inundation event within 5 km**
+  (matching config's own `DEFAULT_CATCHMENT_RADIUS_KM`/road radius),
+  including Kurundwad and Narsoba Vadi — the real Krishna-Panchganga
+  confluence, a well-documented flood zone. This is historical ground-truth
+  from satellite imagery, not a model or a forecast.
+- **NASA GPM IMERG rainfall is NOT login-free**, contrary to the pitch: a
+  live test against its AWS mirror (`gesdisc-cumulus-prod-protected`)
+  returned `AccessDenied: Anonymous users cannot invoke requests against
+  Requester Pays buckets` — it needs a free NASA Earthdata Login (instant
+  self-service signup, unlike MOSDAC's human-approved one, but still an
+  account). See [[reference-gpm-imerg-rainfall]].
+
+**Why this is more buildable than the earlier "Predictive Infrastructure
+Risk Engine" pitch (declined 2026-09-15)**: that one claimed a specific
+calendar prediction window from a weighted score. This only claims "this
+place has historically flooded" — a fact already sitting in real data,
+not a forecast.
+
+**Real cost if picked up**: not a small add-on. It is a new scoring term
+touching the same 9-term, sum-to-100 architecture that Feature #7
+(Emergency Urgency) had to renegotiate points for — needs a real decision
+on whether flood exposure is a new term, folds into `real_vulnerability`,
+or extends `realdata.hazard_near()`'s existing (currently evidence-only)
+CWC/SACHET corroboration with a historical-frequency signal alongside the
+real-time one. Owner decided 2026-09-16 not to build now; v1 scope if
+picked up later is flood exposure alone (the verified NDEM data, no live
+API calls needed — one-time download + local lookup, same pattern as the
+PMGSY/JJM/UDISE+ loaders), with GPM rainfall deferred until someone
+actually completes an Earthdata signup.
 
 ## The project's white space (research PDF §9), checked against the code 2026-09-14
 
