@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Asset, CitizenRequest, PhotoCheck, VillagePriority
 from intelligence import config
-from routes_citizen_report import serialize_citizen_request
+from routes_citizen_report import attach_photo_info, serialize_citizen_request
 from routes_dashboard import _funding_warnings
 from routes_photo_checks import serialize_check
 
@@ -111,6 +111,7 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
         .all()
     )
     serialized_reports = [serialize_citizen_request(r) for r in village_reports]
+    attach_photo_info(db, serialized_reports)
 
     asset_ids = list({r.asset_id for r in village_reports if r.asset_id is not None})
     assets = []
@@ -197,6 +198,7 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
         .all()
     )
     serialized_reports = [serialize_citizen_request(r) for r in asset_reports]
+    attach_photo_info(db, serialized_reports)
     # Workstream C: every checked photo behind this asset, newest first.
     report_ids = [r.id for r in asset_reports]
     photos = (

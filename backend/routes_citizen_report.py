@@ -196,6 +196,41 @@ def serialize_citizen_request(citizen_request: CitizenRequest) -> dict:
     }
 
 
+_IMAGE_ATTACHMENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def attach_photo_info(db: Session, reports: list[dict]) -> None:
+    """
+    Adds a `photos` list (id + fetch url) to each serialized report dict, in
+    place, so an officials' reports list can offer "show the photo" without a
+    second round-trip per report. PDFs are excluded -- only image evidence a
+    list like this can actually preview inline.
+
+    One batched query for the whole list rather than one per report, so a
+    cluster/village/asset reports page (which can hold hundreds of rows)
+    stays cheap regardless of how this function is called.
+    """
+    ids = [r["id"] for r in reports if r.get("id") is not None]
+    if not ids:
+        return
+    rows = (
+        db.query(ReportAttachment)
+        .filter(
+            ReportAttachment.linked_request_id.in_(ids),
+            ReportAttachment.content_type.in_(_IMAGE_ATTACHMENT_TYPES),
+        )
+        .order_by(ReportAttachment.id)
+        .all()
+    )
+    by_request: dict[int, list[dict]] = {}
+    for a in rows:
+        by_request.setdefault(a.linked_request_id, []).append(
+            {"id": a.id, "url": f"/report-attachment/{a.id}"}
+        )
+    for r in reports:
+        r["photos"] = by_request.get(r.get("id"), [])
+
+
 def _clean(form, key: str) -> str | None:
     value = form.get(key)
     if not isinstance(value, str):

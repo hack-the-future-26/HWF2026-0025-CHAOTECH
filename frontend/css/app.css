@@ -654,6 +654,22 @@ html, body {
    from the intake flow looking like every other row. */
 .rep--new { border-color: var(--amber); border-width: 2px; background: #fffaf0; }
 
+.rep__photobtn {
+  margin-top: 8px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  background: var(--navy-soft, #eef1f6); color: var(--navy);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 9px; cursor: pointer;
+}
+.rep__photobtn:hover { background: var(--border); }
+.rep__images {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.rep__image {
+  max-width: 140px; max-height: 140px; border-radius: 6px;
+  border: 1px solid var(--border); cursor: zoom-in; object-fit: cover;
+}
+
 .privacy {
   display: flex; gap: 9px; align-items: flex-start;
   background: var(--cream); border: 1px dashed var(--border);

@@ -628,6 +628,35 @@
       }
       top.append("span").attr("class", "rep__where").text(r.village || r.block || "—");
       el.append("div").attr("class", "rep__text").text(r.raw_text || "");
+
+      // Evidence the citizen attached, if any. Metadata-only elsewhere on
+      // this row; the photo itself is the one thing worth an extra click
+      // rather than always-on, since most reports have none.
+      const photos = r.photos || [];
+      if (photos.length) {
+        const imgs = el.append("div").attr("class", "rep__images").style("display", "none");
+        photos.forEach((p) => {
+          imgs.append("img")
+            .attr("class", "rep__image")
+            .attr("src", `${API}${p.url}`)
+            .attr("loading", "lazy")
+            .attr("alt", "Photo attached to this report")
+            .on("click", function () { window.open(this.src, "_blank"); });
+        });
+        el.insert("button", ".rep__images")
+          .attr("type", "button")
+          .attr("class", "rep__photobtn")
+          .text(`📷 Image${photos.length > 1 ? "s" : ""} (${photos.length})`)
+          .on("click", function () {
+            const showing = imgs.style("display") !== "none";
+            imgs.style("display", showing ? "none" : "flex");
+            d3.select(this).text(
+              showing
+                ? `📷 Image${photos.length > 1 ? "s" : ""} (${photos.length})`
+                : "▲ Hide image" + (photos.length > 1 ? "s" : "")
+            );
+          });
+      }
     });
   }
 

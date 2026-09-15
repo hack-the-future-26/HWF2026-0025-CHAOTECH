@@ -16,7 +16,7 @@ from models import (
     ReportAttachment,
     WorkGroup,
 )
-from routes_citizen_report import serialize_citizen_request
+from routes_citizen_report import attach_photo_info, serialize_citizen_request
 
 router = APIRouter()
 
@@ -400,13 +400,19 @@ def cluster_reports(
         .all()
     )
 
+    reports = [serialize_citizen_request(r) for r in rows]
+    # Lets the dashboard offer "show the photo" on a report that has one --
+    # metadata and pixels only, same privacy boundary as the rest of this
+    # endpoint (no identity attached to an attachment either).
+    attach_photo_info(db, reports)
+
     return {
         "cluster_id": cluster_id,
         "report_count": total,
         "distinct_texts": distinct,
         "returned": len(rows),
         "identity_available": False,
-        "reports": [serialize_citizen_request(r) for r in rows],
+        "reports": reports,
     }
 
 
