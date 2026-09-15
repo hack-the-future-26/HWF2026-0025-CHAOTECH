@@ -657,11 +657,11 @@ html, body {
 .rep__photobtn {
   margin-top: 8px;
   font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
-  background: var(--navy-soft, #eef1f6); color: var(--navy);
-  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--navy-soft); color: #fff;
+  border: 1px solid var(--navy-soft); border-radius: 6px;
   padding: 4px 9px; cursor: pointer;
 }
-.rep__photobtn:hover { background: var(--border); }
+.rep__photobtn:hover { background: var(--navy); border-color: var(--navy); }
 .rep__images {
   display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
 }
