@@ -137,8 +137,6 @@
     list.forEach((c, i) => {
       const isActive = A.nav.cluster && A.nav.cluster.id === c.id;
       const isPicked = picked.some((p) => p.id === c.id);
-      const wi = whatIf && whatIf.byId[c.id];
-      const shifted = wi ? wi.delta : 0;
 
       const row = el.append("div")
         .attr("class", `row${isActive ? " row--active" : ""}${isPicked ? " row--picked" : ""}`)
@@ -157,13 +155,7 @@
 
       const right = row.append("div");
       right.append("div").attr("class", "row__score")
-        .style("color", shifted ? "var(--amber)" : null)
-        .text((wi ? wi.score : (c.priority_score ?? 0)).toFixed(1));
-      if (shifted) {
-        right.append("div")
-          .attr("class", `row__delta row__delta--${shifted > 0 ? "up" : "down"}`)
-          .text(`${shifted > 0 ? "+" : ""}${shifted.toFixed(2)}`);
-      }
+        .text((c.priority_score ?? 0).toFixed(1));
 
       // Pick control for the comparison view.
       row.append("div")
