@@ -160,10 +160,16 @@ def build_village_investment(db) -> list[VillageInvestment]:
             continue
         works_by_village.setdefault(work.matched_gazetteer_id, []).append(work)
 
+    # Road-only: `works` above is PMGSY road works exclusively, so counting a
+    # water/health/education complaint as "demand" for a road work being
+    # undelivered nearby was comparing two different things. Bug found and
+    # fixed 2026-09-15.
     reports = [
         r
         for r in db.query(CitizenRequest).all()
-        if r.latitude is not None and r.longitude is not None
+        if r.latitude is not None
+        and r.longitude is not None
+        and r.issue_category == "road"
     ]
 
     villages = [

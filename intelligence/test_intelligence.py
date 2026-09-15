@@ -1049,6 +1049,76 @@ def test_jjm_scheme_index_and_catchment_evidence():
     ]})
     check("jjm_scheme_catchment_evidence: an all-completed catchment reports no unspent money", "completed" in all_done[1])
 
+
+def test_investment_only_counts_road_reports_as_demand():
+    """
+    Real bug, found live 2026-09-15: `works` in build_village_investment is
+    PMGSY road works exclusively, but `nearby_reports` counted complaints of
+    every category -- so a village with only water/health complaints near an
+    undelivered road work was misclassified as `funded_undelivered`, implying
+    those complaints were about the road. Fixed in investment.py:163-170.
+    """
+    from models import CitizenRequest, GovernmentProject, Gazetteer, VillagePanchayatFinance
+    from intelligence.investment import build_village_investment
+
+    class MockQuery:
+        def __init__(self, items):
+            self.items = items
+        def filter(self, *a, **k):
+            return self
+        def order_by(self, *a, **k):
+            return self
+        def all(self):
+            return self.items
+
+    class MockWork:
+        matched_gazetteer_id = 1
+        work_status = "In Progress"
+        sanctioned_cost_lakh = 50.0
+        sanctioned_year = 2020
+
+    class MockReport:
+        def __init__(self, category):
+            self.latitude = 16.7
+            self.longitude = 74.2
+            self.issue_category = category
+
+    class MockVillage:
+        id = 1
+        name = "Testpur"
+        district = "Kolhapur"
+        latitude = 16.7
+        longitude = 74.2
+
+    class MockDB:
+        def query(self, model):
+            if model is GovernmentProject:
+                return MockQuery([MockWork()])
+            if model is CitizenRequest:
+                return MockQuery([MockReport("water"), MockReport("health")])
+            if model is Gazetteer:
+                return MockQuery([MockVillage()])
+            if model is VillagePanchayatFinance:
+                return MockQuery([])
+            return MockQuery([])
+
+    rows, _ = build_village_investment(MockDB())
+    check(
+        "investment: non-road reports near an undelivered road work do not count as demand",
+        rows[0].nearby_reports == 0,
+        f"got {rows[0].nearby_reports}",
+    )
+    check(
+        "investment: such a village is not misclassified as funded_undelivered",
+        rows[0].classify() != "funded_undelivered",
+        f"got {rows[0].classify()}",
+    )
+    check(
+        "investment: it correctly classifies as funded_not_demanded instead",
+        rows[0].classify() == "funded_not_demanded",
+        f"got {rows[0].classify()}",
+    )
+
 def test_gpdp_district_evidence():
     # 1. Edge cases: missing district or empty index
     row, text = realdata.gpdp_district_evidence("Solapur", {})
@@ -1464,6 +1534,7 @@ def main() -> None:
         test_village_investment_unspent_grant,
         test_amenity_lookup_uses_the_categorys_own_catchment_radius,
         test_jjm_scheme_index_and_catchment_evidence,
+        test_investment_only_counts_road_reports_as_demand,
     ]:
         test()
 
