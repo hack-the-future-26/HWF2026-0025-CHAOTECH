@@ -883,7 +883,17 @@ def lookup_groundwater(
 # PMGSY GeoSadak Road Segments (Feature 5)
 # ---------------------------------------------------------------------------
 
-DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M = 150.0
+# Owner decision 2026-09-15: raised from 150m. At 150m, 84 of 199 real road
+# assets (42%) never matched a real GeoSadak segment at all, falling back to
+# the generic "Road near <village>" name. Tested live against those real 84:
+# 250m recovers 31, 400m recovers 64, 600m recovers 81, 1000m recovers all
+# 84 -- but a village can have more than one road, and too wide a radius
+# risks a confident WRONG road name, which is worse than the honest
+# fallback. 500m is the chosen middle ground: recovers most of the real
+# misses while staying close enough that grabbing the wrong road is
+# unlikely. Revisit if a village with multiple close roads is found to be
+# mismatched.
+DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M = 500.0
 
 
 def load_road_segment_index(db) -> list[dict]:

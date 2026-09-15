@@ -786,9 +786,15 @@ def test_road_asset_matches_geosadak_only_with_a_real_pin() -> None:
     check("village-centre road falls back to the PMGSY work", a.name_basis == "pmgsy_work")
     check("village-centre road carries no road shape", "road_geometry" not in json.loads(a.evidence))
 
-    # Pinned but ~320 m from the road -> outside 150 m, falls back.
+    # Pinned ~320 m from the road -> inside the 500m default (raised
+    # 2026-09-15 from 150m, owner decision, see DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M),
+    # so this now matches where it used to fall back.
     [a] = build([road_report(3, 16.7000, 74.2030)], [road])
-    check("pinned road 320 m away is not matched", a.name_basis == "pmgsy_work")
+    check("pinned road 320 m away is now matched under the wider default", a.name_basis == "geosadak_segment")
+
+    # Pinned ~700 m from the road -> still outside the 500m default, falls back.
+    [a] = build([road_report(5, 16.7000, 74.2054)], [road])
+    check("pinned road 700 m away is still not matched", a.name_basis == "pmgsy_work")
 
     # No segments loaded at all -> identical to the old behaviour.
     [a] = build([road_report(4, 16.7000, 74.2010)], None)
