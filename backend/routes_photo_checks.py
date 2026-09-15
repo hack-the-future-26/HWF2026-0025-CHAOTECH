@@ -78,12 +78,14 @@ async def _burst_frames(form, index: int) -> list[bytes]:
     return frames
 
 
-def _category_for_department(department_id: str | None) -> str | None:
+def category_for_department(department_id: str | None) -> str | None:
     """
     The problem type the citizen chose, recovered from the department they
     routed to. Used when the text pipeline could not classify the description
     (e.g. Marathi typed in Latin script), so a road photo is still judged as a
-    road photo.
+    road photo -- and, in routes_citizen_report.create_citizen_report, so the
+    report itself gets a real issue_category instead of one a text
+    classifier failed to produce.
     """
     from routes_gazetteer import DEPARTMENTS
 
@@ -129,7 +131,7 @@ async def check_report_photos(
 
     metas = _parse_capture_meta(form)
     existing = _existing_hashes(db, exclude_request_id=citizen_request.id)
-    category = citizen_request.issue_category or _category_for_department(citizen_request.department)
+    category = citizen_request.issue_category or category_for_department(citizen_request.department)
     received_at = datetime.now(timezone.utc)
     views, summaries = [], []
 

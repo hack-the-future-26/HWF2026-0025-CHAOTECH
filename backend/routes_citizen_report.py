@@ -47,7 +47,7 @@ from models import (  # noqa: E402
 )
 from routes_auth import get_current_user_from_token  # noqa: E402
 from routes_gazetteer import PILOT_STATE, valid_department  # noqa: E402
-from routes_photo_checks import check_report_photos  # noqa: E402
+from routes_photo_checks import category_for_department, check_report_photos  # noqa: E402
 from intelligence import config  # noqa: E402
 from intelligence.clustering import haversine_km  # noqa: E402
 
@@ -545,6 +545,20 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
         precise_lat, precise_lon = None, None
         pin_source = None
         if intake:
+            # The text pipeline can fail to classify code-switched or
+            # Latinized text (e.g. "Chat khrab hai bhot") into any category --
+            # and intelligence.clustering.cluster_all() silently drops any
+            # report with no issue_category, so it could never join a cluster
+            # no matter how many times a recompute ran. The intake form
+            # already forces a category choice through which department the
+            # citizen picked (fillDepartments() in report.js filters the
+            # department list by it), so recover it from there rather than
+            # leaving a real report stuck outside every cluster. Same
+            # fallback routes_photo_checks.check_report_photos already uses
+            # for judging a photo's category.
+            if not result["issue_category"]:
+                result["issue_category"] = category_for_department(intake["department"])
+
             # A village chosen from the dropdown outranks one guessed from the
             # text. This is the fix for reports that used to be stored with no
             # coordinates at all and could therefore never join a cluster.
