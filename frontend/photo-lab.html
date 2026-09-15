@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" class="citizen">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AwaazIQ — Photo Lab</title>
+<link rel="stylesheet" href="css/app.css?v=photo1" />
+<link rel="stylesheet" href="css/report.css?v=photo1" />
+<link rel="stylesheet" href="css/photo-checks.css?v=photo1" />
+<link rel="stylesheet" href="css/photo-lab.css?v=photo1" />
+</head>
+<body class="citizen">
+
+<header class="cbar">
+  <a class="brand" href="index.html" id="homeLink">
+    <span class="brand__name">AwaazIQ</span>
+    <span class="brand__tag">From Citizen Voice to Intelligent Action</span>
+  </a>
+  <span class="role role--admin">Officials</span>
+  <div class="cbar__spacer"></div>
+  <a class="rolelink" href="index.html" id="dashLink">&lsaquo;&nbsp;Dashboard</a>
+  <a class="rolelink" href="report.html" id="citizenLink">File a complaint&nbsp;&rsaquo;</a>
+</header>
+
+<main class="lab">
+
+  <section class="lab__hero">
+    <div>
+      <span class="eyebrow">Workstream C · photo checks &amp; fake-complaint defence</span>
+      <h1 class="hero__title">Photo Lab</h1>
+      <p class="hero__lead">
+        Drop any photo — one from the internet, or take one live — and see
+        exactly what AwaazIQ checks before a complaint photo is trusted: the
+        pothole&nbsp;/ crack model, copies, edits, screen replays and damage
+        grading. Nothing uploaded here is stored.
+      </p>
+    </div>
+    <div class="lab__layers">
+      <div class="layer"><span class="layer__n">2</span><div><b>Is the photo genuine?</b><br>C1 live capture · C3 copies · C4 edits · C7 screens</div></div>
+      <div class="layer"><span class="layer__n">3</span><div><b>Does it show the problem?</b><br>C5 pothole/crack model · C6 damage grade</div></div>
+    </div>
+  </section>
+
+  <section class="lab__grid">
+
+    <div class="card lab__input">
+      <div class="card__head"><span class="eyebrow">1 — Test a photo</span></div>
+
+      <label class="drop" id="drop">
+        <input type="file" id="files" accept="image/jpeg,image/png,image/webp" multiple hidden />
+        <span class="drop__icon">🖼️</span>
+        <span class="drop__title">Drop photos here, or click to choose</span>
+        <span class="drop__sub">JPEG, PNG or WebP · up to 8 MB · several at once</span>
+      </label>
+
+      <div class="lab__or"><span>or</span></div>
+      <button type="button" class="btn btn--camera lab__cam" id="btnCam">📷 Take a live photo (tests C1 + C7 burst)</button>
+
+      <div class="grid lab__opts">
+        <label class="f">
+          <span class="f__label">Complaint type</span>
+          <select id="category">
+            <option value="road">Road</option>
+            <option value="water">Water</option>
+            <option value="health">Health</option>
+            <option value="education">Education</option>
+          </select>
+        </label>
+        <label class="f">
+          <span class="f__label">Description <span class="opt">for C6 wording</span></span>
+          <select id="preset">
+            <option value="">— none —</option>
+            <option value="rasta khup kharab aahe, mothe khadde padle aahet">Road: big potholes (Marathi)</option>
+            <option value="bridge par badi darar aa gayi hai">Bridge: large crack (Hinglish)</option>
+            <option value="गावाजवळचा पूल अर्धवट खचला आहे">Bridge: partly sunk (Marathi)</option>
+            <option value="the school building wall collapsed after the rain">Building: wall collapsed</option>
+          </select>
+        </label>
+      </div>
+      <textarea id="text" rows="2" placeholder="Or type the complaint text, e.g. “pul toot gaya hai”"></textarea>
+      <p class="f__hint" style="margin-top:8px">
+        Tip: open a photo of a real pothole from the web in another tab and
+        drag it straight onto the box above.
+      </p>
+    </div>
+
+    <div class="card lab__model" id="modelCard">
+      <div class="card__head"><span class="eyebrow">The model</span></div>
+      <div id="modelBody"><div class="skeleton">Loading model details…</div></div>
+    </div>
+
+  </section>
+
+  <section class="lab__results">
+    <div class="lab__resultsHead">
+      <span class="eyebrow">2 — Results</span>
+      <div class="lab__tally" id="tally"></div>
+    </div>
+    <div id="queue"></div>
+    <div id="results">
+      <div class="lab__empty">No photos tested yet. Results appear here, newest first.</div>
+    </div>
+  </section>
+
+  <footer class="cfoot">
+    <span>AwaazIQ · Photo checks never reject a complaint — they raise or lower confidence and flag photos for an officer.</span>
+  </footer>
+</main>
+
+<script src="js/photo-checks.js?v=photo1"></script>
+<script src="js/camera-capture.js?v=photo1"></script>
+<script src="js/photo-lab.js?v=photo1"></script>
+</body>
+</html>

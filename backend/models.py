@@ -56,6 +56,11 @@ class CitizenRequest(Base):
     pin_source = Column(Text, nullable=True)
     # Specific asset this report was grouped into, rebuilt on every recompute.
     asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    # Workstream C: lowest photo authenticity (0.2-1) across this report's
+    # photos, and the photo flags that need an officer's eye (JSON list).
+    # NULL when no photo was attached. Never a reason to drop a report.
+    photo_trust = Column(Float, nullable=True)
+    review_flags = Column(Text, nullable=True)
 
 
 class CitizenRequestRaw(Base):

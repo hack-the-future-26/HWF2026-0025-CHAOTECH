@@ -11,87 +11,146 @@ For transparency and reference, screenshots of our private Git repository and th
 
 ---
 
-# ComplainBox — P1 + P2 + P3
+# AwaazIQ (ComplainBox) — From Citizen Voice to Intelligent Action
 
-Status against `Build-Plan-4-Person-Team.pdf`, covering **P1 (AI/NLP Intake Pipeline)**,
-**P2 (Data & Backend Infrastructure)** and **P3 (Intelligence Engine)**.
-P4 (Frontend/Demo) has not been started — `frontend/` does not exist yet.
+AwaazIQ takes rural infrastructure complaints (roads, water, health, schools) in Hindi,
+Marathi, English or a mix, by text or voice. It places each report on the map, ties it to a
+specific school, hospital, road spot or water point, and ranks what to fix first using a
+9-part priority score built mostly from government records. Photos attached to a complaint
+are checked for authenticity and analysed by the team's pothole/crack model.
+
+The team build plan is in [`docs/AwaazIQ_Build_Plan.pdf`](docs/AwaazIQ_Build_Plan.pdf).
+The sections further down (P1, P2, P3) record the original hackathon build; the sections
+directly below describe the project as it stands now.
 
 Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outside this scope &nbsp; ❌ not started
 
-## Current state at a glance
+## Current state at a glance (15 September 2026)
 
 | | |
 |---|---|
-| Database | SQLite at `backend/hackathon.db` (WAL mode) |
-| `gazetteer` | **1,042** places — 747 Kolhapur + 284 Nashik villages/towns (OpenStreetMap) + 11 taluka HQs |
-| ↳ with real Census population | **948** (91%) |
-| ↳ with a block assigned | **1,042** (100%, nearest-HQ approximation — see below) |
-| `citizen_request` | **1,001** — 1,000 synthetic + 1 real test submission |
-| ↳ with coordinates | **990** (98%) |
-| ↳ with an issue category | **1,001** (100%) |
-| ↳ assigned to a cluster | **722** (72%) |
-| `demand_cluster` / `priority_score` | **113 / 113** — scores range 35.18 – 86.13 |
-| Test coverage | **162 assertions across 7 suites, all passing** |
+| Database | SQLite at `backend/hackathon.db` (WAL mode), rebuilt from the loaders below |
+| `gazetteer` | **1,042** places in Kolhapur and Nashik |
+| Named facilities | **10,464** (9,352 UDISE schools + 1,112 health facilities) |
+| PMGSY road works | **552** |
+| `citizen_request` | **1,000** sample (demo) reports |
+| ↳ assigned to a cluster | **652** |
+| `demand_cluster` / `priority_score` | **102** — scores range 24.85 – 70.08 |
+| Specific assets / villages ranked | **813** assets across **444** villages |
+| Photo checks (Workstream C) | C1–C7 built; the pothole model is evaluated in [`models/README.md`](models/README.md) |
+| Test coverage | intelligence **96/96** · backend endpoint **65/65** · pipeline **46/46** · photo checks **57/57** |
 
 ## How to run
 
 ```bash
-# 1. Backend API (from backend/)
+# 1. Backend API (from backend/) — the frontend expects port 8001
 cd backend
-uvicorn main:app --reload --port 8000
+python -m uvicorn main:app --host 127.0.0.1 --port 8001
 
-# 2. Internal dev console — open in a browser
-frontend-test/index.html
+# 2. Frontend (from the repo root), served on localhost so the live camera works
+python -m http.server 5500 --bind 127.0.0.1 --directory frontend
 ```
 
-Data-loading scripts (already run; re-run only to rebuild the database). **Run in this order:**
+Then open:
+
+| Page | URL |
+|---|---|
+| Officials dashboard (map, village and asset panels) | http://127.0.0.1:5500/index.html |
+| Citizen complaint form (live camera photos) | http://127.0.0.1:5500/report.html |
+| Photo Lab (test any photo against every photo check) | http://127.0.0.1:5500/photo-lab.html |
+| API docs | http://127.0.0.1:8001/docs |
+
+The camera needs a secure context: `localhost` works; from a phone, serve over https.
+A different API address can be passed as `?api=http://host:port`.
+
+**Pothole model.** Photo checks need `models/pothole_best.pt` (150 MB, git-ignored because it
+is over GitHub's 100 MB limit). Get the file from the team and place it there, or set
+`AWAAZIQ_POTHOLE_MODEL`. Without it every other check still runs and the model check says
+"not available".
+
+Python packages beyond `backend/requirements.txt` and `pipeline/requirements.txt`:
+`ultralytics`, `torch`, `imagehash`, `scipy`, `pillow`, `numpy`, `py7zr` (for the LGD loader).
+
+Data-loading scripts (re-run only to rebuild the database). **Run in this order:**
 
 ```bash
 cd backend
-python create_tables.py           # create tables + apply any missing columns
-python load_gazetteer.py          # 1,031 villages from OpenStreetMap
-python load_demographic_data.py   # real Census 2011 population
-python repair_data.py             # taluka HQs, block assignment, coordinate backfill
-python seed_synthetic_data.py     # 1,000 synthetic reports (clears the previous batch first)
+python create_tables.py            # create tables + apply any missing columns
+python load_gazetteer.py           # villages from OpenStreetMap
+python load_demographic_data.py    # real Census 2011 population
+python repair_data.py              # taluka HQs, block assignment, coordinate backfill
+python load_lgd_hierarchy.py       # LGD admin hierarchy (needs py7zr)
+python load_village_amenities.py   # Census village amenities
+python load_bharatnet.py           # BharatNet fibre status
+python load_udise_schools.py       # UDISE school register
+python load_health_facilities.py   # NIC health facilities
+python load_pmgsy_works.py         # PMGSY sanctioned road works
+python load_jjm_water.py           # JJM tap coverage (cached in jjm_cache.json)
+python seed_synthetic_data.py      # 1,000 sample reports, flagged is_synthetic
+python assign_synthetic_assets.py  # attach sample reports to real schools/hospitals
 
 cd ..
-python -m intelligence.recompute  # cluster + score everything (~20s)
+python -m intelligence.recompute   # cluster + score everything (~1 min)
 ```
 
 Tests:
 
 ```bash
 # from the repo root
-python -m pipeline.test_pipeline          # 46 end-to-end cases against the real gazetteer
-python -m intelligence.test_intelligence  # 32 P3 assertions
+python -m intelligence.test_intelligence  # 96 checks (scoring, assets, C2 distinct accounts)
+cd pipeline && python test_pipeline.py    # 46 end-to-end cases
 
-# from pipeline/
-cd pipeline
-python test_extract.py     # 14 cases
-python test_geocode.py     # 10 cases
-python test_location.py    # 10 cases
-python test_lang_id.py     # 42 cases
-
-# from backend/ — needs the server running on :8000
-cd ../backend
-python test_citizen_report_endpoint.py   # 8 checks
+# from backend/
+python test_photo_checks.py               # 57 checks for C1–C7 (uses a throw-away database)
+python test_citizen_report_endpoint.py    # 65 checks — writes to hackathon.db, back it up first
 ```
+
+After pulling changes that add columns, run `python create_tables.py` once in `backend/`.
 
 ## API endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/` | Health check → `{"status": "ok"}` |
-| POST | `/citizen-report` | Ingest a report — JSON `{"text": "..."}` **or** multipart audio upload |
-| GET | `/clusters` | All clusters, sorted by priority score desc, with breakdown + runner-up |
-| GET | `/clusters/{id}` | One cluster + parsed score breakdown (404 if missing) |
-| GET | `/map-data` | GeoJSON of **clusters** (default) or `?layer=reports` for individual reports |
-| GET | `/citizen-reports` | Paginated report list (`?limit=`, `?offset=`) |
-| POST | `/what-if` | **Live** — `{budget_delta, district}` → re-ranked clusters with per-cluster deltas |
-| POST | `/recompute-scores` | Triggers the full P3 pass (~18s on 1,000 reports) |
-| POST | `/test/detect-language` | Dev console — language detection |
-| POST | `/test/transcribe` | Dev console — audio upload → transcription |
+| POST | `/auth/register`, `/auth/login` | Citizen accounts |
+| POST | `/citizen-report` | Ingest a report — JSON `{"text": "..."}`, or the multipart intake form with photos (`attachments`, `capture_meta`, `burst_<i>`) |
+| GET | `/citizen-report/{id}` | Citizen-side status of one report |
+| GET | `/clusters`, `/clusters/{id}` | Category clusters with score breakdown + runner-up |
+| GET | `/villages?district=`, `/villages/{gazetteer_id}` | Village priorities and the village panel |
+| GET | `/assets/{id}` | Asset panel: 9-part breakdown, evidence, reports and **photo checks** |
+| GET | `/gazetteer/...` | Districts, blocks, villages, departments, facilities for the intake form |
+| GET | `/map-data` | GeoJSON of clusters or reports |
+| POST | `/what-if` | Budget simulation |
+| GET | `/investment-alignment` | Demand vs investment |
+| POST | `/recompute-scores` | Full clustering and scoring pass |
+| POST | `/photo-checks/analyze` | Photo Lab — run every photo check on one photo, store nothing |
+| GET | `/photo-checks/model` | Model details and measured accuracy |
+| GET | `/photo-checks/report/{id}` | Photo checks for one report (no coordinates) |
+| GET | `/report-attachment/{id}`, `/annotated`, `/ela` | The photo, with detected damage boxed, and its error-level image |
+
+## Workstream C — photo checks and fake-complaint defence
+
+Built on branch `abhay-hanchate-c3`. The full list of changes is in
+[`changes-abhayhanchate-c3.pdf`](changes-abhayhanchate-c3.pdf).
+**No check ever rejects a complaint:** each one raises or lowers the report's confidence
+(never below half) and flags doubtful photos for an officer.
+
+| | Check | How | Status |
+|---|---|---|---|
+| C1 | Camera-only capture, GPS and time at capture | `getUserMedia` + Image Capture API; GPS and time recorded at the shutter press; flag if more than 5 km from the village | ✅ |
+| C2 | Count distinct accounts, not wording | `recompute.reporter_key`: one account = one voice; wording only for anonymous reports | ✅ |
+| C3 | Duplicate photo | Perceptual hash (`imagehash`) against every stored photo; flag when reused by another account or village | ✅ |
+| C4 | Edit detection | Editing software named in the photo's metadata → flag. Error-level analysis shown as an **advisory** heat map (it could not separate edited from genuine photos in tests) | ✅ / ⚠️ advisory |
+| C5 | Pothole model as road evidence | Team YOLOv8 model (`crack`, `pothole`); boxes drawn; `evidence["photo_defect"]` on assets | ✅ |
+| C6 | Building/bridge damage grade | crack < partial < collapse from the photo and the wording (en/hi/mr/Hinglish); `evidence["emergency_damage"]` for B2 | ✅ (photo signal weak on structures) |
+| C7 | Screen replay | Moiré spectrum check + 5-frame burst (identical frames = still image fed to the camera) | ✅ (calibrated on simulated recaptures) |
+
+**Model accuracy** (88 held-out real photos): accuracy 81.8%, precision 74%, recall 86%, F1 0.80,
+ROC-AUC 0.92. Misses water-filled and debris-filled potholes; false alarms mostly on dirt roads.
+Details, method and limits: [`models/README.md`](models/README.md).
+
+Code: `backend/photo_checks.py` (the checks), `backend/routes_photo_checks.py` (API),
+`frontend/js/camera-capture.js`, `frontend/js/photo-checks.js`, `frontend/photo-lab.html`.
 
 ---
 
@@ -223,6 +282,16 @@ Each of these was found by auditing the running system against the database, not
 
 ## Known limitations — read before demoing
 
+- **The pilot runs on sample complaints.** The 1,000 reports are generated demo data
+  (flagged `is_synthetic`); rankings are a demonstration, not findings.
+- **Photo checks are signals, not verdicts.** The pothole model catches about 86% of potholes
+  on held-out photos, and about 1 in 4 of its alerts is a false alarm. Capture GPS and time come from the
+  citizen's browser, so they raise the cost of faking a photo rather than prove it. The model
+  has not yet been tried on real phone captures.
+- **A report the text pipeline cannot classify becomes a "Water point" asset** in
+  `intelligence/recompute.py` (any non-road category falls through to water). Owner:
+  Workstream B.
+
 - **Marathi speech-to-text is poor, and neither forcing the language nor a bigger model
   fixes it.** Measured on a TTS clip of *"आमच्या गावात रस्ता खूप खराब आहे"*:
 
@@ -265,5 +334,6 @@ Every one of these is listed with its replacement in
 
 1. **Record real voice clips** and run them through `asr.py` (P1 Step 2).
 2. **Deploy to Railway or Render** (P2 Step 9) — needs an account and a `docker build`.
-3. **P4 — the entire frontend**: map, dashboard, score-breakdown chart, Cluster A vs B view,
-   what-if slider, citizen feedback screen. Every API it needs is live and returning real data.
+3. **Try the photo checks on real phones**, including a phone photographing a screen, to
+   confirm the camera path and the moiré check outside simulation.
+4. **Remaining build-plan work** for workstreams A, B and D (see `docs/AwaazIQ_Build_Plan.pdf`).

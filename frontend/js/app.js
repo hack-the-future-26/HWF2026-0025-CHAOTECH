@@ -1086,6 +1086,41 @@
       renderEvidence(gwBox, gwEv);
     }
 
+    // Workstream C: photo evidence -- what the checks and the AI model found
+    // across this asset's photos, and each photo with its flags.
+    const photos = aData.photos || [];
+    if (photos.length && window.PhotoChecks) {
+      const pBox = col2.append("div").style("margin-top", "14px");
+      pBox.append("div").attr("class", "eyebrow").text(`Photo evidence (${photos.length})`);
+      const summary = window.PhotoChecks.renderAssetSummary(aData.evidence);
+      if (summary) pBox.node().appendChild(summary);
+      const list = pBox.append("div").node();
+      const cards = photos.map((p) => window.PhotoChecks.render(p, { api: API, compact: true }));
+      cards.slice(0, 3).forEach((c) => list.appendChild(c));
+      if (cards.length > 3) {
+        pBox.append("button").attr("class", "btn").style("width", "100%")
+          .text(`SHOW ALL ${cards.length} PHOTOS`)
+          .on("click", function () { cards.slice(3).forEach((c) => list.appendChild(c)); this.remove(); });
+      }
+      // Clicking a compact card opens its full check list.
+      cards.forEach((c, i) => {
+        c.style.cursor = "pointer";
+        c.addEventListener("click", (e) => {
+          if (e.target.tagName === "IMG") return;
+          const full = window.PhotoChecks.render(photos[i], { api: API });
+          const overlay = document.createElement("div");
+          overlay.className = "plight";
+          overlay.style.cursor = "default";
+          const panel = document.createElement("div");
+          panel.style.cssText = "width:min(860px,100%);max-height:100%;overflow:auto;";
+          panel.appendChild(full);
+          overlay.appendChild(panel);
+          overlay.addEventListener("click", (ev) => { if (ev.target === overlay) overlay.remove(); });
+          document.body.appendChild(overlay);
+        });
+      });
+    }
+
     // Candidates if unresolved
     const cands = aData.candidates || [];
     if (cands.length) {

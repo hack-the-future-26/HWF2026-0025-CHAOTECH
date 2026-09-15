@@ -238,13 +238,20 @@ def cluster_reports(
     # the returned rows instead would make both numbers silently collapse to
     # `limit` on any cluster larger than one page.
     #
-    # "Distinct reporters" is approximated by distinct report text, exactly as
-    # the scoring engine does it, so the two numbers can never disagree.
+    # "Distinct reporters" counts accounts, falling back to distinct text for
+    # reports with no account -- exactly as the scoring engine does it
+    # (recompute.reporter_key), so the two numbers can never disagree.
+    # Imported here, like routes_intelligence does, to keep startup light.
+    from intelligence.recompute import reporter_key
+
     total = in_cluster.count()
     distinct = len(
-        {(text or "").strip().lower() for (text,) in in_cluster.with_entities(
-            CitizenRequest.raw_text
-        )}
+        {
+            reporter_key({"user_id": user_id, "raw_text": text})
+            for (text, user_id) in in_cluster.with_entities(
+                CitizenRequest.raw_text, CitizenRequest.user_id
+            )
+        }
     )
 
     rows = (

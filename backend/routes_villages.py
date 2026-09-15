@@ -19,9 +19,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Asset, CitizenRequest, VillagePriority
+from models import Asset, CitizenRequest, PhotoCheck, VillagePriority
 from intelligence import config
 from routes_citizen_report import serialize_citizen_request
+from routes_photo_checks import serialize_check
 
 router = APIRouter()
 
@@ -195,6 +196,14 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
         .all()
     )
     serialized_reports = [serialize_citizen_request(r) for r in asset_reports]
+    # Workstream C: every checked photo behind this asset, newest first.
+    report_ids = [r.id for r in asset_reports]
+    photos = (
+        [serialize_check(p) for p in db.query(PhotoCheck)
+         .filter(PhotoCheck.linked_request_id.in_(report_ids))
+         .order_by(PhotoCheck.id.desc()).all()]
+        if report_ids else []
+    )
 
     rank_in_village = 1
     if asset.village:
@@ -247,4 +256,5 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
         "is_demo": asset.is_demo,
         "created_at": asset.created_at,
         "reports": serialized_reports,
+        "photos": photos,
     }
