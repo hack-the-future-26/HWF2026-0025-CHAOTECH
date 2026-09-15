@@ -98,6 +98,11 @@
 .chk--warn .chk__icon { background: var(--amber-soft); color: #7a5a22; }
 .chk--fail .chk__icon { background: var(--red-bg); color: var(--red); }
 .chk--info .chk__icon { background: var(--cream-deep); color: var(--muted); }
+/* "hit" is a positive, urgent finding (real structure damage detected) --
+   red like .chk--fail because it deserves the same attention, but a
+   distinct ⚠ icon so it never reads as "this check failed / nothing found"
+   the way .chk--fail's ✕ would. */
+.chk--hit .chk__icon { background: var(--red-bg); color: var(--red); }
 .chk__name { font-weight: 700; color: var(--navy); line-height: 1.35; }
 .chk__name small { display: block; font: 600 9.5px/1.3 var(--mono); color: var(--muted); letter-spacing: 0.05em; }
 .chk__detail { color: var(--body); line-height: 1.45; }

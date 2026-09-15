@@ -118,8 +118,14 @@
       out.push(["pass", "Real scene", "C7", `No moiré pattern from a screen${b}`]);
     }
 
-    // C5 — model
+    // C5 — model. The detector is road-domain-trained, and summarise()
+    // (photo_checks.py) only fills in `summary.support` when the report's
+    // own category is "road" -- null/undefined here means this report was
+    // never about a road, so "found nothing" would be a meaningless result,
+    // not a clean check.
     const d = check.defects || {};
+    const support = (check.summary || {}).support;
+    const roadApplicable = support !== null && support !== undefined;
     if (!d.available) {
       out.push(["info", "Road damage", "C5", "Detection model not available on this server"]);
     } else if (d.defect_seen) {
@@ -127,16 +133,22 @@
       if (d.potholes) parts.push(`${d.potholes} pothole${d.potholes > 1 ? "s" : ""} (${pct(d.pothole_confidence)})`);
       if (d.cracks) parts.push(`${d.cracks} crack${d.cracks > 1 ? "s" : ""} (${pct(d.crack_confidence)})`);
       out.push(["pass", "Road damage", "C5", `AI model detected ${parts.join(" and ")}, covering ${d.damage_area_pct}% of the photo`]);
+    } else if (!roadApplicable) {
+      out.push(["info", "Road damage", "C5", "Not applicable — this report isn't about a road"]);
     } else {
       out.push([flags.has("no_road_damage_seen") ? "warn" : "info", "Road damage", "C5", "No pothole or crack detected by the AI model"]);
     }
 
-    // C6 — damage grade
+    // C6 — damage grade. `emergency_candidate` means the check found real
+    // building/bridge damage worth an officer's attention -- the opposite of
+    // a failed/suspect check, so it gets its own "hit" state rather than the
+    // same ✕ used for authenticity problems (a real find was being read as
+    // "nothing detected" because it looked identical to a failure).
     const g = check.damage || {};
     if (g.emergency_candidate) {
       const src = [g.photo_grade && "photo", g.wording_grade && "description"].filter(Boolean).join(" + ");
-      out.push(["fail", "Structure damage", "C6",
-        `${g.structure === "bridge" ? "Bridge" : "Building"} · <b>${g.grade}</b> (from ${src}), confidence ${pct(g.confidence)} — emergency candidate`]);
+      out.push(["hit", "Structure damage", "C6",
+        `${g.structure === "bridge" ? "Bridge" : "Building"} damage <b>detected</b> — grade "${g.grade}" (from ${src}), confidence ${pct(g.confidence)}. Emergency candidate, needs officer verification.`]);
     } else if (g.grade) {
       out.push(["info", "Structure damage", "C6", `Damage grade “${g.grade}”, but no bridge or building named — road condition, not an emergency`]);
     } else {
@@ -146,7 +158,7 @@
   }
 
   function checkList(check) {
-    const icons = { pass: "✓", warn: "!", fail: "✕", info: "i" };
+    const icons = { pass: "✓", warn: "!", fail: "✕", info: "i", hit: "⚠" };
     return h("div", { class: "checks" },
       rows(check).map(([state, name, code, detail]) =>
         h("div", { class: `chk chk--${state}` },
@@ -157,7 +169,25 @@
 
   function aiBox(check) {
     const d = check.defects || {};
+    const g = check.damage || {};
+    const support = (check.summary || {}).support;
+    const roadApplicable = support !== null && support !== undefined;
+
+    // A real structure hit leads -- it is the strongest, most actionable
+    // signal on the card, and this box should never claim "no damage" while
+    // C6 is showing a genuine building/bridge finding right below it.
+    if (g.emergency_candidate) {
+      return h("div", { class: "ai ai--hit" },
+        h("div", { class: "ai__num", html: `${Math.round((g.confidence || 0) * 100)}<small>%</small>` }),
+        h("div", { class: "ai__txt", html:
+          `<b>${g.structure === "bridge" ? "Bridge" : "Building"} damage detected</b> (grade “${g.grade}”) by the vision model. ` +
+          `Flagged as an emergency candidate for officer review.` }));
+    }
     if (!d.available) return null;
+    // Nothing to report and this was never a road photo -- showing "0, no
+    // road damage" here would read as a finding when the check simply does
+    // not apply, so the box is omitted rather than left misleading.
+    if (!d.defect_seen && !roadApplicable) return null;
     const best = Math.max(d.pothole_confidence || 0, d.crack_confidence || 0);
     const label = (d.pothole_confidence || 0) >= (d.crack_confidence || 0) ? "pothole" : "crack";
     return h("div", { class: `ai${d.defect_seen ? " ai--hit" : ""}` },
