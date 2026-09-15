@@ -1125,6 +1125,100 @@ def test_investment_only_counts_road_reports_as_demand():
         f"got {rows[0].classify()}",
     )
 
+
+def test_school_investment_uses_unspent_grant_and_real_deficiency():
+    """
+    A school is only "funded but undelivered" when real UDISE+ money is
+    unspent AND a real physical deficiency is still on record -- receiving
+    a grant at all is not enough, most schools do.
+    """
+    from models import CitizenRequest, PublicFacility, SchoolCondition
+    from intelligence.investment import build_school_investment
+
+    class MockQuery:
+        def __init__(self, items):
+            self.items = items
+        def filter(self, *a, **k):
+            return self
+        def order_by(self, *a, **k):
+            return self
+        def all(self):
+            return self.items
+
+    class MockFacility:
+        def __init__(self, id, category="education"):
+            self.id = id
+            self.category = category
+            self.name = f"School {id}"
+            self.village = "Testpur"
+            self.district = "Kolhapur"
+            self.latitude = 16.7
+            self.longitude = 74.2
+
+    class MockCondition:
+        def __init__(self, facility_id, grant, spent, major_repair, total):
+            self.id = facility_id
+            self.facility_id = facility_id
+            self.fetch_failed = False
+            self.udise_code = str(facility_id)
+            self.year_desc = "2024-25"
+            self.teachers_regular = None
+            self.teachers_contract = None
+            self.teachers_part_time = None
+            self.classrooms_total = total
+            self.classrooms_good = None
+            self.classrooms_minor_repair = None
+            self.classrooms_major_repair = major_repair
+            self.toilet_boys_functional = 1
+            self.toilet_girls_functional = 1
+            self.drinking_water = True
+            self.electricity = True
+            self.boundary_wall_status = None
+            self.total_grant = grant
+            self.total_expenditure = spent
+            self.raw_json = None
+            self.fetched_at = None
+
+    class MockReport:
+        def __init__(self, facility_id):
+            self.issue_category = "education"
+            self.latitude = 16.7
+            self.longitude = 74.2
+            self.facility_id = facility_id
+
+    class MockDB:
+        def query(self, model):
+            if model is PublicFacility:
+                return MockQuery([MockFacility(1), MockFacility(2)])
+            if model is CitizenRequest:
+                return MockQuery([MockReport(1), MockReport(2)])
+            if model is SchoolCondition:
+                return MockQuery([
+                    # School 1: real unspent money AND a real broken classroom.
+                    MockCondition(1, grant=25000.0, spent=5000.0, major_repair=3, total=5),
+                    # School 2: fully spent grant, nothing broken.
+                    MockCondition(2, grant=25000.0, spent=25000.0, major_repair=0, total=5),
+                ])
+            return MockQuery([])
+
+    rows = build_school_investment(MockDB())
+    by_id = {r.facility_id: r for r in rows}
+    check(
+        "school investment: unspent grant computed as grant minus expenditure",
+        by_id[1].unspent_grant_rupees == 20000.0,
+        f"got {by_id[1].unspent_grant_rupees}",
+    )
+    check(
+        "school investment: unspent money + real deficiency classifies as funded_undelivered",
+        by_id[1].classify() == "funded_undelivered",
+        f"got {by_id[1].classify()}",
+    )
+    check(
+        "school investment: a fully-spent grant with nothing broken is not funded_undelivered",
+        by_id[2].classify() != "funded_undelivered",
+        f"got {by_id[2].classify()}",
+    )
+
 def test_gpdp_district_evidence():
     # 1. Edge cases: missing district or empty index
     row, text = realdata.gpdp_district_evidence("Solapur", {})
@@ -1608,6 +1702,7 @@ def main() -> None:
         test_amenity_lookup_uses_the_categorys_own_catchment_radius,
         test_jjm_scheme_index_and_catchment_evidence,
         test_investment_only_counts_road_reports_as_demand,
+        test_school_investment_uses_unspent_grant_and_real_deficiency,
     ]:
         test()
 

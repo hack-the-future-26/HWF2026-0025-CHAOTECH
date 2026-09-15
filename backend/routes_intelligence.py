@@ -44,12 +44,22 @@ def investment_alignment(
 
     Read-only. It does not touch scores or clusters.
     """
-    from intelligence.investment import build_village_investment, summarise
+    from intelligence.investment import (
+        build_school_investment,
+        build_village_investment,
+        summarise,
+        summarise_schools,
+    )
 
     rows, unpinned = build_village_investment(db)
     if district:
         rows = [r for r in rows if (r.district or "").lower() == district.lower()]
     buckets = summarise(rows)
+
+    school_rows = build_school_investment(db)
+    if district:
+        school_rows = [r for r in school_rows if (r.district or "").lower() == district.lower()]
+    school_buckets = summarise_schools(school_rows)
 
     def serialise(v):
         return {
@@ -70,6 +80,21 @@ def investment_alignment(
             "unspent_grant_rupees": v.unspent_grant_rupees,
         }
 
+    def serialise_school(s):
+        return {
+            "facility_id": s.facility_id,
+            "name": s.name,
+            "village": s.village,
+            "district": s.district,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "nearby_reports": s.nearby_reports,
+            "total_grant": s.total_grant,
+            "total_expenditure": s.total_expenditure,
+            "unspent_grant_rupees": s.unspent_grant_rupees,
+            "infra_deficit": s.infra_deficit,
+        }
+
     return {
         "district": district,
         "demand_side": "synthetic -- funded_not_demanded is a mechanism demo, not a finding",
@@ -78,6 +103,17 @@ def investment_alignment(
         "funded_undelivered": [serialise(v) for v in buckets["funded_undelivered"][:limit]],
         "demanded_unfunded": [serialise(v) for v in buckets["demanded_unfunded"][:limit]],
         "funded_not_demanded": [serialise(v) for v in buckets["funded_not_demanded"][:limit]],
+        # Schools: a structurally different real signal from the road/water
+        # rows above (real UDISE+ unspent grant + real recorded deficiency,
+        # not a PMGSY work status), kept in its own section rather than
+        # merged into the same buckets so the two "funded" definitions are
+        # never confused for the same thing.
+        "school_mismatches": {
+            "counts": {name: len(items) for name, items in school_buckets.items()},
+            "funded_undelivered": [serialise_school(s) for s in school_buckets["funded_undelivered"][:limit]],
+            "demanded_unfunded": [serialise_school(s) for s in school_buckets["demanded_unfunded"][:limit]],
+            "funded_not_demanded": [serialise_school(s) for s in school_buckets["funded_not_demanded"][:limit]],
+        },
     }
 
 
