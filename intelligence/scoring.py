@@ -234,6 +234,10 @@ def score_cluster(
     block: str | None,
     distance_to_hq_km: float | None,
     extra_strategic_points: float = 0.0,
+    velocity: float = 0.0,
+    high_severity_share: float = 0.0,
+    infra_deficit_vintage_years: float | None = None,
+    vulnerability_vintage_years: float | None = None,
     # --- real government data, all optional ---------------------------------
     # Every one of these replaces a proxy above. They are optional so a caller
     # with no loaded data still gets a score, and so the fallback path stays
@@ -280,15 +284,29 @@ def score_cluster(
     data_basis: dict[str, str] = {"demand": "citizen_reports", "population": "census"}
 
     if real_infra_deficit is not None:
-        infra = max(0.0, min(1.0, real_infra_deficit))
-        data_basis["infra_deficit"] = "government_records"
+        freshness = record_freshness(infra_deficit_vintage_years)
+        contradiction = velocity * high_severity_share
+        trust = 1.0 - (1.0 - freshness) * contradiction
+        proxy = infra_deficit_term(severities)
+        infra = max(0.0, min(1.0, trust * max(0.0, min(1.0, real_infra_deficit)) + (1.0 - trust) * proxy))
+        data_basis["infra_deficit"] = (
+            "government_records" if trust >= 0.95 else
+            f"blended:{trust:.0%}_government_{1-trust:.0%}_citizen_severity"
+        )
     else:
         infra = infra_deficit_term(severities)
         data_basis["infra_deficit"] = "proxy_reported_severity"
 
     if real_vulnerability is not None:
-        vulnerability = max(0.0, min(1.0, real_vulnerability))
-        data_basis["vulnerability"] = "census_deprivation"
+        freshness = record_freshness(vulnerability_vintage_years)
+        contradiction = velocity * high_severity_share
+        trust = 1.0 - (1.0 - freshness) * contradiction
+        proxy = vulnerability_term(population_affected, settlement_count)
+        vulnerability = max(0.0, min(1.0, trust * max(0.0, min(1.0, real_vulnerability)) + (1.0 - trust) * proxy))
+        data_basis["vulnerability"] = (
+            "census_deprivation" if trust >= 0.95 else
+            f"blended:{trust:.0%}_government_{1-trust:.0%}_citizen_vulnerability"
+        )
     else:
         vulnerability = vulnerability_term(population_affected, settlement_count)
         data_basis["vulnerability"] = "proxy_settlement_size"

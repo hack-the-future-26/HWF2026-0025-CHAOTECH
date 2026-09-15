@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 from collections import Counter
 from datetime import datetime, timedelta, timezone
@@ -38,7 +39,7 @@ from . import config  # noqa: E402
 from . import realdata  # noqa: E402
 from .clustering import cluster_all, haversine_km  # noqa: E402
 from .population import nearest_hq_distance_km, population_in_catchment  # noqa: E402
-from .scoring import score_cluster  # noqa: E402
+from .scoring import score_cluster, velocity_term  # noqa: E402
 
 
 def _load_reports(db) -> list[dict]:
@@ -362,6 +363,55 @@ def burst_ratio(members: list[dict], now: datetime | None = None) -> float:
     return recent_rate / baseline_rate
 
 
+def resolve_infra_vintage_years(
+    category: str | None,
+    infra_evidence: dict,
+    current_year: int = 2026,
+) -> float | None:
+    """
+    Determine the vintage age in years for an infrastructure deficit record.
+    Category-by-category resolution per Feature #8:
+    - UDISE+ per-school override (udise_2024_25_this_school): parsed year (2024) -> current_year - 2024
+    - Jal Jeevan Mission tap coverage (jal_jeevan_mission_current): 2024 -> current_year - 2024
+    - PMGSY works with oldest_undelivered_sanction_year: current_year - sanction_year
+    - Census 2011 fallback (Road, Water, Health, Education): current_year - 2011
+    """
+    if not infra_evidence:
+        return float(max(0, current_year - 2011))
+
+    src = infra_evidence.get("source")
+    if src == "udise_2024_25_this_school":
+        year_str = str(infra_evidence.get("year") or "")
+        match = re.search(r"\b(20\d{2})\b", year_str)
+        rec_year = int(match.group(1)) if match else 2024
+        return float(max(0, current_year - rec_year))
+
+    if src == "jal_jeevan_mission_current":
+        return float(max(0, current_year - 2024))
+
+    if category == "road" and infra_evidence.get("oldest_undelivered_sanction_year") is not None:
+        try:
+            sanction_year = int(infra_evidence["oldest_undelivered_sanction_year"])
+            return float(max(0, current_year - sanction_year))
+        except (ValueError, TypeError):
+            pass
+
+    # All other road, water, health, education records without a tagged current source
+    # derive from Census 2011 amenities
+    return float(max(0, current_year - 2011))
+
+
+def resolve_vulnerability_vintage_years(
+    vulnerability_evidence: dict,
+    current_year: int = 2026,
+) -> float | None:
+    """
+    Determine the vintage age in years for a vulnerability deprivation record.
+    Always derives from Census 2011 structural baseline -> current_year - 2011.
+    """
+    return float(max(0, current_year - 2011))
+
+
 def _score_members(
     members: list[dict],
     lat: float,
@@ -379,6 +429,7 @@ def _score_members(
     school_condition_index: dict[int, dict] | None = None,
     jjm_scheme_index: dict[int, list[dict]] | None = None,
     groups: list[dict] | None = None,
+    now: datetime | None = None,
 ) -> dict:
     """
     Score a group of citizen reports (either a DemandCluster or an Asset).
@@ -458,6 +509,24 @@ def _score_members(
     town_km, town_evidence = realdata.real_town_distance_km(nearby_villages)
     road_share, road_evidence = realdata.real_road_connectivity(nearby_villages)
 
+    if now is None:
+        now = datetime.now(timezone.utc)
+    current_year = now.year
+
+    high_count = sum(1 for m in members if (m.get("severity") or "").lower() == "high")
+    high_severity_share = high_count / len(members) if members else 0.0
+    b_ratio = burst_ratio(members, now=now)
+    velocity = velocity_term(b_ratio)
+
+    infra_vintage_years = (
+        resolve_infra_vintage_years(category, infra_evidence, current_year=current_year)
+        if infra_value is not None else None
+    )
+    vuln_vintage_years = (
+        resolve_vulnerability_vintage_years(vulnerability_evidence, current_year=current_year)
+        if vulnerability_value is not None else None
+    )
+
     result = score_cluster(
         unique_reporters=unique_reporters,
         population_affected=population_affected,
@@ -467,6 +536,10 @@ def _score_members(
         issue_category=category,
         block=block,
         distance_to_hq_km=nearest_hq_distance_km(lat, lon, gazetteer),
+        velocity=velocity,
+        high_severity_share=high_severity_share,
+        infra_deficit_vintage_years=infra_vintage_years,
+        vulnerability_vintage_years=vuln_vintage_years,
         real_infra_deficit=infra_value,
         real_vulnerability=vulnerability_value,
         real_reporting_deficit=reporting_value,
@@ -476,6 +549,11 @@ def _score_members(
         real_town_distance_km=town_km,
         real_road_connected_share=road_share,
     )
+    if infra_value is not None:
+        infra_evidence["vintage_years"] = infra_vintage_years
+    if vulnerability_value is not None:
+        vulnerability_evidence["vintage_years"] = vuln_vintage_years
+
     counted = sorted(
         (v for v in nearby_villages if v.get("population")),
         key=lambda v: v["population"],
@@ -511,6 +589,12 @@ def _score_members(
         "scheme_eligibility": eligibility_evidence,
         "feasibility": {**town_evidence, **road_evidence},
         "cost_benchmark": realdata.cost_benchmark(category, works_index),
+        "velocity": {
+            "burst_ratio": round(b_ratio, 3),
+            "velocity_term": round(velocity, 4),
+            "high_severity_share": round(high_severity_share, 4),
+            "burst_window_hours": config.BURST_WINDOW_HOURS,
+        },
         "work_groups": len(groups) if groups is not None else 0,
         "villages_examined": len(nearby_villages),
     }

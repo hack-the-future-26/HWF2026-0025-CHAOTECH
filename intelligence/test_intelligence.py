@@ -1751,6 +1751,213 @@ def test_village_investment_unspent_grant() -> None:
     )
 
 
+def test_burst_ratio() -> None:
+    from intelligence.recompute import burst_ratio
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime(2026, 9, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+    # 1. Under DBSCAN_MIN_SAMPLES (2 distinct reporters) -> 0.0
+    r_two = [
+        {"raw_text": "Road broken A", "created_at": now - timedelta(hours=1)},
+        {"raw_text": "Road broken B", "created_at": now - timedelta(hours=2)},
+    ]
+    check("burst_ratio: fewer than 3 distinct reporters returns 0.0", burst_ratio(r_two, now=now) == 0.0)
+
+    # 2. Bot duplicate text: 10 reports with identical text -> only 1 distinct reporter -> 0.0
+    r_bot = [
+        {"raw_text": "Spam bot message", "created_at": now - timedelta(hours=i)}
+        for i in range(10)
+    ]
+    check("burst_ratio: identical bot text dedupes to 1 reporter and returns 0.0", burst_ratio(r_bot, now=now) == 0.0)
+
+    # 3. Steady/uniform arrivals: 10 reports spread across 720 hours (1 month) with 1 in the 72h window
+    r_steady = [
+        {"raw_text": "Report recent", "created_at": now - timedelta(hours=36)}
+    ] + [
+        {"raw_text": f"Report hist {i}", "created_at": now - timedelta(hours=100 + i * 77.5)}
+        for i in range(9)
+    ]
+    # first report is at now - (100 + 8*77.5) = now - 720h. lifetime = 720h.
+    # recent (last 72h) has 1 report. recent_rate = 1 / 72.
+    # baseline_rate = 10 / 720 = 1 / 72. ratio = 1.0
+    check("burst_ratio: steady arrival rate returns 1.0", math.isclose(burst_ratio(r_steady, now=now), 1.0, rel_tol=0.01))
+
+    # 4. Sudden burst: 10 reports, 7 of which arrived in the last 10 hours, while the cluster spans 720 hours
+    r_burst = [
+        {"raw_text": f"Old report {i}", "created_at": now - timedelta(hours=700 + i * 10)}
+        for i in range(3)
+    ] + [
+        {"raw_text": f"Burst report {i}", "created_at": now - timedelta(hours=i + 1)}
+        for i in range(7)
+    ]
+    ratio = burst_ratio(r_burst, now=now)
+    check("burst_ratio: sudden recent surge returns ratio >> 1.0", ratio > 5.0, f"ratio was {ratio}")
+
+
+def test_velocity_term() -> None:
+    from intelligence.scoring import velocity_term
+
+    check("velocity_term: ratio <= 1.0 returns 0.0", velocity_term(0.5) == 0.0)
+    check("velocity_term: ratio == 1.0 returns 0.0", velocity_term(1.0) == 0.0)
+
+    v_mid = velocity_term(5.0)
+    check("velocity_term: ratio 5.0 returns fractional velocity in (0, 1)", 0.0 < v_mid < 1.0)
+
+    v_ceil = velocity_term(config.VELOCITY_RATIO_CEILING)
+    check("velocity_term: ratio at ceiling returns 1.0", math.isclose(v_ceil, 1.0))
+
+    v_above = velocity_term(100.0)
+    check("velocity_term: ratio above ceiling is clamped to 1.0", v_above == 1.0)
+
+
+def test_record_freshness() -> None:
+    from intelligence.scoring import record_freshness
+
+    check("record_freshness: None (unknown age) returns 1.0", record_freshness(None) == 1.0)
+    check("record_freshness: 0 years (current) returns 1.0", record_freshness(0.0) == 1.0)
+    check(
+        "record_freshness: 10 years (one half-life) returns 0.5",
+        math.isclose(record_freshness(10.0), 0.5),
+    )
+    check(
+        "record_freshness: 20 years (two half-lives) returns 0.25",
+        math.isclose(record_freshness(20.0), 0.25),
+    )
+    check(
+        "record_freshness: Census 2011 (15 years) returns ~0.3536",
+        math.isclose(record_freshness(15.0), 0.5 ** 1.5, rel_tol=0.001),
+    )
+
+
+def test_vintage_years_resolution() -> None:
+    from intelligence.recompute import resolve_infra_vintage_years, resolve_vulnerability_vintage_years
+
+    # 1. UDISE+ school condition
+    udise_ev = {"source": "udise_2024_25_this_school", "year": "2024-25"}
+    check("vintage resolution: UDISE+ resolves to 2.0 years in 2026", resolve_infra_vintage_years("education", udise_ev, 2026) == 2.0)
+
+    # 2. JJM tap coverage
+    jjm_ev = {"source": "jal_jeevan_mission_current"}
+    check("vintage resolution: JJM resolves to 2.0 years in 2026", resolve_infra_vintage_years("water", jjm_ev, 2026) == 2.0)
+
+    # 3. PMGSY road with undelivered works
+    pmgsy_ev = {"oldest_undelivered_sanction_year": 2022}
+    check("vintage resolution: PMGSY with sanction year resolves to real age", resolve_infra_vintage_years("road", pmgsy_ev, 2026) == 4.0)
+
+    # 4. Census 2011 fallbacks
+    check("vintage resolution: road without sanction year falls back to Census 2011 (15y)", resolve_infra_vintage_years("road", {}, 2026) == 15.0)
+    check("vintage resolution: water census fallback is Census 2011 (15y)", resolve_infra_vintage_years("water", {"source": "census_2011_may_overstate"}, 2026) == 15.0)
+    check("vintage resolution: health falls back to Census 2011 (15y)", resolve_infra_vintage_years("health", {}, 2026) == 15.0)
+    check("vintage resolution: education without UDISE falls back to Census 2011 (15y)", resolve_infra_vintage_years("education", {}, 2026) == 15.0)
+
+    # 5. Vulnerability
+    vuln_ev = {"period": "census_2011_structural_baseline"}
+    check("vintage resolution: vulnerability is Census 2011 (15y)", resolve_vulnerability_vintage_years(vuln_ev, 2026) == 15.0)
+
+
+def test_stale_record_trust_blend() -> None:
+    from intelligence.scoring import urgency_points
+
+    # 1. Fresh record (vintage_years = 0.0) -> trust = 1.0 even under severe burst
+    fresh_res = score_cluster(
+        **_baseline_kwargs(),
+        real_infra_deficit=0.1,
+        real_vulnerability=0.2,
+        infra_deficit_vintage_years=0.0,
+        velocity=1.0,
+        high_severity_share=1.0,
+    )
+    unburst_fresh_res = score_cluster(
+        **_baseline_kwargs(),
+        real_infra_deficit=0.1,
+        real_vulnerability=0.2,
+        infra_deficit_vintage_years=0.0,
+        velocity=0.0,
+        high_severity_share=0.0,
+    )
+    check(
+        "trust blend: fresh record stays trusted (>=0.95) under severe burst",
+        fresh_res["data_basis"]["infra_deficit"] == "government_records",
+    )
+    check(
+        "trust blend: fresh record infra value is not discounted",
+        fresh_res["breakdown"]["infra_deficit"] == unburst_fresh_res["breakdown"]["infra_deficit"],
+    )
+
+    # 2. Stale record (15 years) but NO burst (velocity = 0.0) -> trust = 1.0
+    no_burst_res = score_cluster(
+        **_baseline_kwargs(),
+        real_infra_deficit=0.0,
+        infra_deficit_vintage_years=15.0,
+        velocity=0.0,
+        high_severity_share=1.0,
+    )
+    check(
+        "trust blend: uncontradicted stale record retains government_records basis",
+        no_burst_res["data_basis"]["infra_deficit"] == "government_records",
+    )
+    check(
+        "trust blend: uncontradicted stale record infra points stay 0.0",
+        no_burst_res["breakdown"]["infra_deficit"] == 0.0,
+    )
+
+    # 3. Stale record (15 years) with low severity reports (high_severity_share = 0.0) -> trust = 1.0
+    low_sev_res = score_cluster(
+        **_baseline_kwargs(),
+        real_infra_deficit=0.0,
+        infra_deficit_vintage_years=15.0,
+        velocity=1.0,
+        high_severity_share=0.0,
+    )
+    check(
+        "trust blend: low-severity burst does not discount government record",
+        low_sev_res["data_basis"]["infra_deficit"] == "government_records",
+    )
+
+    # 4. Stale record (15 years) WITH high-velocity, high-severity burst -> trust discounted, blended
+    blended_res = score_cluster(
+        **_baseline_kwargs(severities=["high"] * 10),
+        real_infra_deficit=0.0,
+        infra_deficit_vintage_years=15.0,
+        velocity=0.8,
+        high_severity_share=1.0,
+    )
+    check(
+        "trust blend: contradicted stale record labels data_basis as blended",
+        blended_res["data_basis"]["infra_deficit"].startswith("blended:"),
+        f"got {blended_res['data_basis']['infra_deficit']}",
+    )
+    check(
+        "trust blend: contradicted stale record receives positive infra points instead of 0.0",
+        blended_res["breakdown"]["infra_deficit"] > 5.0,
+        f"got {blended_res['breakdown']['infra_deficit']}",
+    )
+
+    # 5. Vulnerability blend behaves identically
+    blended_vuln = score_cluster(
+        **_baseline_kwargs(),
+        real_vulnerability=0.0,
+        vulnerability_vintage_years=15.0,
+        velocity=0.8,
+        high_severity_share=1.0,
+    )
+    check(
+        "trust blend: vulnerability also blends when contradicted",
+        blended_vuln["data_basis"]["vulnerability"].startswith("blended:"),
+        f"got {blended_vuln['data_basis']['vulnerability']}",
+    )
+    check(
+        "trust blend: vulnerability recovers points under contradiction",
+        blended_vuln["breakdown"]["vulnerability"] > 0.0,
+    )
+
+    # 6. Guardrail: Urgency points and Gap Score Max Points are untouched
+    check("urgency guardrail: urgency_points is unchanged", urgency_points("road") == config.URGENCY_POINTS)
+    check("urgency guardrail: URGENCY_POINTS is 3.0", config.URGENCY_POINTS == 3.0)
+    check("gap score guardrail: GAP_SCORE_MAX_POINTS is 81.0", config.GAP_SCORE_MAX_POINTS == 81.0)
+
+
 def main() -> None:
     print("\nP3 Intelligence Engine -- test suite")
     print("-" * 65)
@@ -1801,6 +2008,11 @@ def main() -> None:
         test_school_investment_uses_unspent_grant_and_real_deficiency,
         test_budget_optimizer_knapsack_is_exact_not_greedy,
         test_budget_optimizer_excludes_assets_with_no_real_cost,
+        test_burst_ratio,
+        test_velocity_term,
+        test_record_freshness,
+        test_vintage_years_resolution,
+        test_stale_record_trust_blend,
     ]:
         test()
 
