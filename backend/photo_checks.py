@@ -37,6 +37,8 @@ import json
 import math
 import os
 import re
+import subprocess
+import tempfile
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -74,6 +76,19 @@ MODEL_TTA = os.getenv("AWAAZIQ_POTHOLE_TTA", "1") == "1"
 
 # Optional future classifier for building/bridge damage (C6). Unset = none.
 DAMAGE_MODEL_PATH = os.getenv("AWAAZIQ_DAMAGE_MODEL")
+
+# C6, real model, prototype stage only. No trained ground-level collapse
+# classifier exists anywhere (checked live, see BUILD_PROMPT/session notes) --
+# what genuinely works for "does this photo show a cracked/partially damaged/
+# collapsed bridge or building" is a general vision-language model doing
+# coarse scene judgment, not a narrow detector. Routed through the local
+# OmniRoute gateway for now, which is this machine's own dev convenience and
+# authenticates itself -- swap AWAAZIQ_VLM_MODE/AWAAZIQ_VLM_MODEL for a
+# direct provider API key before real deployment; nothing else in this
+# function needs to change to do that.
+VLM_DAMAGE_ENABLED = os.getenv("AWAAZIQ_VLM_DAMAGE_MODEL", "1") == "1"
+VLM_MODEL = os.getenv("AWAAZIQ_VLM_MODEL", "antigravity/gemini-3.7-flash-medium")
+VLM_TIMEOUT_SECONDS = int(os.getenv("AWAAZIQ_VLM_TIMEOUT", "25"))
 
 # C1: a photo captured further than this from the chosen village is flagged.
 # Same radius the intake form already allows for a map pin.
@@ -703,47 +718,161 @@ def _match(pattern: str, text: str) -> bool:
     return re.search(pattern, text, re.IGNORECASE) is not None
 
 
-def grade_damage(text: str | None, defects: dict | None) -> dict:
+_VLM_PROMPT = (
+    "You are assisting a civic complaint system that routes citizen reports "
+    "about broken infrastructure. This photo was attached to a report that "
+    "may describe a damaged bridge or building. Reply with ONLY a JSON "
+    "object, no other text, no markdown fences: "
+    '{"structure": "bridge"|"building"|"none", '
+    '"grade": "none"|"crack"|"partial"|"collapse", '
+    '"confidence": 0.0-1.0, "reasoning": "one short sentence"}. '
+    'Use "none"/"none" when the photo does not show a damaged bridge or '
+    "building at all (e.g. a road, a pothole, an unrelated scene). Be "
+    "conservative: only say collapse when the structure is genuinely down "
+    "or clearly caved in, not for ordinary wear, dirt, or minor cracks."
+)
+
+
+def vlm_grade_damage(img: Image.Image) -> dict | None:
+    """
+    C6, the real model. No trained ground-level bridge/building collapse
+    classifier exists anywhere to install at DAMAGE_MODEL_PATH (checked
+    live) -- what a general vision-language model is genuinely good at is
+    exactly this: a coarse scene judgment ("does this look like a cracked,
+    partially damaged, or collapsed structure"), the thing a narrow
+    road-surface detector structurally cannot do. It stays a signal, not a
+    verdict, same as every other check here: never decisive alone, and a
+    failure here (server down, bad response, timeout) returns None rather
+    than guessing -- the caller falls back to wording-only grading exactly
+    as it always could.
+
+    Routed through the local OmniRoute gateway (a dev-machine convenience
+    for this prototype -- see the module-level note by VLM_MODEL). Swapping
+    to a direct provider API key later only touches this function.
+    """
+    if not VLM_DAMAGE_ENABLED:
+        return None
+    tmp_path = None
+    try:
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=85)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        body = {
+            "model": VLM_MODEL,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": _VLM_PROMPT},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                ],
+            }],
+            "max_tokens": 150,
+            "temperature": 0.0,
+        }
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as tmp:
+            json.dump(body, tmp)
+            tmp_path = tmp.name
+
+        proc = subprocess.run(
+            ["omniroute", "api", "chat", "post-api-v1-chat-completions",
+             "--body", f"@{tmp_path}", "--output", "json"],
+            shell=True,  # required on Windows so the omniroute .cmd shim resolves
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=VLM_TIMEOUT_SECONDS,
+        )
+        if proc.returncode != 0:
+            return None
+        stdout = proc.stdout or ""
+        brace = stdout.find("{")
+        if brace == -1:
+            return None
+        response = json.loads(stdout[brace:])
+        content = response["choices"][0]["message"]["content"]
+        cbrace = content.find("{")
+        cend = content.rfind("}")
+        if cbrace == -1 or cend == -1:
+            return None
+        parsed = json.loads(content[cbrace:cend + 1])
+
+        structure = parsed.get("structure")
+        grade = parsed.get("grade")
+        if structure not in ("bridge", "building") or grade not in GRADE_VALUE:
+            return None
+        return {
+            "structure": structure,
+            "grade": grade,
+            "confidence": max(0.0, min(1.0, float(parsed.get("confidence", 0.5)))),
+            "reasoning": parsed.get("reasoning"),
+            "model": VLM_MODEL,
+        }
+    except Exception:
+        # Never a reason to fail the report -- wording-only grading still runs.
+        return None
+    finally:
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
+
+
+def grade_damage(text: str | None, defects: dict | None, img: Image.Image | None = None) -> dict:
     """
     C6. Owner's definition: urgency is for bridge or building damage only,
     graded crack (1/3) < partial damage (2/3) < collapse (1). Potholes are
     road condition, not emergencies.
 
     Signals, none decisive alone, every one optional:
-      photo  - the detector's crack class; many/large detections -> partial
-      words  - catastrophic wording in the complaint (en / hi / mr / Hinglish)
-    The detector was trained on road surfaces, so on a wall or bridge photo it
-    is a proxy, and it cannot see a collapse. A collapse grade therefore
-    always rests on wording and is labelled unconfirmed by photo.
+      photo (VLM)   - vlm_grade_damage(): the real model, sees crack/partial/
+                      collapse directly (see its own docstring for why a
+                      general vision-language model, not a narrow detector)
+      photo (proxy) - the pothole/crack detector's confidence, reused as a
+                      weak fallback signal when the VLM call didn't fire
+      words         - catastrophic wording in the complaint (en/hi/mr/Hinglish)
+    A collapse grade from the VLM is real photo evidence, not wording-only --
+    tracked separately (collapse_confirmed_by_photo) so the dashboard can be
+    honest about which kind of evidence produced it.
     """
     text = text or ""
     structure = next((name for name, pat in _STRUCTURE_WORDS.items() if _match(pat, text)), None)
     word_grade = next((g for g in ("collapse", "partial", "crack") if _match(_GRADE_WORDS[g], text)), None)
 
-    photo_grade, photo_conf = None, 0.0
+    vlm_result = vlm_grade_damage(img) if img is not None else None
+    if vlm_result:
+        structure = structure or vlm_result["structure"]
+
+    proxy_grade, proxy_conf = None, 0.0
     if defects and defects.get("available"):
         crack = defects.get("crack_confidence", 0.0)
         pothole = defects.get("pothole_confidence", 0.0)
         n_strong = defects.get("cracks", 0) + defects.get("potholes", 0)
         if n_strong >= 2 and defects.get("damage_area_pct", 0) >= 20:
-            photo_grade, photo_conf = "partial", max(crack, pothole)
+            proxy_grade, proxy_conf = "partial", max(crack, pothole)
         elif crack >= DEFECT_CONF_THRESHOLD:
-            photo_grade, photo_conf = "crack", crack
+            proxy_grade, proxy_conf = "crack", crack
 
     signals = []
-    if photo_grade:
-        signals.append({"signal": "photo_damage_model", "grade": photo_grade,
-                        "confidence": round(photo_conf, 3), "weight": 0.45})
+    if vlm_result:
+        signals.append({"signal": "photo_damage_model", "grade": vlm_result["grade"],
+                        "confidence": round(vlm_result["confidence"], 3), "weight": 0.55})
+    elif proxy_grade:
+        # Fallback only when the real model didn't answer -- lower weight,
+        # it was never trained to look at walls or bridges.
+        signals.append({"signal": "photo_damage_proxy", "grade": proxy_grade,
+                        "confidence": round(proxy_conf, 3), "weight": 0.30})
     if word_grade:
         signals.append({"signal": "complaint_wording", "grade": word_grade, "confidence": 1.0, "weight": 0.35})
 
     grades = [s["grade"] for s in signals]
     grade = max(grades, key=lambda g: GRADE_VALUE[g]) if grades else None
     confidence = sum(s["weight"] * s["confidence"] for s in signals)
-    if photo_grade and word_grade:
+    if len(signals) >= 2:
         confidence += 0.20  # two independent sources agree that something is broken
     confidence = round(min(1.0, confidence), 3)
 
+    photo_grade = vlm_result["grade"] if vlm_result else proxy_grade
     return {
         "structure": structure,
         "grade": grade,
@@ -753,8 +882,10 @@ def grade_damage(text: str | None, defects: dict | None) -> dict:
         "photo_grade": photo_grade,
         "wording_grade": word_grade,
         "signals": signals,
-        "collapse_confirmed_by_photo": False,
-        "damage_model": "building/bridge classifier not installed" if not DAMAGE_MODEL_PATH else DAMAGE_MODEL_PATH,
+        "collapse_confirmed_by_photo": bool(vlm_result and vlm_result["grade"] == "collapse"),
+        "damage_model": vlm_result["model"] if vlm_result else (
+            "vision-LLM: no answer this call" if VLM_DAMAGE_ENABLED else "building/bridge model disabled"
+        ),
     }
 
 
@@ -857,7 +988,7 @@ def analyze_photo(
         "score": round(max(moire.get("score") or 0.0, 0.9 if live.get("static") else 0.0), 3),
     }
     defects = detect_defects(img)
-    damage = grade_damage(text, defects)
+    damage = grade_damage(text, defects, img)
     summary = summarise(capture, dup_flags, ela, moire, live, defects, category)
 
     result = {

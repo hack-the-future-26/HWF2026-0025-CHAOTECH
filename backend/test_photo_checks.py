@@ -24,6 +24,12 @@ _TMP_DB = Path(tempfile.gettempdir()) / "awaaziq_test_photo_checks.db"
 for suffix in ("", "-wal", "-shm"):
     Path(str(_TMP_DB) + suffix).unlink(missing_ok=True)
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP_DB}"
+# The C6 vision-LLM call (photo_checks.vlm_grade_damage) hits a real local
+# gateway over the network -- never in this suite. Every other test that
+# runs a real photo through analyze_photo() must stay fast, deterministic,
+# and independent of an external service being up; the VLM-specific test
+# below re-enables it only for its own duration, with subprocess mocked.
+os.environ["AWAAZIQ_VLM_DAMAGE_MODEL"] = "0"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 
@@ -200,6 +206,70 @@ def test_c6_damage_grade() -> None:
           pc.GRADE_VALUE["crack"] < pc.GRADE_VALUE["partial"] < pc.GRADE_VALUE["collapse"] == 1.0)
 
 
+def _fake_vlm_proc(content: str):
+    """A subprocess.CompletedProcess standing in for a real `omniroute api
+    chat` call -- shaped exactly like the real JSON response body confirmed
+    live this session, so parsing is tested against the real contract."""
+    import subprocess as _sp
+    body = {"choices": [{"message": {"content": content}}]}
+    return _sp.CompletedProcess(args=[], returncode=0, stdout=json.dumps(body), stderr="")
+
+
+def test_c6_vlm_damage_model() -> None:
+    """
+    C6, the real model. subprocess.run is mocked -- this suite must never
+    make a live network call -- but the mocked response is shaped exactly
+    like the real one confirmed live against the actual gateway this
+    session, so the parsing logic is genuinely exercised, not just trusted.
+    """
+    from unittest.mock import patch
+
+    img = Image.new("RGB", (64, 64), (120, 120, 120))
+    real_env = os.environ.get("AWAAZIQ_VLM_DAMAGE_MODEL")
+    os.environ["AWAAZIQ_VLM_DAMAGE_MODEL"] = "1"
+    pc.VLM_DAMAGE_ENABLED = True
+    try:
+        with patch("photo_checks.subprocess.run") as mock_run:
+            mock_run.return_value = _fake_vlm_proc(
+                '{"structure": "bridge", "grade": "collapse", "confidence": 0.9, '
+                '"reasoning": "The bridge deck has fully given way."}'
+            )
+            result = pc.vlm_grade_damage(img)
+            check("C6 VLM: parses a real-shaped collapse response", result is not None and result["grade"] == "collapse")
+            check("C6 VLM: structure carried through", result["structure"] == "bridge")
+            check("C6 VLM: confidence clamped into 0..1", 0.0 <= result["confidence"] <= 1.0)
+
+            g = pc.grade_damage("looks bad", {"available": False}, img)
+            check("C6 VLM: a real photo collapse IS confirmed by photo", g["collapse_confirmed_by_photo"] is True)
+            check("C6 VLM: grade comes from the model, not wording alone", g["grade"] == "collapse")
+
+        with patch("photo_checks.subprocess.run") as mock_run:
+            mock_run.return_value = _fake_vlm_proc(
+                '{"structure": "none", "grade": "none", "confidence": 0.95, "reasoning": "Ordinary road."}'
+            )
+            result = pc.vlm_grade_damage(img)
+            check("C6 VLM: 'none' structure/grade returns None, not a guess", result is None)
+
+        with patch("photo_checks.subprocess.run") as mock_run:
+            mock_run.return_value = subprocess_error()
+            result = pc.vlm_grade_damage(img)
+            check("C6 VLM: a failed call returns None, never raises", result is None)
+            g = pc.grade_damage("bridge is cracked", {"available": False}, img)
+            check("C6 VLM: falls back to wording-only when the model call fails",
+                  g["grade"] == "crack" and g["collapse_confirmed_by_photo"] is False)
+    finally:
+        if real_env is None:
+            os.environ.pop("AWAAZIQ_VLM_DAMAGE_MODEL", None)
+        else:
+            os.environ["AWAAZIQ_VLM_DAMAGE_MODEL"] = real_env
+        pc.VLM_DAMAGE_ENABLED = real_env == "1"
+
+
+def subprocess_error():
+    import subprocess as _sp
+    return _sp.CompletedProcess(args=[], returncode=1, stdout="", stderr="connection refused")
+
+
 # ----------------------------------------------------------------- C7 --
 
 def test_c7_screen_replay() -> None:
@@ -350,7 +420,8 @@ def main() -> None:
     print("\nWorkstream C -- photo checks test suite")
     print("-" * 65)
     for test in (test_c1_capture, test_c3_duplicates, test_c4_error_level, test_c5_model,
-                 test_c6_damage_grade, test_c7_screen_replay, test_summary_never_rejects, test_endpoints):
+                 test_c6_damage_grade, test_c6_vlm_damage_model, test_c7_screen_replay,
+                 test_summary_never_rejects, test_endpoints):
         test()
     print("-" * 65)
     print(f"  Result: {_passed}/{_passed + len(_failed)} passed, {len(_failed)} failed, {len(_skipped)} skipped")

@@ -610,12 +610,36 @@ def _score_members(
     b_ratio = burst_ratio(members, now=now)
     velocity = velocity_term(b_ratio)
 
+    # Real photo evidence (Workstream C, C5/C6) reaches urgency here -- it
+    # was already computed and stored for the dashboard (see the outer
+    # _photo_evidence() call in recompute()) but never actually passed to
+    # the emergency evaluator, so a photographed collapse with mild wording
+    # got zero urgency credit. Cheap pure aggregation, safe to compute again
+    # from the same members list already in scope.
+    #
+    # evaluate_emergency_signals expects the same numeric-grade shape
+    # detect_report_emergency() itself returns (grade: 0/1/3/2/3/1.0,
+    # grade_label: the string) -- _photo_evidence's emergency_damage carries
+    # the string grade only, from backend/photo_checks.py's own GRADE_VALUE
+    # (identical values, kept as a literal here rather than importing across
+    # the intelligence/backend boundary for one small mapping).
+    _PHOTO_GRADE_VALUE = {"crack": 1 / 3, "partial": 2 / 3, "collapse": 1.0}
+    raw_photo_damage = _photo_evidence(members).get("emergency_damage")
+    photo_damage = None
+    if raw_photo_damage and raw_photo_damage.get("grade") in _PHOTO_GRADE_VALUE:
+        photo_damage = {
+            "grade": _PHOTO_GRADE_VALUE[raw_photo_damage["grade"]],
+            "grade_label": raw_photo_damage["grade"],
+            "confidence": raw_photo_damage.get("confidence") or 0.0,
+        }
+
     emergency_eval = evaluate_emergency_signals(
         members,
         category,
         velocity=velocity,
         hazard_flag=hazard_flag,
         hazard_evidence=hazard_evidence,
+        photo_damage=photo_damage,
     )
 
     infra_vintage_years = (
