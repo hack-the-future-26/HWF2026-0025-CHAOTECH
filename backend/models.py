@@ -27,6 +27,15 @@ class CitizenRequest(Base):
     village = Column(Text)
     latitude = Column(Float)
     longitude = Column(Float)
+    # Citizen-supplied GPS pin from the intake form's map control.  When
+    # present, these are the coordinates the citizen actually stood at or
+    # tapped on, rather than the village centroid the gazetteer resolves to.
+    # Nullable: the pin is optional, and every report filed before this
+    # feature exists has no pin.  The existing latitude/longitude columns
+    # stay the village-resolved fallback and continue to be set exactly as
+    # before.
+    precise_lat = Column(Float, nullable=True)
+    precise_lon = Column(Float, nullable=True)
     confidence = Column(Float)
     is_synthetic = Column(Boolean, default=False)
     # Which line department the complaint is routed to -- our equivalent of
@@ -41,6 +50,12 @@ class CitizenRequest(Base):
     cluster_id = Column(Integer, ForeignKey("demand_cluster.id"), nullable=True)
     # Registered citizen who filed the report, if authenticated.
     user_id = Column(Integer, ForeignKey("citizen_user.id"), nullable=True)
+    # Specific facility (school or hospital) chosen on the intake form.
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
+    # Source of the report's coordinates: "citizen_gps" or "synthetic_seed".
+    pin_source = Column(Text, nullable=True)
+    # Specific asset this report was grouped into, rebuilt on every recompute.
+    asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
 
 
 class CitizenRequestRaw(Base):
@@ -410,6 +425,9 @@ class WorkGroup(Base):
     asset_source = Column(Text)              # "udise", "pmgsy"
     asset_external_id = Column(Text)         # UDISE code, PMGSY work id
     asset_candidates = Column(Text)          # JSON: the ranked shortlist
+    # Whether this group's position comes from citizen GPS pins, village
+    # centroids, or a mix.  Lets the dashboard mark which pins are exact.
+    location_basis = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -514,3 +532,145 @@ class LgdVillage(Base):
     state_name = Column(Text)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class MosdacRainfall(Base):
+    """
+    Gridded recent rainfall from ISRO MOSDAC's GSMaP Rain product (0.1°x0.1° grid,
+    hourly, IMD-gauge-corrected, covering India).
+
+    Used as an objective meteorological corroboration signal for road washout
+    and water shortage/drought complaints.  Keyed by 0.1° grid cell coordinates
+    (grid_lat, grid_lon) and window duration.
+    """
+
+    __tablename__ = "mosdac_rainfall"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    grid_lat = Column(Float, index=True)
+    grid_lon = Column(Float, index=True)
+    district = Column(Text, index=True)
+    rainfall_mm = Column(Float)
+    window_hours = Column(Float, default=72.0)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class NwdpGroundwater(Base):
+    """
+    Groundwater telemetry stations and recent water levels from India's
+    National Water Data Portal (NWDP / NWIC, Maharashtra Ground Water Dept).
+
+    Used as an objective hydrological corroboration signal for water scarcity
+    and drought complaints ("pani nahi aata").
+    """
+
+    __tablename__ = "nwdp_groundwater"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    station_name = Column(Text, index=True)
+    district = Column(Text, index=True)
+    tehsil = Column(Text)
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+    current_level_m = Column(Float)
+    previous_level_m = Column(Float, nullable=True)
+    trend = Column(Text)  # "falling", "rising", "stable"
+    recorded_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Asset(Base):
+    """
+    A specific, tangible asset (named school, health facility, road problem spot,
+    or water point) with its own priority score, breakdown, and evidence.
+    Rebuilt on every recompute pass.
+    """
+
+    __tablename__ = "asset"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_type = Column(Text, index=True)  # road, water, health, education
+    name = Column(Text)
+    name_basis = Column(Text)  # citizen_selected, nearest_register, pmgsy_work, unnamed_pin, unresolved_village
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
+    source = Column(Text, nullable=True)
+    external_id = Column(Text, nullable=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    location_basis = Column(Text)  # register_coordinates, citizen_gps_pin, synthetic_seed, village_centroid, mixed
+    primary_gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True)
+    village = Column(Text, index=True)
+    block = Column(Text, index=True)
+    district = Column(Text, index=True)
+    villages_served = Column(Text)  # JSON list of village names
+    report_count = Column(Integer, default=0)
+    distinct_reporters = Column(Integer, default=0)
+    priority_score = Column(Float, index=True)
+    breakdown = Column(Text)  # JSON text
+    evidence = Column(Text)  # JSON text
+    candidates = Column(Text, nullable=True)  # JSON text
+    is_demo = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class VillagePriority(Base):
+    """
+    Priority ranking for each revenue village in the gazetteer that has citizen
+    complaints. Driven by the village's highest-need asset.
+    Rebuilt on every recompute pass.
+    """
+
+    __tablename__ = "village_priority"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), index=True)
+    village = Column(Text, index=True)
+    block = Column(Text, index=True)
+    district = Column(Text, index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    population = Column(Integer, nullable=True)
+    report_count = Column(Integer, default=0)
+    counts_by_category = Column(Text)  # JSON
+    asset_count = Column(Integer, default=0)
+    priority_score = Column(Float, index=True)
+    top_asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    rank_in_district = Column(Integer, nullable=True)
+    is_demo = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PMGSYRoadSegment(Base):
+    """
+    Physical road segment from PMGSY GeoSadak (Road_DRRP layer).
+    Provides real line geometry, official road name, category, and agency ownership
+    for rural road infrastructure in Maharashtra.
+    """
+
+    __tablename__ = "pmgsy_road_segment"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    external_id = Column(Integer, index=True, nullable=True)  # ER_ID from shapefile
+    state_id = Column(Integer, default=21)
+    district_id = Column(Integer, index=True)
+    block_id = Column(Integer, index=True)
+    district = Column(Text, index=True)                       # "Kolhapur", "Nashik"
+    block = Column(Text, index=True, nullable=True)           # block name resolved from MasterData
+    drrp_road_code = Column(Text, nullable=True)              # DRRP_ROAD_ (e.g. "VR 18", "ODR-36")
+    road_name = Column(Text, nullable=True)                   # RoadName (e.g. "MDR 39 To Gaganbavda...")
+    road_category = Column(Text, nullable=True)               # RoadCatego (e.g. "RR(VR)", "MDR", "SH")
+    road_owner = Column(Text, nullable=True)                  # RoadOwner (e.g. "RWD", "PWD", "MRRDA")
+    start_lat = Column(Float)
+    start_lon = Column(Float)
+    end_lat = Column(Float)
+    end_lon = Column(Float)
+    points_json = Column(Text)                                # JSON list of [lat, lon] coordinates
+    point_count = Column(Integer, default=0)
+    min_lat = Column(Float, index=True)
+    max_lat = Column(Float, index=True)
+    min_lon = Column(Float, index=True)
+    max_lon = Column(Float, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+

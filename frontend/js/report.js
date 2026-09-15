@@ -68,6 +68,9 @@
 
   let departments = {};          // category -> [{id, name, note}]
   let chosenFiles = [];
+  let villageCoords = {};            // village name -> {lat, lon}
+  let pinMap = null, pinMarker = null;
+  let reportLat = null, reportLon = null;
 
   /* ------------------------------------------------------------- my ids -- */
 
@@ -167,6 +170,10 @@
     const rows = await getJSON(
       `/gazetteer/villages?district=${encodeURIComponent(district)}` +
       `&block=${encodeURIComponent(block)}`);
+    // Keep village coordinates so the pin map can centre on the chosen
+    // village -- fill() only uses the name and drops lat/lon.
+    villageCoords = {};
+    rows.forEach((r) => { if (r.lat != null && r.lon != null) villageCoords[r.name] = { lat: r.lat, lon: r.lon }; });
     fill(village, rows, `Select village… (${rows.length})`);
     village.disabled = false;
   }
@@ -193,6 +200,93 @@
     });
     dept.disabled = !list.length;
     el("deptHint").textContent = "The office that holds the budget for this";
+  }
+
+  /* ------------------------------------------------------ facilities -- */
+
+  async function loadFacilities() {
+    const field = el("facilityField");
+    const select = el("facility");
+    if (!field || !select) return;
+
+    const district = val("district");
+    const block = val("block");
+    const village = val("village");
+    const category = val("category");
+
+    if (!village || (category !== "education" && category !== "health")) {
+      field.hidden = true;
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+      return;
+    }
+
+    field.hidden = false;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading facilities…</option>';
+
+    try {
+      const facilities = await getJSON(
+        `/gazetteer/facilities?district=${encodeURIComponent(district)}` +
+        `&block=${encodeURIComponent(block)}` +
+        `&village=${encodeURIComponent(village)}` +
+        `&category=${encodeURIComponent(category)}`
+      );
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+      facilities.forEach((f) => {
+        const o = document.createElement("option");
+        o.value = f.id;
+        const distStr = f.distance_m != null ? ` (${Math.round(f.distance_m)}m away)` : "";
+        const subStr = f.sub_type ? ` · ${f.sub_type}` : "";
+        o.textContent = `${f.name}${subStr}${distStr}`;
+        select.appendChild(o);
+      });
+    } catch {
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+    }
+    select.disabled = false;
+  }
+
+  /* --------------------------------------------------------- pin map -- */
+
+  function initPinMap() {
+    if (pinMap) return;
+    const osm = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }
+    );
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { attribution: '&copy; Esri, Maxar, Earthstar Geographics', maxZoom: 19 }
+    );
+    pinMap = L.map("pinMap", { layers: [osm] }).setView([17.7, 75.7], 7);
+    L.control.layers({ "Street": osm, "Satellite": satellite }).addTo(pinMap);
+    pinMap.on("click", (e) => setPin(e.latlng.lat, e.latlng.lng));
+  }
+
+  function setPin(lat, lon) {
+    reportLat = lat;
+    reportLon = lon;
+    if (pinMarker) {
+      pinMarker.setLatLng([lat, lon]);
+    } else {
+      pinMarker = L.marker([lat, lon], { draggable: true }).addTo(pinMap);
+      pinMarker.on("dragend", () => {
+        const ll = pinMarker.getLatLng();
+        reportLat = ll.lat;
+        reportLon = ll.lng;
+        el("pinHint").textContent = `Pin set: ${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}`;
+      });
+    }
+    el("pinHint").textContent = `Pin set: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    el("btnClearPin").hidden = false;
+  }
+
+  function clearPin() {
+    if (pinMarker) { pinMap.removeLayer(pinMarker); pinMarker = null; }
+    reportLat = null;
+    reportLon = null;
+    el("pinHint").textContent = "No pin set — the village centre will be used";
+    el("btnClearPin").hidden = true;
   }
 
   /* --------------------------------------------------------------- files -- */
@@ -237,6 +331,17 @@
       department: need("department", "Department"),
       text: val("text"),
     };
+    // Precise GPS pin — only appended when the citizen has placed one.
+    // Feeds report_lat/report_lon to the backend's _validate_pin().
+    if (reportLat != null && reportLon != null) {
+      data.report_lat = reportLat;
+      data.report_lon = reportLon;
+    }
+    // Citizen-picked specific school or hospital (optional)
+    const facVal = val("facility");
+    if (facVal) {
+      data.facility_id = parseInt(facVal, 10);
+    }
 
     if (!session) {
       errors.push(["text", "Sign in or create an account to file a grievance"]);
@@ -433,6 +538,9 @@
     renderFiles();
     el("submit").disabled = false;
     showErrors([]);
+    clearPin();
+    if (el("facility")) el("facility").value = "";
+    if (el("facilityField")) el("facilityField").hidden = true;
     show("doneCard", false);
     show("runCard", false);
     show("form", true);
@@ -626,7 +734,31 @@
   el("district").addEventListener("change", (e) => loadBlocks(e.target.value));
   el("block").addEventListener("change", (e) =>
     loadVillages(val("district"), e.target.value));
-  el("category").addEventListener("change", (e) => fillDepartments(e.target.value));
+  el("village").addEventListener("change", (e) => {
+    const coords = villageCoords[e.target.value];
+    if (!coords) { el("pinCard").hidden = true; clearPin(); return; }
+    el("pinCard").hidden = false;
+    initPinMap();
+    // Leaflet must recalculate tile positions after the container becomes
+    // visible, otherwise tiles render in the wrong position or not at all.
+    setTimeout(() => {
+      pinMap.invalidateSize();
+      pinMap.setView([coords.lat, coords.lon], 15);
+    }, 120);
+    loadFacilities();
+  });
+  el("btnGeolocate").addEventListener("click", () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setPin(pos.coords.latitude, pos.coords.longitude),
+      () => { /* silently fail — the map tap is the primary path */ }
+    );
+  });
+  el("btnClearPin").addEventListener("click", clearPin);
+  el("category").addEventListener("change", (e) => {
+    fillDepartments(e.target.value);
+    loadFacilities();
+  });
   el("department").addEventListener("change", (e) => {
     const opt = e.target.selectedOptions[0];
     el("deptHint").textContent =

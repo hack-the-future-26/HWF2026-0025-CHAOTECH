@@ -301,3 +301,78 @@ NO_REAL_DATA_CONFIDENCE_FACTOR = 0.85
 WHATIF_POINTS_PER_CRORE = 0.4
 WHATIF_MAX_POINTS = 12.0
 RUPEES_PER_CRORE = 10_000_000
+
+
+# ---------------------------------------------------------------------------
+# Feature 3 -- precise report location
+# ---------------------------------------------------------------------------
+
+# Maximum distance (km) a citizen-supplied GPS pin may sit from the picked
+# village's centroid.  Beyond this the pin is more likely a GPS glitch, a
+# phone left on a previous location, or a deliberate spoof than a genuine
+# position.  5 km is generous: the largest village extents in Kolhapur/Nashik
+# are roughly 2-3 km, and a citizen reporting a problem on the outskirts of
+# a neighbouring village would still be within this.
+PIN_MAX_DISTANCE_KM = 5.0
+
+
+# ---------------------------------------------------------------------------
+# Feature 6 & Feature 1 -- rainfall accumulation and burst detection window
+# ---------------------------------------------------------------------------
+
+# Lookback window for temporal burst detection and rainfall accumulation (hours).
+# 72 hours (3 days) aligns with the typical duration of an active monsoon
+# depression or intense precipitation event in western Maharashtra, long enough
+# to capture sustained severe rainfall and related complaints without letting
+# historical noise dilute the signal.  Aligned with Task 2's burst window so
+# "rainfall in the last 72h" directly corroborates "reports in the last 72h".
+BURST_WINDOW_HOURS = 72.0
+
+
+# ---------------------------------------------------------------------------
+# Village & Asset priority view
+# ---------------------------------------------------------------------------
+
+# Snapping distance (metres) between a citizen-placed GPS pin and a registered
+# public facility (school or hospital). GPS accuracy on standard smartphones
+# in rural areas routinely fluctuates between 10-30m, and school compounds
+# span several tens or hundreds of metres. 300m allows honest association with
+# the real asset without falsely capturing neighboring institutions.
+ASSET_PIN_SNAP_M = 300.0
+
+# Maximum distance (km) to look for the nearest public health facility when a
+# health report is filed without a specific facility or pin. Set to 8.0 km,
+# which matches the existing health catchment radius (CATCHMENT_RADIUS_KM["health"])
+# representing the outer service perimeter of rural Primary Health Centres (PHC)
+# and Sub-Centres under IPHS guidelines.
+HEALTH_NEAREST_MAX_KM = 8.0
+
+# Search radius (metres) around a village centroid for finding candidate schools
+# when an education report specifies neither a facility nor a precise pin.
+# 2,000m (2 km) aligns with RTE walking distance limits and covers typical
+# revenue village boundaries in Kolhapur and Nashik.
+SCHOOL_CANDIDATE_RADIUS_M = 2000.0
+
+# Maximum number of candidate schools to present in an unresolved school list.
+# Beyond 6 entries, the list creates cognitive fatigue for reviewing officials
+# rather than aiding decision-making.
+SCHOOL_CANDIDATE_MAX = 6
+
+# Distance threshold (metres) for single-linkage spatial clustering of road
+# and water complaints within a village. 250m matches WORK_GROUP_RADIUS_M:
+# large enough to merge complaints about the same broken culvert or water point,
+# small enough to keep distinct problem spots inside a village separate.
+ASSET_GROUP_RADIUS_M = 250.0
+
+# Maximum distance (km) allowed between a picked village centroid and a
+# citizen-selected facility from the intake form dropdown. If a citizen picks
+# a facility further than 10 km from their village, it is rejected as an intake
+# error or mismatch rather than misattributing distant infrastructure.
+FACILITY_MAX_DISTANCE_KM = 10.0
+
+# Number of decimal places to round pin-based asset coordinates in public API
+# responses. 3 decimal places corresponds to roughly ~110m resolution at
+# Maharashtra latitudes, preserving citizen privacy for personal GPS pins
+# while maintaining sufficient spatial clarity for road and water spots on the map.
+ASSET_PUBLIC_COORD_DECIMALS = 3
+

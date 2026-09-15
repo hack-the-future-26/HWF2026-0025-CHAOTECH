@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>AwaazIQ — Development Intelligence</title>
-<link rel="stylesheet" href="css/app.css" />
+<link rel="stylesheet" href="css/app.css?v=village5" />
 </head>
 <body>
 
@@ -53,6 +53,10 @@
     <svg id="map" role="img" aria-label="Zoomable map of India showing citizen demand clusters"></svg>
 
     <nav class="breadcrumb" id="breadcrumb" aria-label="Map location"></nav>
+    <div class="mode-toggle" id="modeToggle" hidden>
+      <button type="button" class="mode-toggle__btn mode-toggle__btn--on" id="btnModeVillages" data-mode="villages">Villages</button>
+      <button type="button" class="mode-toggle__btn" id="btnModeClusters" data-mode="clusters">Category clusters</button>
+    </div>
 
     <div class="status" id="status"></div>
 
@@ -116,7 +120,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="js/app.js?v=fix3"></script>
-<script src="js/panels.js?v=fix3"></script>
+<script src="js/app.js?v=village5"></script>
+<script src="js/panels.js?v=village5"></script>
 </body>
 </html>

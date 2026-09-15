@@ -40,7 +40,9 @@ MEASURED LIMITS OF THE UNDERLYING DATA (see REAL_DATA_RESEARCH.md §5.5)
 
 from __future__ import annotations
 
+import csv
 import math
+from pathlib import Path
 
 from . import config
 
@@ -635,6 +637,7 @@ def load_facility_index(db, category: str | None = None) -> list[dict]:
 
     return [
         {
+            "id": f.id,
             "name": f.name,
             "external_id": f.external_id,
             "source": f.source,
@@ -725,3 +728,276 @@ def name_work_group(
         result["external_id"] = facility["external_id"]
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# NWDP Groundwater Telemetry (Feature corroboration for water scarcity)
+# ---------------------------------------------------------------------------
+
+DEFAULT_GROUNDWATER_MAX_DISTANCE_KM = 25.0
+
+
+def load_groundwater_index(db=None) -> list[dict]:
+    """
+    Groundwater telemetry stations from NWDP (National Water Data Portal).
+
+    Reads from the database if available, otherwise falls back to the
+    snapshot CSV in backend/data/nwdp_groundwater_stations.csv.
+    """
+    stations: list[dict] = []
+    if db is not None:
+        try:
+            from models import NwdpGroundwater
+
+            for row in db.query(NwdpGroundwater).all():
+                if row.latitude is None or row.longitude is None:
+                    continue
+                stations.append(
+                    {
+                        "station_name": row.station_name,
+                        "district": row.district,
+                        "tehsil": row.tehsil,
+                        "lat": row.latitude,
+                        "lon": row.longitude,
+                        "current_level_m": row.current_level_m,
+                        "previous_level_m": row.previous_level_m,
+                        "trend": row.trend or "stable",
+                        "recorded_at": row.recorded_at,
+                    }
+                )
+        except Exception:
+            stations = []
+
+    if not stations:
+        csv_path = (
+            Path(__file__).resolve().parents[1]
+            / "backend"
+            / "data"
+            / "nwdp_groundwater_stations.csv"
+        )
+        if csv_path.exists():
+            with open(csv_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        lat = float(row["latitude"])
+                        lon = float(row["longitude"])
+                        curr = float(row["current_level_m"])
+                        prev = (
+                            float(row["previous_level_m"])
+                            if row.get("previous_level_m")
+                            else None
+                        )
+                        stations.append(
+                            {
+                                "station_name": row.get("station_name"),
+                                "district": row.get("district"),
+                                "tehsil": row.get("tehsil"),
+                                "lat": lat,
+                                "lon": lon,
+                                "current_level_m": curr,
+                                "previous_level_m": prev,
+                                "trend": row.get("trend") or "stable",
+                                "recorded_at": row.get("recorded_at"),
+                            }
+                        )
+                    except (ValueError, TypeError, KeyError):
+                        continue
+
+    return stations
+
+
+def lookup_groundwater(
+    lat: float,
+    lon: float,
+    stations: list[dict],
+    max_distance_km: float = DEFAULT_GROUNDWATER_MAX_DISTANCE_KM,
+) -> tuple[dict | None, str | None]:
+    """
+    Find the nearest NWDP groundwater telemetry station within max_distance_km.
+
+    Returns (station_dict, evidence_str).
+    If no station is within max_distance_km or stations list is empty,
+    returns (None, None).
+    """
+    if not stations:
+        return None, None
+
+    nearest = None
+    min_dist = float("inf")
+
+    for s in stations:
+        dist = haversine_km(lat, lon, s["lat"], s["lon"])
+        if dist < min_dist:
+            min_dist = dist
+            nearest = s
+
+    if nearest is None or min_dist > max_distance_km:
+        return None, None
+
+    level = nearest.get("current_level_m")
+    trend = nearest.get("trend") or "stable"
+    if level is None:
+        return None, None
+
+    # Level format: NWDP telemetry is meters below ground level (recorded as negative).
+    # e.g., "groundwater level in this area: 1.7m bgl, trend: falling"
+    evidence_text = f"groundwater level in this area: {abs(level):.1f}m bgl, trend: {trend}"
+    result = dict(nearest)
+    result["distance_km"] = round(min_dist, 1)
+    return result, evidence_text
+
+
+# ---------------------------------------------------------------------------
+# PMGSY GeoSadak Road Segments (Feature 5)
+# ---------------------------------------------------------------------------
+
+DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M = 150.0
+
+
+def load_road_segment_index(db) -> list[dict]:
+    """
+    Load physical PMGSY GeoSadak road segments from the database.
+    Provides line geometry, road name, category, and ownership.
+    """
+    import json
+    from models import PMGSYRoadSegment  # noqa: E402
+
+    segments = []
+    try:
+        rows = db.query(PMGSYRoadSegment).all()
+        for r in rows:
+            points = []
+            if r.points_json:
+                try:
+                    points = json.loads(r.points_json)
+                except Exception:
+                    points = []
+
+            segments.append(
+                {
+                    "id": r.id,
+                    "external_id": r.external_id,
+                    "district": r.district,
+                    "block": r.block,
+                    "drrp_road_code": r.drrp_road_code,
+                    "road_name": r.road_name,
+                    "road_category": r.road_category,
+                    "road_owner": r.road_owner,
+                    "start_lat": r.start_lat,
+                    "start_lon": r.start_lon,
+                    "end_lat": r.end_lat,
+                    "end_lon": r.end_lon,
+                    "points": points,
+                    "point_count": r.point_count or len(points),
+                    "min_lat": r.min_lat,
+                    "max_lat": r.max_lat,
+                    "min_lon": r.min_lon,
+                    "max_lon": r.max_lon,
+                }
+            )
+    except Exception:
+        segments = []
+
+    return segments
+
+
+def nearest_road_segment(
+    lat: float | None,
+    lon: float | None,
+    segments: list[dict],
+    max_distance_m: float = DEFAULT_ROAD_SEGMENT_MAX_DISTANCE_M,
+) -> tuple[dict | None, float | None]:
+    """
+    Find the nearest PMGSY GeoSadak road segment to (lat, lon) within max_distance_m.
+
+    Uses bounding box pruning, followed by exact point-to-polyline distance
+    using equirectangular projection (accurate to centimeters within local bounds).
+
+    Returns:
+        (nearest_segment_dict, distance_meters) if within max_distance_m,
+        else (None, None).
+    """
+    if lat is None or lon is None or not segments:
+        return None, None
+
+    if not math.isfinite(lat) or not math.isfinite(lon):
+        return None, None
+
+    max_dist_km = max_distance_m / 1000.0
+    lat_buf = (max_dist_km / 111.0) * 1.5
+    cos_lat = max(0.1, math.cos(math.radians(lat)))
+    lon_buf = (max_dist_km / (111.0 * cos_lat)) * 1.5
+
+    m_per_deg_lat = 111139.0
+    m_per_deg_lon = 111139.0 * cos_lat
+
+    nearest = None
+    min_dist_m = float("inf")
+
+    for seg in segments:
+        s_min_lat = seg.get("min_lat")
+        s_max_lat = seg.get("max_lat")
+        s_min_lon = seg.get("min_lon")
+        s_max_lon = seg.get("max_lon")
+
+        # Fast bounding box rejection if bbox is present
+        if s_min_lat is not None and s_max_lat is not None:
+            if lat < s_min_lat - lat_buf or lat > s_max_lat + lat_buf:
+                continue
+        if s_min_lon is not None and s_max_lon is not None:
+            if lon < s_min_lon - lon_buf or lon > s_max_lon + lon_buf:
+                continue
+
+        points = seg.get("points")
+        if not points:
+            p_list = []
+            if seg.get("start_lat") is not None and seg.get("start_lon") is not None:
+                p_list.append([seg["start_lat"], seg["start_lon"]])
+            if seg.get("end_lat") is not None and seg.get("end_lon") is not None:
+                p_list.append([seg["end_lat"], seg["end_lon"]])
+            points = p_list
+
+        if not points:
+            continue
+
+        # Project point-to-line segments
+        seg_min_d = float("inf")
+        if len(points) == 1:
+            plat, plon = points[0][0], points[0][1]
+            seg_min_d = haversine_km(lat, lon, plat, plon) * 1000.0
+        else:
+            for j in range(len(points) - 1):
+                p1_lat, p1_lon = points[j][0], points[j][1]
+                p2_lat, p2_lon = points[j + 1][0], points[j + 1][1]
+
+                x1 = (p1_lon - lon) * m_per_deg_lon
+                y1 = (p1_lat - lat) * m_per_deg_lat
+                x2 = (p2_lon - lon) * m_per_deg_lon
+                y2 = (p2_lat - lat) * m_per_deg_lat
+
+                dx = x2 - x1
+                dy = y2 - y1
+                seg_len_sq = dx * dx + dy * dy
+
+                if seg_len_sq == 0:
+                    d = math.hypot(x1, y1)
+                else:
+                    t = max(0.0, min(1.0, -(x1 * dx + y1 * dy) / seg_len_sq))
+                    proj_x = x1 + t * dx
+                    proj_y = y1 + t * dy
+                    d = math.hypot(proj_x, proj_y)
+
+                if d < seg_min_d:
+                    seg_min_d = d
+
+        if seg_min_d < min_dist_m:
+            min_dist_m = seg_min_d
+            nearest = seg
+
+    if nearest is None or min_dist_m > max_distance_m:
+        return None, None
+
+    return nearest, round(min_dist_m, 1)
+
+

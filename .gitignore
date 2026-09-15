@@ -16,3 +16,11 @@ backend/jjm_cache.json
 backend/uploads/
 backend/data/india_health_facilities.geojson
 backend/data/lgd_villages_by_blocks.csv
+backend/data/pmgsy/
+backend/data/*.zip
+backend/data/*.shp
+backend/data/*.dbf
+backend/data/*.shx
+backend/data/*.prj
+backend/data/*.cpg
+backend/data/*.qpj
