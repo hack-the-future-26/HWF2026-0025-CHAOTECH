@@ -14,7 +14,6 @@
 
   let filter = "all";
   let picked = [];           // up to two clusters selected for comparison
-  let whatIf = null;         // {district, delta, byId:{id: newScore}} once run
 
   /* ----------------------------------------------------------------- rail -- */
 
@@ -23,8 +22,7 @@
     if (filter !== "all") list = list.filter((c) => c.issue_category === filter);
     // Follow the map: inside a district, rank only that district.
     if (A.nav.district) list = list.filter((c) => c.district === A.nav.district);
-    const score = (c) =>
-      (whatIf && whatIf.byId[c.id] ? whatIf.byId[c.id].score : c.priority_score) ?? -1;
+    const score = (c) => c.priority_score ?? -1;
     return list.slice().sort((a, b) => score(b) - score(a));
   }
 
@@ -297,12 +295,11 @@
 
   function closeCompare() { d3.select("#compare").classed("compare--open", false); }
 
-  /* --------------------------------------------------------------- whatif -- */
+  /* ---------------------------------------------------- budget optimizer -- */
 
-  function setupWhatIf() {
+  function setupOptimizer() {
     const districts = Array.from(new Set(A.getClusters().map((c) => c.district))).sort();
     const sel = d3.select("#wiDistrict");
-    sel.selectAll("*").remove();
     districts.forEach((d) => sel.append("option").attr("value", d).text(d));
 
     const amount = document.getElementById("wiAmount");
@@ -315,49 +312,62 @@
       d3.select("#sheet").classed("sheet--open", true));
     document.getElementById("sheetClose").addEventListener("click", () =>
       d3.select("#sheet").classed("sheet--open", false));
-    document.getElementById("wiRun").addEventListener("click", runWhatIf);
+    document.getElementById("wiRun").addEventListener("click", runOptimizer);
   }
 
-  async function runWhatIf() {
+  async function runOptimizer() {
     const district = document.getElementById("wiDistrict").value;
     const crore = +document.getElementById("wiAmount").value;
     const btn = d3.select("#wiRun");
-    btn.attr("disabled", true).text("RUNNING…");
+    btn.attr("disabled", true).text("ALLOCATING…");
 
     try {
-      const res = await fetch(`${A.getApi()}/what-if`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // The API takes rupees; the slider speaks crore because that is the
-        // unit an Indian budget officer actually uses.
-        body: JSON.stringify({ budget_delta: crore * 1e7, district }),
-      });
+      const url = new URL(`${A.getApi()}/budget-optimizer`);
+      url.searchParams.set("budget_crore", crore);
+      if (district) url.searchParams.set("district", district);
+
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      // The API returns priority_score as the NEW score, with the original in
-      // baseline_priority_score and the difference already computed.
-      const byId = {};
-      (data.clusters || []).forEach((c) => {
-        if (c.id != null && c.priority_score != null) {
-          byId[c.id] = { score: c.priority_score, delta: c.score_delta ?? 0 };
-        }
-      });
-      whatIf = { district, delta: crore, byId };
+      const icon = (t) => (t === "road" ? "🛣️" : "💧");
+      const rows = (data.chosen || [])
+        .slice().sort((a, b) => b.cost_lakh - a.cost_lakh)
+        .map((c) =>
+          `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;` +
+          `border-top:1px solid var(--border,#e2dcc6)">` +
+          `<span>${icon(c.asset_type)}</span>` +
+          `<div style="flex:1;min-width:0">` +
+          `<div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;` +
+          `text-overflow:ellipsis">${c.name}</div>` +
+          `<div style="font-size:11px;color:#888">${c.village || "—"}, ${c.district || "—"} · ` +
+          `${A.fmt(c.population_affected || 0)} people</div></div>` +
+          `<div style="font-size:12.5px;font-weight:700;white-space:nowrap">₹${c.cost_lakh} L</div>` +
+          `</div>`)
+        .join("");
 
-      const moved = data.clusters_affected ?? 0;
       d3.select("#wiResult").html(
-        `<b>₹${crore} crore</b> to <b>${district}</b> moved <b>${moved}</b> ` +
-        `cluster${moved === 1 ? "" : "s"}. Updated scores and deltas are shown in the ` +
-        `ranking on the left. Nothing was re-clustered — what is broken does not change ` +
-        `because money moved, only what is fundable does.`);
-      renderList();
+        `<div style="display:flex;gap:10px;margin-bottom:10px">` +
+        [["Projects funded", data.chosen.length],
+         ["Real cost", `₹${data.total_cost_lakh} L`],
+         ["People reached", A.fmt(data.population_reached)],
+         ["Budget left over", `₹${data.remaining_budget_lakh} L`]]
+          .map(([k, v]) =>
+            `<div style="flex:1;padding:10px;border:1px solid var(--border,#e2dcc6);border-radius:8px">` +
+            `<div style="font-size:17px;font-weight:700">${v}</div>` +
+            `<div style="font-size:10.5px;color:#888;text-transform:uppercase;letter-spacing:.03em">${k}</div></div>`)
+          .join("") +
+        `</div>` +
+        `<div style="font-size:11px;color:#888;margin-bottom:4px">` +
+        `Chosen from ${data.candidates_considered} real, already-costed road/water projects ` +
+        `(no health/education yet — no honest per-project cost exists for either).</div>` +
+        `<div style="max-height:220px;overflow:auto">${rows || "<div style='color:#999;font-size:12px'>Nothing fits this budget.</div>"}</div>`);
     } catch (err) {
       d3.select("#wiResult").html(
-        `<b>Simulation failed.</b> ${err.message}. The API must be reachable at ` +
+        `<b>Allocation failed.</b> ${err.message}. The API must be reachable at ` +
         `<code>${A.getApi()}</code>.`);
     } finally {
-      btn.attr("disabled", null).text("RUN SIMULATION");
+      btn.attr("disabled", null).text("ALLOCATE BUDGET");
     }
   }
 
@@ -525,7 +535,7 @@
   A.onReady(() => {
     renderChips();
     renderList();
-    setupWhatIf();
+    setupOptimizer();
 
     document.getElementById("btnCompare").addEventListener("click", openCompare);
     document.getElementById("btnInvest").addEventListener("click", openInvestment);
@@ -547,7 +557,7 @@
     // Deep links, so a specific comparison or simulation can be sent to
     // someone rather than described to them:
     //   ?compare=12,10        open the A-vs-B view for those two clusters
-    //   ?whatif=Kolhapur:50   open the sheet and run ₹50 crore for a district
+    //   ?budget=Kolhapur:50   open the sheet and allocate ₹50 crore for a district
     const q = new URLSearchParams(location.search);
 
     const cmp = q.get("compare");
@@ -564,9 +574,9 @@
       }
     }
 
-    const wi = q.get("whatif");
-    if (wi) {
-      const [district, croreRaw] = wi.split(":");
+    const budgetParam = q.get("budget");
+    if (budgetParam) {
+      const [district, croreRaw] = budgetParam.split(":");
       const crore = Number(croreRaw);
       const districts = Array.from(new Set(A.getClusters().map((c) => c.district)));
       if (districts.includes(district) && Number.isFinite(crore)) {
@@ -575,7 +585,7 @@
         amount.value = String(crore);
         amount.dispatchEvent(new Event("input"));
         d3.select("#sheet").classed("sheet--open", true);
-        runWhatIf();
+        runOptimizer();
       }
     }
   });

@@ -41,7 +41,7 @@
     <div class="rail__list" id="railList"></div>
     <div class="rail__foot">
       <button class="btn" id="btnCompare" disabled>COMPARE (0/2)</button>
-      <button class="btn btn--primary" id="btnWhatIf">WHAT-IF</button>
+      <button class="btn btn--primary" id="btnWhatIf">BUDGET OPTIMIZER</button>
     </div>
     <div class="rail__foot">
       <button class="btn" id="btnInvest" style="flex:1">DEMAND vs INVESTMENT</button>
@@ -71,25 +71,26 @@
 
     <section class="dock" id="dock" aria-label="Cluster detail"></section>
 
-    <section class="sheet" id="sheet" aria-label="What-if budget simulation">
+    <section class="sheet" id="sheet" aria-label="Budget allocation optimizer">
       <div class="sheet__head">
-        <span class="sheet__title">What if this district got more money?</span>
+        <span class="sheet__title">Given this budget, what should actually be funded?</span>
         <button class="sheet__close" id="sheetClose" aria-label="Close">&times;</button>
       </div>
       <div class="sheet__controls">
         <label class="field">
-          <span class="field__label">District</span>
-          <select id="wiDistrict"></select>
+          <span class="field__label">District (optional)</span>
+          <select id="wiDistrict"><option value="">All districts</option></select>
         </label>
         <div class="slider">
-          <input type="range" id="wiAmount" min="0" max="200" step="5" value="50" />
-          <span class="slider__val" id="wiVal">₹50 crore</span>
+          <input type="range" id="wiAmount" min="1" max="200" step="1" value="10" />
+          <span class="slider__val" id="wiVal">₹10 crore</span>
         </div>
-        <button class="btn btn--primary" id="wiRun" style="flex:0 0 150px">RUN SIMULATION</button>
+        <button class="btn btn--primary" id="wiRun" style="flex:0 0 150px">ALLOCATE BUDGET</button>
       </div>
       <div class="sheet__result" id="wiResult">
-        Extra budget raises what is <b>fundable</b> in a district — it does not change
-        what is broken, so clusters are re-scored but never re-clustered.
+        Picks the real, already-costed road and water projects that fit this exact budget and
+        reach the most people — a knapsack allocation, not a ranking re-shuffle. Health and
+        education aren't included yet: no honest per-project repair cost exists for either.
       </div>
     </section>
 

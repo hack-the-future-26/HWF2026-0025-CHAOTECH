@@ -302,19 +302,10 @@ AMENITY_LOOKUP_RADIUS_KM = 5.0
 # never zeroes (§16.1).
 NO_REAL_DATA_CONFIDENCE_FACTOR = 0.85
 
-# ---------------------------------------------------------------------------
-# Step 9 -- what-if
-# ---------------------------------------------------------------------------
-
-# Extra strategic points granted to clusters in the district receiving a
-# positive budget delta, per this many rupees. Deliberately crude: this
-# models "more money for this district raises what is fundable there", not a
-# real capital-budgeting optimiser (research report SS16.3 puts constrained
-# optimisation at Phase 3+).
-WHATIF_POINTS_PER_CRORE = 0.4
-WHATIF_MAX_POINTS = 12.0
-RUPEES_PER_CRORE = 10_000_000
-
+# Step 9's what-if re-ranking (WHATIF_POINTS_PER_CRORE, WHATIF_MAX_POINTS,
+# RUPEES_PER_CRORE) was removed 2026-09-15, replaced by
+# intelligence/budget_optimizer.py -- a real 0/1 knapsack allocation over
+# actual project costs, not a flat re-scoring simulation.
 
 # ---------------------------------------------------------------------------
 # Feature 3 -- precise report location

@@ -6,7 +6,6 @@ a paginated citizen-reports listing.
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -414,37 +413,6 @@ def get_map_data(
     ]
 
     return {"type": "FeatureCollection", "features": features}
-
-
-class WhatIfRequest(BaseModel):
-    budget_delta: float
-    district: str
-
-
-@router.post("/what-if")
-def what_if(payload: WhatIfRequest, db: Session = Depends(get_db)):
-    """
-    Live, no longer a stub: calls P3's recompute_with_budget (build plan P2
-    Step 7 / P3 Step 9).
-
-    Re-scores every cluster as if `district` had received `budget_delta`
-    extra rupees and returns the re-sorted ranking. Each row carries both the
-    new and baseline score plus the delta, so the dashboard can animate what
-    actually moved. Clusters are NOT re-clustered -- what is broken does not
-    change because money moved, only what is fundable does.
-    """
-    from intelligence.whatif import recompute_with_budget
-
-    clusters = recompute_with_budget(db, payload.budget_delta, payload.district)
-    moved = [c for c in clusters if c["score_delta"] != 0]
-
-    return {
-        "budget_delta": payload.budget_delta,
-        "district": payload.district,
-        "clusters": clusters,
-        "clusters_affected": len(moved),
-        "stub": False,
-    }
 
 
 @router.get("/citizen-reports")

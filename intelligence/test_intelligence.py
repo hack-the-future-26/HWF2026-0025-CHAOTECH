@@ -38,7 +38,6 @@ from intelligence.recompute import (
     _find_school_candidates,
     _group_by_radius,
 )
-from intelligence.whatif import budget_to_points
 
 _passed = 0
 _failed: list[str] = []
@@ -339,21 +338,6 @@ def test_catchment_population_respects_radius() -> None:
     ]
     total = population_in_catchment(16.700, 74.240, "road", gazetteer)
     check("only settlements inside the catchment are counted", total == 5_000, f"got {total}")
-
-
-# ---------------------------------------------------------------------------
-# What-if
-# ---------------------------------------------------------------------------
-
-def test_budget_points_are_capped() -> None:
-    huge = budget_to_points(500 * config.RUPEES_PER_CRORE)
-    check(
-        "an enormous budget cannot swamp the formula",
-        huge <= config.WHATIF_MAX_POINTS,
-        f"{huge}",
-    )
-    check("a negative budget delta reduces the score", budget_to_points(-10 * config.RUPEES_PER_CRORE) < 0)
-    check("zero budget change is neutral", budget_to_points(0) == 0.0)
 
 
 def test_weights_sum_to_one() -> None:
@@ -1978,7 +1962,6 @@ def main() -> None:
         test_gate_blocks_distant_pairs,
         test_semantic_distance_separates_meanings,
         test_catchment_population_respects_radius,
-        test_budget_points_are_capped,
         test_weights_sum_to_one,
         test_apply_precise_coords,
         test_precise_coords_split_work_groups,
