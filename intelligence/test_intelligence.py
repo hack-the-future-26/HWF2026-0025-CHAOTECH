@@ -1219,6 +1219,102 @@ def test_school_investment_uses_unspent_grant_and_real_deficiency():
         f"got {by_id[2].classify()}",
     )
 
+
+def test_budget_optimizer_knapsack_is_exact_not_greedy():
+    """
+    A case a greedy (highest-value-first) approach gets wrong but exact 0/1
+    knapsack gets right: one big item that alone looks attractive, versus
+    two smaller items that together beat it within the same budget.
+    """
+    from intelligence.budget_optimizer import OptimizerCandidate, allocate
+
+    # priority_score is deliberately lopsided relative to population, so
+    # switching the value dimension picks a genuinely different set --
+    # summed priority favours "big" alone (200 > 30+25), summed population
+    # favours the two smaller items together (13,000 > 10,000).
+    big = OptimizerCandidate(
+        asset_id=1, name="Big Road", asset_type="road", village="V1", district="Kolhapur",
+        cost_lakh=100.0, population_affected=10_000, priority_score=200.0,
+    )
+    small_a = OptimizerCandidate(
+        asset_id=2, name="Small Water A", asset_type="water", village="V2", district="Kolhapur",
+        cost_lakh=60.0, population_affected=7_000, priority_score=30.0,
+    )
+    small_b = OptimizerCandidate(
+        asset_id=3, name="Small Water B", asset_type="water", village="V3", district="Kolhapur",
+        cost_lakh=40.0, population_affected=6_000, priority_score=25.0,
+    )
+
+    result = allocate([big, small_a, small_b], budget_lakh=100.0, value="population")
+    chosen_ids = {c.asset_id for c in result["chosen"]}
+    check(
+        "knapsack picks the two smaller items (13,000 reached) over the one big item (10,000)",
+        chosen_ids == {2, 3},
+        f"got {chosen_ids}, population_reached={result['population_reached']}",
+    )
+    check("knapsack never exceeds the budget", result["total_cost_lakh"] <= 100.0)
+    check(
+        "knapsack reports the real remaining budget",
+        math.isclose(result["remaining_budget_lakh"], 100.0 - result["total_cost_lakh"]),
+    )
+
+    priority_result = allocate([big, small_a, small_b], budget_lakh=100.0, value="priority")
+    check(
+        "switching value dimension to priority can change what's chosen",
+        {c.asset_id for c in priority_result["chosen"]} == {1},
+        f"got {[c.asset_id for c in priority_result['chosen']]}",
+    )
+
+    empty = allocate([], budget_lakh=50.0, value="population")
+    check("an empty candidate list allocates nothing, not an error", empty["chosen"] == [] and empty["total_cost_lakh"] == 0)
+
+
+def test_budget_optimizer_excludes_assets_with_no_real_cost():
+    """
+    Health/education and any road/water asset without a real recorded cost
+    must never enter the optimizer -- no guessed cost, ever.
+    """
+    import json
+    from models import Asset
+    from intelligence.budget_optimizer import load_candidates
+
+    class MockAsset:
+        def __init__(self, id, asset_type, evidence, priority_score=50.0):
+            self.id = id
+            self.name = f"Asset {id}"
+            self.asset_type = asset_type
+            self.village = "Testpur"
+            self.district = "Kolhapur"
+            self.priority_score = priority_score
+            self.evidence = json.dumps(evidence)
+
+    class MockQuery:
+        def __init__(self, items):
+            self.items = items
+        def filter(self, *a, **k):
+            return self
+        def all(self):
+            return self.items
+
+    class MockDB:
+        def query(self, model):
+            assert model is Asset
+            return MockQuery([
+                MockAsset(1, "road", {"infra_deficit": {"undelivered_sanctioned_cost_lakh": 50.0}, "population": {"people_affected": 1000}}),
+                MockAsset(2, "road", {"infra_deficit": {}, "population": {"people_affected": 2000}}),
+                MockAsset(3, "water", {"jjm_schemes": {"undelivered_schemes": 1, "unspent_estimate_lakh": 20.0}, "population": {"people_affected": 500}}),
+                MockAsset(4, "water", {"jjm_schemes": {"undelivered_schemes": 0, "unspent_estimate_lakh": 0.0}, "population": {"people_affected": 500}}),
+            ])
+
+    candidates = load_candidates(MockDB())
+    ids = {c.asset_id for c in candidates}
+    check(
+        "only the road and water assets with a real positive cost are included",
+        ids == {1, 3},
+        f"got {ids}",
+    )
+
+
 def test_gpdp_district_evidence():
     # 1. Edge cases: missing district or empty index
     row, text = realdata.gpdp_district_evidence("Solapur", {})
@@ -1703,6 +1799,8 @@ def main() -> None:
         test_jjm_scheme_index_and_catchment_evidence,
         test_investment_only_counts_road_reports_as_demand,
         test_school_investment_uses_unspent_grant_and_real_deficiency,
+        test_budget_optimizer_knapsack_is_exact_not_greedy,
+        test_budget_optimizer_excludes_assets_with_no_real_cost,
     ]:
         test()
 
