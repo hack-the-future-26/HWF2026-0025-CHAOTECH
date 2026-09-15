@@ -145,8 +145,21 @@ MONSOON_SENSITIVE_CATEGORIES = {"road", "water"}
 # engine, just a population gate).
 STRATEGIC_POPULATION_THRESHOLD = 5_000
 
-# Feasibility: clusters nearer a taluka headquarters are cheaper to reach.
-FEASIBILITY_NEAR_HQ_KM = 15.0
+# Feasibility: continuous distance gradient to the nearest real TOWN (labour,
+# materials, contractors), not a government office -- an administrative HQ's
+# distance measures bureaucratic remoteness, not buildability. Full credit at
+# or below FEASIBILITY_NEAR_KM, zero at or above FEASIBILITY_FAR_KM, linear
+# between. FEASIBILITY_NEAR_KM=15 carries over the project's original
+# distance threshold; FEASIBILITY_FAR_KM has no published cost-distance study
+# behind it -- documented default (3x near), revisit if real data emerges.
+FEASIBILITY_NEAR_KM = 15.0
+FEASIBILITY_FAR_KM = 45.0
+
+# Blend weight for the real all-weather-road-connectivity signal alongside
+# distance. Kept modest: Census records only 12 of 942 villages in this
+# dataset as lacking an all-weather road, so this mostly matters for that
+# minority -- it should nudge, not dominate.
+FEASIBILITY_ROAD_WEIGHT = 0.3
 
 # Cost penalty scales with catchment size: a bigger, more spread-out fix
 # costs more per unit of benefit.

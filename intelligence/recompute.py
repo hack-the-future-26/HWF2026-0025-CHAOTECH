@@ -382,7 +382,8 @@ def _score_members(
     eligible, eligibility_evidence = realdata.real_scheme_eligibility(
         category, nearby_villages, population_affected
     )
-    hq_km, hq_evidence = realdata.real_hq_distance_km(nearby_villages)
+    town_km, town_evidence = realdata.real_town_distance_km(nearby_villages)
+    road_share, road_evidence = realdata.real_road_connectivity(nearby_villages)
 
     result = score_cluster(
         unique_reporters=unique_reporters,
@@ -399,7 +400,8 @@ def _score_members(
         # Only assert eligibility when there were records to judge it on;
         # "we have no data" must not be recorded as "not eligible".
         scheme_eligible=eligible if eligibility_evidence else None,
-        real_hq_distance_km=hq_km,
+        real_town_distance_km=town_km,
+        real_road_connected_share=road_share,
     )
     counted = sorted(
         (v for v in nearby_villages if v.get("population")),
@@ -434,7 +436,7 @@ def _score_members(
         "vulnerability": vulnerability_evidence,
         "reporting_capacity": reporting_evidence,
         "scheme_eligibility": eligibility_evidence,
-        "feasibility": hq_evidence,
+        "feasibility": {**town_evidence, **road_evidence},
         "cost_benchmark": realdata.cost_benchmark(category, works_index),
         "work_groups": len(groups) if groups is not None else 0,
         "villages_examined": len(nearby_villages),

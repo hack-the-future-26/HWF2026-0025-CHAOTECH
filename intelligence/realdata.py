@@ -89,6 +89,7 @@ AMENITY_FIELDS = (
     "conn_bharatnet_status",
     "dist_subdistrict_hq_km",
     "dist_district_hq_km",
+    "dist_nearest_town_km",
     "power_domestic_summer_hrs",
     "drainage_none",
 )
@@ -419,7 +420,16 @@ def real_infra_deficit(
 def real_vulnerability(villages: list[dict]) -> tuple[float | None, dict]:
     """
     Multi-dimensional deprivation from published, area-level records:
-    isolation, electricity supply, sanitation and digital access.
+    electricity supply, sanitation and digital access -- all Census 2011,
+    a historical structural baseline, not a claim about current conditions
+    (see `evidence["period"]` below).
+
+    Isolation (distance to the district HQ) was removed from this term
+    2026-09-15: it and `feasibility_points()`'s distance signal both derived
+    from the same Census Village Amenities CSVs (`dist_district_hq_km` here,
+    `dist_subdistrict_hq_km`/now `dist_nearest_town_km` there) -- the same
+    "distance to a government/economic centre" construct scored twice under
+    two different names. Distance now belongs to feasibility only.
 
     Deliberately excludes the Scheduled Caste / Scheduled Tribe population
     columns that exist in the same census source. That exclusion is a standing
@@ -429,19 +439,8 @@ def real_vulnerability(villages: list[dict]) -> tuple[float | None, dict]:
     if not with_data:
         return None, {}
 
-    evidence: dict = {}
+    evidence: dict = {"period": "census_2011_structural_baseline"}
     signals: list[float] = []
-
-    distances = [
-        v["dist_district_hq_km"] for v in with_data if v.get("dist_district_hq_km") is not None
-    ]
-    if distances:
-        mean_distance = sum(distances) / len(distances)
-        # 60km from the district headquarters is treated as full isolation;
-        # the observed median across these districts is ~50km.
-        isolation = min(1.0, mean_distance / 60.0)
-        evidence["mean_km_to_district_hq"] = round(mean_distance, 1)
-        signals.append(isolation)
 
     power = [
         v["power_domestic_summer_hrs"]
@@ -589,26 +588,56 @@ def real_scheme_eligibility(
 
 
 # ---------------------------------------------------------------------------
-# feasibility -- the government's own recorded distance
+# feasibility -- distance to a real town, plus existing road connectivity
 # ---------------------------------------------------------------------------
 
 
-def real_hq_distance_km(villages: list[dict]) -> tuple[float | None, dict]:
+def real_town_distance_km(villages: list[dict]) -> tuple[float | None, dict]:
     """
-    Distance to the sub-district headquarters as the Census recorded it, in
-    preference to our own straight-line calculation between coordinates.
+    Distance to the nearest actual town as the Census recorded it, in
+    preference to our own straight-line calculation to an administrative HQ.
+
+    Changed 2026-09-15 from `dist_subdistrict_hq_km` (distance to a
+    government office -- bureaucratic remoteness) to `dist_nearest_town_km`
+    (distance to a real town -- where labour, materials and contractors
+    actually come from). This is also what stops feasibility and
+    vulnerability from reading the same "distance to an administrative
+    centre" construct under two different names.
     """
     values = [
-        v["dist_subdistrict_hq_km"]
+        v["dist_nearest_town_km"]
         for v in villages
-        if v.get("dist_subdistrict_hq_km") is not None
+        if v.get("dist_nearest_town_km") is not None
     ]
     if not values:
         return None, {}
     mean_distance = sum(values) / len(values)
     return mean_distance, {
-        "mean_km_to_subdistrict_hq": round(mean_distance, 1),
+        "mean_km_to_nearest_town": round(mean_distance, 1),
         "source": "census_recorded_distance",
+    }
+
+
+def real_road_connectivity(villages: list[dict]) -> tuple[float | None, dict]:
+    """
+    Share of villages in catchment with an all-weather road, as a real
+    feasibility signal: a site already reachable by road is genuinely
+    cheaper to build in and supply than one that isn't.
+
+    Low variance by design, not by bug: only 12 of 942 villages in this
+    dataset are recorded without one, so this mostly moves the score for
+    that minority -- see `_road_deficit`'s own note on the same field.
+    """
+    with_data = _with_data(villages)
+    if not with_data:
+        return None, {}
+    no_all_weather = _share(with_data, "road_all_weather")
+    if no_all_weather is None:
+        return None, {}
+    connected_share = round(1.0 - no_all_weather, 3)
+    return connected_share, {
+        "share_all_weather_road": connected_share,
+        "villages_checked": len(with_data),
     }
 
 

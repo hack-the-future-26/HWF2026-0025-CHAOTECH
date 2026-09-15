@@ -26,6 +26,7 @@ from intelligence.scoring import (
     confidence_gate,
     demand_term,
     equity_points,
+    feasibility_points,
     infra_deficit_term,
     population_term,
     score_cluster,
@@ -119,6 +120,83 @@ def test_vulnerability_favours_small_settlements() -> None:
         "unknown data returns 0.5, never 0 (absence of data is not absence of need)",
         vulnerability_term(0, 0) == 0.5,
     )
+
+
+def test_real_vulnerability_no_longer_double_counts_distance() -> None:
+    """
+    Isolation (dist_district_hq_km) was removed 2026-09-15: it and
+    feasibility's distance signal both came from the same Census CSV under
+    two different administrative-level names. Confirm it's gone, and that
+    the three remaining real signals still work standalone.
+    """
+    village = {
+        "has_real_data": True,
+        "dist_district_hq_km": 80.0,  # would have driven isolation to 1.0 before the fix
+        "power_domestic_summer_hrs": 6.0,
+        "drainage_none": 1,
+        "conn_internet_csc": 1,
+    }
+    value, evidence = realdata.real_vulnerability([village])
+    check(
+        "real_vulnerability no longer reports district-HQ distance",
+        "mean_km_to_district_hq" not in evidence,
+    )
+    check("real_vulnerability still returns a value from the other three signals", value is not None)
+    check(
+        "real_vulnerability labels its period as a structural baseline, not current condition",
+        evidence.get("period") == "census_2011_structural_baseline",
+    )
+
+    distance_only = {"has_real_data": True, "dist_district_hq_km": 80.0}
+    value2, evidence2 = realdata.real_vulnerability([distance_only])
+    check(
+        "a village with only distance data now yields no vulnerability signal at all",
+        value2 is None and evidence2 == {},
+    )
+
+
+def test_feasibility_is_continuous_and_blends_road_connectivity() -> None:
+    """Replaces the old <=15km binary cliff -- see scoring.py's feasibility_points."""
+    full = feasibility_points(5.0, 1.0)
+    zero = feasibility_points(60.0, 0.0)
+    mid = feasibility_points(30.0, None)
+    check("feasibility reaches full points when near and road-connected", math.isclose(full, config.FEASIBILITY_POINTS))
+    check("feasibility reaches zero when far and unconnected", zero == 0.0)
+    check(
+        "feasibility fades continuously between the two, not a step function",
+        0.0 < mid < full,
+        f"mid={mid}",
+    )
+
+    connected = feasibility_points(30.0, 1.0)
+    unconnected = feasibility_points(30.0, 0.0)
+    check(
+        "an all-weather-road village scores higher feasibility than an identical unconnected one",
+        connected > unconnected,
+        f"{connected} vs {unconnected}",
+    )
+    check(
+        "unknown road status lands strictly between connected and unconnected, not penalised",
+        unconnected < mid < connected,
+    )
+    check("no distance data yields zero feasibility however good the road", feasibility_points(None, 1.0) == 0.0)
+
+
+def test_real_town_distance_and_road_connectivity() -> None:
+    village = {"has_real_data": True, "dist_nearest_town_km": 12.5, "road_all_weather": 1}
+    dist_val, dist_ev = realdata.real_town_distance_km([village])
+    check("real_town_distance_km reads the Census nearest-town field", dist_val == 12.5)
+    check("its evidence is labelled a real Census record", dist_ev.get("source") == "census_recorded_distance")
+
+    road_val, _ = realdata.real_road_connectivity([village])
+    check("an all-weather-road village returns a full connected share", road_val == 1.0, f"{road_val}")
+
+    unconnected = {"has_real_data": True, "road_all_weather": 0}
+    road_val2, _ = realdata.real_road_connectivity([unconnected])
+    check("an unconnected village returns a zero connected share", road_val2 == 0.0)
+
+    check("no data returns None, never a guessed 0", realdata.real_town_distance_km([{}]) == (None, {}))
+    check("no data returns None for road connectivity too", realdata.real_road_connectivity([{}]) == (None, {}))
 
 
 # ---------------------------------------------------------------------------
@@ -1298,6 +1376,9 @@ def main() -> None:
         test_population_is_log_scaled,
         test_infra_deficit_tracks_severity,
         test_vulnerability_favours_small_settlements,
+        test_real_vulnerability_no_longer_double_counts_distance,
+        test_feasibility_is_continuous_and_blends_road_connectivity,
+        test_real_town_distance_and_road_connectivity,
         test_confidence_gate_damps_but_never_zeroes,
         test_breakdown_sums_to_score,
         test_breakdown_has_the_contract_keys,

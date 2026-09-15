@@ -160,13 +160,37 @@ def urgency_points(issue_category: str | None) -> float:
     return 0.0
 
 
-def feasibility_points(distance_to_hq_km: float | None) -> float:
-    """Nearer a taluka headquarters is cheaper to actually reach and build."""
-    if distance_to_hq_km is None:
+def feasibility_points(
+    distance_to_town_km: float | None,
+    road_connected_share: float | None = None,
+) -> float:
+    """
+    Continuous, not binary. Nearer a real town (labour, materials,
+    contractors) is cheaper to actually reach and build -- fading linearly
+    from full credit at FEASIBILITY_NEAR_KM to zero at FEASIBILITY_FAR_KM,
+    instead of the old hard cliff that gave identical credit at 14.9km and
+    zero at 15.1km.
+
+    Blended with a real all-weather-road-connectivity signal: a site already
+    reachable by road is genuinely cheaper to build in. Unknown road status
+    is treated as neutral (0.5), not a penalty -- absence of data is not
+    absence of access.
+    """
+    if distance_to_town_km is None:
         return 0.0
-    if distance_to_hq_km <= config.FEASIBILITY_NEAR_HQ_KM:
-        return config.FEASIBILITY_POINTS
-    return 0.0
+    near = config.FEASIBILITY_NEAR_KM
+    far = config.FEASIBILITY_FAR_KM
+    if distance_to_town_km <= near:
+        distance_fraction = 1.0
+    elif distance_to_town_km >= far:
+        distance_fraction = 0.0
+    else:
+        distance_fraction = (far - distance_to_town_km) / (far - near)
+
+    road_fraction = 0.5 if road_connected_share is None else road_connected_share
+    weight = config.FEASIBILITY_ROAD_WEIGHT
+    fraction = (1.0 - weight) * distance_fraction + weight * road_fraction
+    return config.FEASIBILITY_POINTS * fraction
 
 
 def cost_penalty_points(population_affected: int) -> float:
@@ -204,7 +228,8 @@ def score_cluster(
     real_vulnerability: float | None = None,
     real_reporting_deficit: float | None = None,
     scheme_eligible: bool | None = None,
-    real_hq_distance_km: float | None = None,
+    real_town_distance_km: float | None = None,
+    real_road_connected_share: float | None = None,
 ) -> dict:
     """
     Full two-stage score for one cluster.
@@ -222,7 +247,9 @@ def score_cluster(
         real_vulnerability     <- settlement-size guess
         real_reporting_deficit <- hardcoded list of ten block names
         scheme_eligible        <- bare population threshold
-        real_hq_distance_km    <- our own straight-line distance
+        real_town_distance_km  <- our own straight-line distance to an
+                                   administrative HQ (feasibility's fallback
+                                   when no Census nearest-town record exists)
 
     When a value is absent the proxy still runs, but the cluster's confidence
     gate is multiplied by NO_REAL_DATA_CONFIDENCE_FACTOR, so a score built on
@@ -293,11 +320,15 @@ def score_cluster(
 
     urgency = urgency_points(issue_category)
 
-    if real_hq_distance_km is not None:
-        feasibility = feasibility_points(real_hq_distance_km)
+    if real_town_distance_km is not None:
+        feasibility = feasibility_points(real_town_distance_km, real_road_connected_share)
         data_basis["feasibility"] = "census_recorded_distance"
     else:
-        feasibility = feasibility_points(distance_to_hq_km)
+        # No Census nearest-town record for this catchment -- fall back to
+        # our own straight-line distance to an administrative HQ, the only
+        # distance we can compute ourselves. Road-connectivity data doesn't
+        # apply here either, since it comes from the same missing records.
+        feasibility = feasibility_points(distance_to_hq_km, None)
         data_basis["feasibility"] = "computed_straight_line"
 
     cost_penalty = cost_penalty_points(population_affected)

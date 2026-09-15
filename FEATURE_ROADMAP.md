@@ -278,6 +278,45 @@ gets assumed "handled" just because a neighboring term is:
 | feasibility | ❌ Zero research done | Terrain, land status, partial-existing-infrastructure proxy — untouched. |
 | cost_penalty | ❌ Zero research done | The team's own PDF calls this "the weakest-verified data category" (§14/§16.3) — no research yet on what real cost data exists. |
 
+## #10 Feasibility Phase 2: OSM nearest-town distance + terrain (deferred, not built)
+
+Built 2026-09-15 (this pass): feasibility now uses `dist_nearest_town_km`
+(real Census 2011 field, already loaded) with a continuous distance
+gradient plus a real all-weather-road-connectivity blend, replacing the old
+binary `dist_subdistrict_hq_km <= 15km` cliff and its double-count with
+vulnerability's isolation signal. See `intelligence/scoring.py`'s
+`feasibility_points()` and `intelligence/realdata.py`'s
+`real_town_distance_km()` / `real_road_connectivity()`.
+
+**Explicitly deferred, not built this pass**: replacing the Census
+nearest-town distance with a live OSM-derived one, and adding terrain
+ruggedness (SRTM/Open-Elevation) as a further feasibility signal. Reasons,
+not a rejection:
+
+- Computing "distance to nearest town" from OSM needs real geospatial
+  engineering this codebase doesn't have yet — downloading and parsing a
+  full OSM PBF extract (Geofabrik), filtering `place=town`/`place=city`
+  nodes, then a nearest-neighbour calculation. Not an API call like every
+  other loader in this project; a materially bigger lift.
+- Rural India's OSM `place` tagging is crowd-sourced and unverified for
+  Kolhapur/Nashik specifically — attempted a live Overpass API check this
+  session, it timed out twice, which is itself a relevant signal about
+  relying on the free public endpoint. This project already ruled out
+  OSM once for a different purpose (village-road coverage, see "Ruled out"
+  below) — worth remembering before assuming it's reliable for this
+  purpose either.
+- It also changes what's being measured: Census's nearest-town distance is
+  a human surveyor's on-the-ground judgment; OSM's is whatever got
+  crowd-tagged. Not guaranteed to agree.
+- Terrain (Open-Elevation TRI) is real and free, confirmed live (`200 OK`,
+  no key needed) — but needs ~4,000 batched API calls plus caching
+  infrastructure that doesn't exist yet either.
+
+**If picked up later**: verify live OSM place-tag coverage for a handful of
+real Kolhapur/Nashik villages first (the same "verify live, don't assume"
+standard as every other data source here) before committing engineering
+time to the PBF pipeline.
+
 ## Ruled out, with reasons
 
 - **Sentinel satellites:** 10 m resolution is too coarse.
