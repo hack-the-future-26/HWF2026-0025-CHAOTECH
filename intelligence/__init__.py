@@ -7,12 +7,14 @@ simplification.
 
 Public surface:
     recompute(db)                            -- full pass (Steps 1-8, 10)
-    recompute_with_budget(db, delta, district) -- what-if re-ranking (Step 9)
     score_cluster(...)                       -- the two-stage formula itself
+
+Step 9's what-if re-ranking (recompute_with_budget) was removed 2026-09-15,
+replaced by intelligence/budget_optimizer.py -- a real 0/1 knapsack
+allocation over actual project costs, not a flat re-scoring simulation.
 """
 
 from .recompute import recompute
 from .scoring import score_cluster
-from .whatif import recompute_with_budget
 
-__all__ = ["recompute", "recompute_with_budget", "score_cluster"]
+__all__ = ["recompute", "score_cluster"]

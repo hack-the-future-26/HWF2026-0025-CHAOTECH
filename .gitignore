@@ -14,5 +14,18 @@ backend/jjm_cache.json
 
 # Citizen evidence uploads: real photos of real places, never committed.
 backend/uploads/
+# Pothole model weights: 150 MB, over GitHub's 100 MB file limit. Share the
+# file out of band and place it at models/pothole_best.pt (models/README.md).
+models/*.pt
+best.pt/
+models/eval_data/
 backend/data/india_health_facilities.geojson
 backend/data/lgd_villages_by_blocks.csv
+backend/data/pmgsy/
+backend/data/*.zip
+backend/data/*.shp
+backend/data/*.dbf
+backend/data/*.shx
+backend/data/*.prj
+backend/data/*.cpg
+backend/data/*.qpj

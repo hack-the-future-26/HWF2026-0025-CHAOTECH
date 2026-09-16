@@ -31,7 +31,13 @@
   "use strict";
 
   const params = new URLSearchParams(location.search);
-  const API = (params.get("api") || "http://127.0.0.1:8001").replace(/\/$/, "");
+  // The phone demo is served by FastAPI at /app through an HTTPS tunnel. In
+  // that case use the page's own origin, so browser permissions and API calls
+  // share one secure origin. Local development keeps the separate API port.
+  const defaultApi = location.protocol === "https:"
+    ? location.origin
+    : "http://127.0.0.1:8001";
+  const API = (params.get("api") || window.AWAAZIQ_API_BASE || defaultApi).replace(/\/$/, "");
 
   // Carry ?api= across to the dashboard, so pointing this page at a
   // non-default backend doesn't silently send officials to another one.
@@ -57,6 +63,9 @@
     ["Placing it on the map", (r) => r.village],
     ["Routing it to a department", (r) => r.department],
     ["Removing phone numbers and names from the description", () => true],
+    // Only shown when photos were sent (see renderSteps).
+    ["Checking your photos: live capture, location, copies, screens, AI damage model",
+      (r) => (r.photo_checks || []).length, "photos"],
   ];
 
   const MAX_FILES = 5;
@@ -67,7 +76,55 @@
   const show = (id, on) => { el(id).hidden = !on; };
 
   let departments = {};          // category -> [{id, name, note}]
-  let chosenFiles = [];
+  let chosenFiles = [];          // PDF letters
+  let shots = [];                // live camera photos: {blob, url, burst, meta}
+  let villageCoords = {};            // village name -> {lat, lon}
+  let pinMap = null, pinMarker = null;
+  let reportLat = null, reportLon = null;
+
+  /* --------------------------------------------------------- permissions -- */
+
+  function setNotificationHint(message) {
+    el("notificationHint").textContent = message;
+  }
+
+  function refreshNotificationControl() {
+    const button = el("btnEnableNotifications");
+    if (!("Notification" in window)) {
+      button.hidden = true;
+      setNotificationHint("This browser does not support notifications.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      button.disabled = true;
+      setNotificationHint("Notifications need an HTTPS link on a phone. The current HTTP link cannot show the permission prompt.");
+      return;
+    }
+    if (Notification.permission === "granted") {
+      button.disabled = true;
+      button.textContent = "Notifications enabled";
+      setNotificationHint("This browser can show AwaazIQ report updates.");
+    } else if (Notification.permission === "denied") {
+      button.disabled = true;
+      setNotificationHint("Notifications are blocked. Enable them in this site's browser settings, then reload.");
+    } else {
+      setNotificationHint("Allow notifications to see a confirmation after you submit a report.");
+    }
+  }
+
+  async function requestNotifications() {
+    if (!("Notification" in window) || !window.isSecureContext) {
+      refreshNotificationControl();
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    refreshNotificationControl();
+    if (permission === "granted") {
+      new Notification("AwaazIQ notifications enabled", {
+        body: "You will receive a confirmation after filing a report while this app is open.",
+      });
+    }
+  }
 
   /* ------------------------------------------------------------- my ids -- */
 
@@ -167,6 +224,10 @@
     const rows = await getJSON(
       `/gazetteer/villages?district=${encodeURIComponent(district)}` +
       `&block=${encodeURIComponent(block)}`);
+    // Keep village coordinates so the pin map can centre on the chosen
+    // village -- fill() only uses the name and drops lat/lon.
+    villageCoords = {};
+    rows.forEach((r) => { if (r.lat != null && r.lon != null) villageCoords[r.name] = { lat: r.lat, lon: r.lon }; });
     fill(village, rows, `Select village… (${rows.length})`);
     village.disabled = false;
   }
@@ -195,6 +256,93 @@
     el("deptHint").textContent = "The office that holds the budget for this";
   }
 
+  /* ------------------------------------------------------ facilities -- */
+
+  async function loadFacilities() {
+    const field = el("facilityField");
+    const select = el("facility");
+    if (!field || !select) return;
+
+    const district = val("district");
+    const block = val("block");
+    const village = val("village");
+    const category = val("category");
+
+    if (!village || (category !== "education" && category !== "health")) {
+      field.hidden = true;
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+      return;
+    }
+
+    field.hidden = false;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading facilities…</option>';
+
+    try {
+      const facilities = await getJSON(
+        `/gazetteer/facilities?district=${encodeURIComponent(district)}` +
+        `&block=${encodeURIComponent(block)}` +
+        `&village=${encodeURIComponent(village)}` +
+        `&category=${encodeURIComponent(category)}`
+      );
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+      facilities.forEach((f) => {
+        const o = document.createElement("option");
+        o.value = f.id;
+        const distStr = f.distance_m != null ? ` (${Math.round(f.distance_m)}m away)` : "";
+        const subStr = f.sub_type ? ` · ${f.sub_type}` : "";
+        o.textContent = `${f.name}${subStr}${distStr}`;
+        select.appendChild(o);
+      });
+    } catch {
+      select.innerHTML = '<option value="">Not sure / not listed</option>';
+    }
+    select.disabled = false;
+  }
+
+  /* --------------------------------------------------------- pin map -- */
+
+  function initPinMap() {
+    if (pinMap) return;
+    const osm = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }
+    );
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { attribution: '&copy; Esri, Maxar, Earthstar Geographics', maxZoom: 19 }
+    );
+    pinMap = L.map("pinMap", { layers: [osm] }).setView([17.7, 75.7], 7);
+    L.control.layers({ "Street": osm, "Satellite": satellite }).addTo(pinMap);
+    pinMap.on("click", (e) => setPin(e.latlng.lat, e.latlng.lng));
+  }
+
+  function setPin(lat, lon) {
+    reportLat = lat;
+    reportLon = lon;
+    if (pinMarker) {
+      pinMarker.setLatLng([lat, lon]);
+    } else {
+      pinMarker = L.marker([lat, lon], { draggable: true }).addTo(pinMap);
+      pinMarker.on("dragend", () => {
+        const ll = pinMarker.getLatLng();
+        reportLat = ll.lat;
+        reportLon = ll.lng;
+        el("pinHint").textContent = `Pin set: ${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}`;
+      });
+    }
+    el("pinHint").textContent = `Pin set: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    el("btnClearPin").hidden = false;
+  }
+
+  function clearPin() {
+    if (pinMarker) { pinMap.removeLayer(pinMarker); pinMarker = null; }
+    reportLat = null;
+    reportLon = null;
+    el("pinHint").textContent = "No pin set — the village centre will be used";
+    el("btnClearPin").hidden = true;
+  }
+
   /* --------------------------------------------------------------- files -- */
 
   function renderFiles() {
@@ -210,8 +358,44 @@
         .on("click", () => { chosenFiles.splice(i, 1); renderFiles(); });
     });
     el("attachLabel").textContent = chosenFiles.length
-      ? `📎 ${chosenFiles.length} of ${MAX_FILES} chosen — add more`
-      : "📎 Choose photos or PDFs";
+      ? `📄 ${chosenFiles.length} PDF${chosenFiles.length > 1 ? "s" : ""} — add more`
+      : "📄 Attach a PDF letter";
+    el("btnCamera").disabled = shots.length + chosenFiles.length >= MAX_FILES;
+  }
+
+  /** Live camera photos, with what was recorded at the moment of capture. */
+  function renderShots() {
+    const box = el("shotList");
+    box.innerHTML = "";
+    shots.forEach((s, i) => {
+      const m = s.meta;
+      const time = new Date(m.captured_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      let where = "no GPS fix";
+      if (m.lat != null) {
+        const v = villageCoords[val("village")];
+        const km = v ? haversineKm(m.lat, m.lon, v.lat, v.lon) : null;
+        where = km != null ? `${km.toFixed(2)} km from ${val("village")}` : `GPS ±${Math.round(m.accuracy_m)} m`;
+      }
+      const card = document.createElement("div");
+      card.className = "shot";
+      card.innerHTML =
+        `<img src="${s.url}" alt="Photo ${i + 1}">` +
+        `<div class="shot__meta"><b>● Live</b> · ${time} · ${m.burst_count} frames<br>📍 ${where}</div>`;
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "shot__x"; x.setAttribute("aria-label", `Remove photo ${i + 1}`);
+      x.innerHTML = "&times;";
+      x.addEventListener("click", () => { URL.revokeObjectURL(s.url); shots.splice(i, 1); renderShots(); renderFiles(); });
+      card.appendChild(x);
+      box.appendChild(card);
+    });
+    el("btnCamera").textContent = shots.length ? `📷 Take another photo (${shots.length})` : "📷 Take a photo";
+  }
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371.0088, rad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
   }
 
   /* ---------------------------------------------------------- validation -- */
@@ -237,6 +421,17 @@
       department: need("department", "Department"),
       text: val("text"),
     };
+    // Precise GPS pin — only appended when the citizen has placed one.
+    // Feeds report_lat/report_lon to the backend's _validate_pin().
+    if (reportLat != null && reportLon != null) {
+      data.report_lat = reportLat;
+      data.report_lon = reportLon;
+    }
+    // Citizen-picked specific school or hospital (optional)
+    const facVal = val("facility");
+    if (facVal) {
+      data.facility_id = parseInt(facVal, 10);
+    }
 
     if (!session) {
       errors.push(["text", "Sign in or create an account to file a grievance"]);
@@ -276,10 +471,10 @@
 
   /* -------------------------------------------------------------- steps -- */
 
-  function renderSteps(result) {
+  function renderSteps(result, hasPhotos) {
     const box = d3.select("#steps");
     box.selectAll("*").remove();
-    STEPS.forEach(([label, check]) => {
+    STEPS.filter(([, , only]) => only !== "photos" || hasPhotos).forEach(([label, check]) => {
       const done = result ? !!check(result) : false;
       const row = box.append("div")
         .attr("class", `step${result ? (done ? " step--done" : "") : " step--on"}`);
@@ -305,17 +500,27 @@
     // not need it -- routing already travels as `department`.
     const declared = val("category");
 
+    const hasPhotos = shots.length > 0;
     el("submit").disabled = true;
     show("form", false);
     show("runCard", true);
-    renderSteps(null);
+    renderSteps(null, hasPhotos);
     el("runCard").scrollIntoView({ behavior: "smooth", block: "center" });
 
     const fd = new FormData();
     Object.entries(data).forEach(([k, v]) => fd.append(k, v));
     const audio = el("audio").files[0];
     if (audio) fd.append("file", audio);
-    chosenFiles.forEach((f) => fd.append("attachments", f));
+    // Photos first, then PDFs. capture_meta[i] and burst_<i> describe the
+    // i-th attachment; PDFs have no capture record.
+    const captureMeta = [];
+    shots.forEach((s, i) => {
+      fd.append("attachments", new File([s.blob], `camera-${i + 1}.jpg`, { type: "image/jpeg" }));
+      captureMeta.push(s.meta);
+      s.burst.forEach((b, k) => fd.append(`burst_${i}`, new File([b], `burst-${i + 1}-${k + 1}.jpg`, { type: "image/jpeg" })));
+    });
+    chosenFiles.forEach((f) => { fd.append("attachments", f); captureMeta.push(null); });
+    if (hasPhotos) fd.append("capture_meta", JSON.stringify(captureMeta));
 
     let saved;
     try {
@@ -337,7 +542,12 @@
       return;
     }
 
-    renderSteps(saved);
+    renderSteps(saved, hasPhotos);
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Report registered", {
+        body: `Your AwaazIQ report #${saved.id} has been registered.`,
+      });
+    }
     rememberReport(saved.id);
     renderMine();
     setTimeout(() => {
@@ -400,6 +610,17 @@
           `you picked; the grouping follows the description.`);
     }
 
+    // Workstream C: what the photo checks found, one card per photo.
+    const checks = saved.photo_checks || [];
+    if (checks.length) {
+      const head = box.append("div").attr("class", "pchecks-head");
+      head.append("div").attr("class", "eyebrow").text("Photo checks");
+      head.append("span").style("font-size", "11px").style("color", "var(--muted)")
+        .text(`${checks.length} photo${checks.length > 1 ? "s" : ""} checked`);
+      const holder = box.append("div").node();
+      checks.forEach((c) => holder.appendChild(window.PhotoChecks.render(c, { api: API })));
+    }
+
     const next = box.append("div").attr("class", "next");
     next.append("div").attr("class", "next__title").text("What happens now");
     const ol = next.append("ol");
@@ -430,9 +651,15 @@
     el("audioLabel").textContent = "🎙 Or record it and upload the audio instead";
     el("attachments").value = "";
     chosenFiles = [];
+    shots.forEach((s) => URL.revokeObjectURL(s.url));
+    shots = [];
+    renderShots();
     renderFiles();
     el("submit").disabled = false;
     showErrors([]);
+    clearPin();
+    if (el("facility")) el("facility").value = "";
+    if (el("facilityField")) el("facilityField").hidden = true;
     show("doneCard", false);
     show("runCard", false);
     show("form", true);
@@ -626,7 +853,42 @@
   el("district").addEventListener("change", (e) => loadBlocks(e.target.value));
   el("block").addEventListener("change", (e) =>
     loadVillages(val("district"), e.target.value));
-  el("category").addEventListener("change", (e) => fillDepartments(e.target.value));
+  el("village").addEventListener("change", (e) => {
+    const coords = villageCoords[e.target.value];
+    if (!coords) { el("pinCard").hidden = true; clearPin(); return; }
+    el("pinCard").hidden = false;
+    initPinMap();
+    // Leaflet must recalculate tile positions after the container becomes
+    // visible, otherwise tiles render in the wrong position or not at all.
+    setTimeout(() => {
+      pinMap.invalidateSize();
+      pinMap.setView([coords.lat, coords.lon], 15);
+    }, 120);
+    loadFacilities();
+  });
+  el("btnGeolocate").addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      el("pinHint").textContent = "This browser cannot access your location. You can still tap the map.";
+      return;
+    }
+    if (!window.isSecureContext) {
+      el("pinHint").textContent = "Phone location needs HTTPS. Open the HTTPS demo link, then tap this button again.";
+      return;
+    }
+    el("pinHint").textContent = "Requesting your current location...";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPin(pos.coords.latitude, pos.coords.longitude);
+        el("pinHint").textContent = "Current phone location selected for this prototype.";
+      },
+      () => { /* silently fail — the map tap is the primary path */ }
+    );
+  });
+  el("btnClearPin").addEventListener("click", clearPin);
+  el("category").addEventListener("change", (e) => {
+    fillDepartments(e.target.value);
+    loadFacilities();
+  });
   el("department").addEventListener("change", (e) => {
     const opt = e.target.selectedOptions[0];
     el("deptHint").textContent =
@@ -642,12 +904,14 @@
   el("attachments").addEventListener("change", function () {
     const rejected = [];
     Array.from(this.files).forEach((f) => {
-      if (chosenFiles.length >= MAX_FILES) {
-        rejected.push(`${f.name} — only ${MAX_FILES} files allowed`);
+      if (shots.length + chosenFiles.length >= MAX_FILES) {
+        rejected.push(`${f.name} — only ${MAX_FILES} items allowed`);
       } else if (f.size > MAX_BYTES) {
         rejected.push(`${f.name} — larger than 4 MB`);
-      } else if (!/^image\//.test(f.type) && f.type !== "application/pdf") {
-        rejected.push(`${f.name} — only photos and PDFs`);
+      } else if (f.type !== "application/pdf") {
+        // Photos come from the live camera (build plan C1), never from the
+        // gallery, so they can be checked as taken here and now.
+        rejected.push(`${f.name} — photos must be taken with “Take a photo”; only PDF letters can be attached`);
       } else {
         chosenFiles.push(f);
       }
@@ -655,6 +919,22 @@
     this.value = "";                       // allow re-picking the same file
     renderFiles();
     if (rejected.length) showErrors(rejected.map((m) => ["attachments", m]));
+  });
+
+  el("btnCamera").addEventListener("click", () => {
+    if (shots.length + chosenFiles.length >= MAX_FILES) return;
+    window.CameraCapture.open({
+      title: val("village") ? `Photograph the problem in ${val("village")}` : "Photograph the problem",
+      onCapture: (shot) => {
+        if (shot.blob.size > MAX_BYTES) {
+          showErrors([["attachments", "That photo is larger than 4 MB — please retake it"]]);
+          return;
+        }
+        shots.push(shot);
+        renderShots();
+        renderFiles();
+      },
+    });
   });
 
   el("trackGo").addEventListener("click", () => {
@@ -665,6 +945,8 @@
     if (e.key === "Enter") { e.preventDefault(); el("trackGo").click(); }
   });
 
+  el("btnEnableNotifications").addEventListener("click", requestNotifications);
+  refreshNotificationControl();
   loadDistricts();
   loadDepartments();
   // Restores a signed-in citizen on reload, so the profile is already on

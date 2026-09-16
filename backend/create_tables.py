@@ -16,7 +16,21 @@ from sqlalchemy import inspect, text
 
 # column name -> SQLite column type, per table
 ADDED_COLUMNS = {
-    "citizen_request": {"cluster_id": "INTEGER"},
+    "citizen_request": {
+        "cluster_id": "INTEGER",
+        # GPS pin from the citizen intake form's map control.
+        "precise_lat": "FLOAT",
+        "precise_lon": "FLOAT",
+        # School or hospital picked by citizen on intake form.
+        "facility_id": "INTEGER",
+        # Pin source: citizen_gps or synthetic_seed.
+        "pin_source": "TEXT",
+        # Specific asset this report was grouped into.
+        "asset_id": "INTEGER",
+        # Workstream C photo checks: worst photo authenticity, review flags.
+        "photo_trust": "FLOAT",
+        "review_flags": "TEXT",
+    },
     "demand_cluster": {
         "district": "TEXT",
         "block": "TEXT",
@@ -36,6 +50,10 @@ ADDED_COLUMNS = {
         "jjm_tap_coverage_pct": "FLOAT",
         "jjm_habitation_count": "INTEGER",
         "jjm_quality_status": "TEXT",
+    },
+    "work_group": {
+        # Whether work group position comes from citizen GPS pins or centroids.
+        "location_basis": "TEXT",
     },
 }
 

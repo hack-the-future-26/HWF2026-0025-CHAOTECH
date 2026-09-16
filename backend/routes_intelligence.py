@@ -44,12 +44,22 @@ def investment_alignment(
 
     Read-only. It does not touch scores or clusters.
     """
-    from intelligence.investment import build_village_investment, summarise
+    from intelligence.investment import (
+        build_school_investment,
+        build_village_investment,
+        summarise,
+        summarise_schools,
+    )
 
     rows, unpinned = build_village_investment(db)
     if district:
         rows = [r for r in rows if (r.district or "").lower() == district.lower()]
     buckets = summarise(rows)
+
+    school_rows = build_school_investment(db)
+    if district:
+        school_rows = [r for r in school_rows if (r.district or "").lower() == district.lower()]
+    school_buckets = summarise_schools(school_rows)
 
     def serialise(v):
         return {
@@ -63,6 +73,26 @@ def investment_alignment(
             "undelivered_works": len(v.undelivered_works),
             "undelivered_cost_lakh": round(v.sanctioned_cost_lakh, 2),
             "oldest_undelivered_year": v.oldest_undelivered_year,
+            # Real PRIASoft receipts/expenditure for this village, whole-panchayat
+            # -- not tied to PMGSY roads like the fields above. None when this
+            # village has no PRIASoft record, never a guessed 0.
+            "finance_fin_year": (v.finance or {}).get("fin_year"),
+            "unspent_grant_rupees": v.unspent_grant_rupees,
+        }
+
+    def serialise_school(s):
+        return {
+            "facility_id": s.facility_id,
+            "name": s.name,
+            "village": s.village,
+            "district": s.district,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "nearby_reports": s.nearby_reports,
+            "total_grant": s.total_grant,
+            "total_expenditure": s.total_expenditure,
+            "unspent_grant_rupees": s.unspent_grant_rupees,
+            "infra_deficit": s.infra_deficit,
         }
 
     return {
@@ -73,6 +103,70 @@ def investment_alignment(
         "funded_undelivered": [serialise(v) for v in buckets["funded_undelivered"][:limit]],
         "demanded_unfunded": [serialise(v) for v in buckets["demanded_unfunded"][:limit]],
         "funded_not_demanded": [serialise(v) for v in buckets["funded_not_demanded"][:limit]],
+        # Schools: a structurally different real signal from the road/water
+        # rows above (real UDISE+ unspent grant + real recorded deficiency,
+        # not a PMGSY work status), kept in its own section rather than
+        # merged into the same buckets so the two "funded" definitions are
+        # never confused for the same thing.
+        "school_mismatches": {
+            "counts": {name: len(items) for name, items in school_buckets.items()},
+            "funded_undelivered": [serialise_school(s) for s in school_buckets["funded_undelivered"][:limit]],
+            "demanded_unfunded": [serialise_school(s) for s in school_buckets["demanded_unfunded"][:limit]],
+            "funded_not_demanded": [serialise_school(s) for s in school_buckets["funded_not_demanded"][:limit]],
+        },
+    }
+
+
+@router.get("/budget-optimizer")
+def budget_optimizer(
+    budget_crore: float = Query(..., gt=0, description="Budget in crore rupees"),
+    value: str = Query("population", pattern="^(population|priority)$"),
+    district: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    """
+    0/1 knapsack allocation over real, already-costed road and water
+    assets -- see BUDGET_ALLOCATION_OPTIMIZER_RESEARCH.md. Answers "given
+    this much money, which specific real projects should be funded",
+    unlike /recompute-scores' sibling what-if re-ranking, which only asks
+    how rankings would shift.
+
+    Health and education are out of scope -- no honest per-project cost
+    exists for either in this database (real UDISE+ grants are "money
+    already given", not "cost to fix a specific deficiency" -- see the
+    research doc §2). They stay visible in the ordinary ranking and in
+    school_mismatches above, just outside this endpoint's budget math.
+
+    Read-only. Does not touch scores, clusters, or the database.
+    """
+    from intelligence.budget_optimizer import allocate, load_candidates
+
+    candidates = load_candidates(db, district=district)
+    result = allocate(candidates, budget_lakh=budget_crore * 100, value=value)
+
+    def serialise(c):
+        return {
+            "asset_id": c.asset_id,
+            "name": c.name,
+            "asset_type": c.asset_type,
+            "village": c.village,
+            "district": c.district,
+            "cost_lakh": c.cost_lakh,
+            "population_affected": c.population_affected,
+            "priority_score": c.priority_score,
+        }
+
+    return {
+        "budget_crore": budget_crore,
+        "district": district,
+        "value_dimension": result["value_dimension"],
+        "candidates_considered": result["candidates_considered"],
+        "chosen": [serialise(c) for c in result["chosen"]],
+        "total_cost_lakh": result["total_cost_lakh"],
+        "remaining_budget_lakh": result["remaining_budget_lakh"],
+        "population_reached": result["population_reached"],
+        "priority_weighted_benefit": result["priority_weighted_benefit"],
+        "scope_note": "Roads and water only -- no honest per-project cost exists yet for health or education.",
     }
 
 

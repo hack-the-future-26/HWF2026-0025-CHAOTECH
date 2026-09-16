@@ -1,0 +1,85 @@
+{
+ "evaluated_on": "2026-09-15",
+ "model_file": "models/pothole_best.pt",
+ "sha256": "1d1f3fd04b597e925f7dfc500a74ac67ee860f9e6640c74c72f20b37dacb1731",
+ "architecture": "YOLOv8 (C2f backbone, Detect head), 25.86M parameters, Ultralytics 8.4.7, trained at 1024 px",
+ "classes": {"0": "crack", "1": "pothole"},
+ "operating_point": {
+  "description": "Inference settings used by AwaazIQ. The weights are unchanged.",
+  "imgsz": 1024,
+  "confidence_threshold": 0.25,
+  "min_box_area_pct": 0.5,
+  "test_time_augmentation": true
+ },
+ "checkpoint_own_validation": {
+  "note": "Metrics stored inside the checkpoint by its training run, on its own validation split. Optimistic: same source as the training data.",
+  "precision": 0.7591, "recall": 0.7075, "mAP50": 0.7728, "mAP50_95": 0.4684
+ },
+ "image_level": [
+  {
+   "key": "heldout",
+   "name": "Held-out real photos (Wikimedia, 25 countries + Indian roads)",
+   "n": 88, "positives": 37, "negatives": 51,
+   "note": "Never used to choose any setting. 37 clear potholes, 46 pothole-free roads (44 in Kerala, Karnataka, Gujarat, Tamil Nadu), 5 hard negatives (river potholes, a diagram, a sign).",
+   "default": {"accuracy": 0.8182, "precision": 0.7838, "recall": 0.7838, "f1": 0.7838, "roc_auc": 0.907},
+   "operating_point": {"accuracy": 0.8182, "precision": 0.7442, "recall": 0.8649, "f1": 0.8, "roc_auc": 0.9237,
+                       "tp": 32, "fp": 11, "tn": 40, "fn": 5,
+                       "false_alarms_on_clean_roads": "8/46", "false_alarms_on_hard_negatives": "3/5"}
+  },
+  {
+   "key": "tuning",
+   "name": "Tuning set (Wikimedia: India, USA, Germany potholes; asphalt and Maharashtra roads)",
+   "n": 64, "positives": 19, "negatives": 45,
+   "note": "Used to choose the operating point, so its operating-point numbers are optimistic.",
+   "default": {"accuracy": 0.7188, "precision": 0.52, "recall": 0.6842, "f1": 0.5909, "roc_auc": 0.8439},
+   "operating_point": {"accuracy": 0.8438, "precision": 0.71, "recall": 0.79, "f1": 0.75, "roc_auc": 0.883}
+  },
+  {
+   "key": "taroii",
+   "name": "taroii/pothole-detection test split (224 px thumbnails)",
+   "n": 72, "positives": 46, "negatives": 26,
+   "note": "Tiny 224x224 images, far below the 1024 px the model expects, so recall is low.",
+   "default": {"accuracy": 0.5278, "precision": 1.0, "recall": 0.2609, "f1": 0.4138, "roc_auc": 0.7111},
+   "operating_point": {"accuracy": 0.6667, "precision": 0.96, "recall": 0.5, "f1": 0.66, "roc_auc": 0.746}
+  }
+ ],
+ "box_level": {
+  "dataset": "Ryukijano/Pothole-detection-Yolov8 (Roboflow 'Potholes Detection' v1) test split: 100 images, 269 pothole boxes",
+  "note": "Its labels also box patched repairs and tiny distant potholes, which this model does not call potholes, so box metrics understate it.",
+  "imgsz_640": {"precision": 0.6167, "recall": 0.2565, "mAP50": 0.3043, "mAP50_95": 0.1143},
+  "imgsz_1024": {"precision": 0.4826, "recall": 0.3271, "mAP50": 0.3114, "mAP50_95": 0.1174},
+  "imgsz_1024_tta": {"precision": 0.4262, "recall": 0.3792, "mAP50": 0.3421, "mAP50_95": 0.1345}
+ },
+ "structural_damage": {
+  "dataset": "Wikimedia 'Damaged bridges', 8 photos",
+  "crack_class_fired": "1/8",
+  "note": "The crack class was trained on road surfaces; it is a weak proxy for bridge or building damage."
+ },
+ "forensics": {
+  "C7_moire": {
+   "calibration": {"genuine_flagged": "0/70", "simulated_screen_recaptures_flagged": "24/35"},
+   "fresh_sample": {"genuine_flagged": "0/50", "simulated_screen_recaptures_flagged": "15/25"},
+   "note": "Recaptures simulated physically (RGB sub-pixel display, lens blur, rotated camera sampling). Not yet measured on real phone photos of screens."
+  },
+  "C7_burst": {"note": "Identical frames (still image through a virtual camera) are flagged; frames with sensor noise are not. Unit-tested on synthetic frames."},
+  "C4_error_level": {
+   "fresh_sample": {"genuine_flagged": "6/50", "spliced_flagged": "3/25"},
+   "note": "Cannot tell genuine from spliced photos, so the score is advisory only and never lowers trust. Editing-software metadata is the C4 signal that counts."
+  },
+  "C3_duplicates": {"note": "Perceptual hash matches resized and recompressed copies; unrelated scenes do not match (unit-tested)."}
+ },
+ "speed_cpu": {
+  "model_only_ms_imgsz640": 263,
+  "model_only_ms_imgsz1024": 619,
+  "full_photo_check_seconds_with_tta": 2.9,
+  "machine": "the development laptop, CPU only"
+ },
+ "limits": [
+  "On held-out real photos it catches about 86% of potholes, and about 1 in 4 alerts is a false alarm, mostly dirt roads and busy junctions.",
+  "Water-filled potholes, holes full of debris and very small or distant potholes are missed more often.",
+  "Low-resolution photos (e.g. 224 px) lose most detections.",
+  "The crack class is trained on roads; it rarely fires on bridge or building damage (1 of 8 photos), so C6 leans on the complaint's wording.",
+  "Screen-replay detection was calibrated on simulated recaptures; edit detection (ELA) is advisory only.",
+  "Every result is a signal for an officer, never a verdict: photos only raise or lower confidence."
+ ]
+}

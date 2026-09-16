@@ -13,12 +13,21 @@ never resolved can never join a cluster, and roughly a fifth of reports were
 in that state.
 """
 
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Gazetteer
+from models import Gazetteer, PublicFacility
+from intelligence import config
+from intelligence.clustering import haversine_km
 
 router = APIRouter(prefix="/gazetteer")
 
@@ -164,3 +173,89 @@ def valid_department(department_id: str | None) -> bool:
         for group in DEPARTMENTS.values()
         for d in group
     )
+
+
+@router.get("/facilities")
+def list_facilities(
+    district: str = Query(...),
+    block: str = Query(...),
+    village: str = Query(...),
+    category: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Candidate facilities for the citizen intake form.
+    For education: schools whose village matches the chosen village or lie within SCHOOL_CANDIDATE_RADIUS_M.
+    For health: facilities within HEALTH_NEAREST_MAX_KM, nearest first.
+    Returns: list of {id, name, sub_type, distance_m}
+    """
+    if category not in ("education", "health"):
+        return []
+
+    # Find the chosen village's coordinates from gazetteer
+    v = (
+        db.query(Gazetteer)
+        .filter(
+            Gazetteer.district == district,
+            Gazetteer.block == block,
+            func.lower(Gazetteer.name) == village.lower(),
+        )
+        .first()
+    )
+    if not v:
+        v = (
+            db.query(Gazetteer)
+            .filter(
+                Gazetteer.district == district,
+                func.lower(Gazetteer.name) == village.lower(),
+            )
+            .first()
+        )
+
+    v_lat = v.latitude if v else None
+    v_lon = v.longitude if v else None
+
+    # Query facilities of matching category
+    facilities = db.query(PublicFacility).filter(PublicFacility.category == category).all()
+
+    results = []
+    seen_ids = set()
+
+    if category == "education":
+        radius_m = getattr(config, "SCHOOL_CANDIDATE_RADIUS_M", 2000.0)
+        for f in facilities:
+            dist_m = None
+            if v_lat is not None and v_lon is not None and f.latitude is not None and f.longitude is not None:
+                dist_m = round(haversine_km(v_lat, v_lon, f.latitude, f.longitude) * 1000.0)
+
+            is_name_match = bool(f.village and f.village.strip().lower() == village.strip().lower())
+            is_in_range = bool(dist_m is not None and dist_m <= radius_m)
+
+            if is_name_match or is_in_range:
+                if f.id not in seen_ids:
+                    seen_ids.add(f.id)
+                    results.append({
+                        "id": f.id,
+                        "name": f.name,
+                        "sub_type": f.sub_type,
+                        "distance_m": dist_m,
+                    })
+        results.sort(key=lambda item: (item["distance_m"] is None, item["distance_m"] or 0, item["name"]))
+
+    elif category == "health":
+        radius_km = getattr(config, "HEALTH_NEAREST_MAX_KM", 8.0)
+        for f in facilities:
+            if v_lat is not None and v_lon is not None and f.latitude is not None and f.longitude is not None:
+                d_km = haversine_km(v_lat, v_lon, f.latitude, f.longitude)
+                if d_km <= radius_km:
+                    if f.id not in seen_ids:
+                        seen_ids.add(f.id)
+                        results.append({
+                            "id": f.id,
+                            "name": f.name,
+                            "sub_type": f.sub_type,
+                            "distance_m": round(d_km * 1000.0),
+                        })
+        results.sort(key=lambda item: (item["distance_m"] is None, item["distance_m"] or 0, item["name"]))
+
+    return results

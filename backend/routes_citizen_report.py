@@ -21,6 +21,7 @@ Identity never lands in `citizen_request`. It goes to `citizen_identity`,
 which nothing in the analytics or dashboard path reads. See models.py.
 """
 
+import math
 import re
 import secrets
 import sys
@@ -41,10 +42,14 @@ from models import (  # noqa: E402
     CitizenRequest,
     CitizenRequestRaw,
     Gazetteer,
+    PublicFacility,
     ReportAttachment,
 )
 from routes_auth import get_current_user_from_token  # noqa: E402
 from routes_gazetteer import PILOT_STATE, valid_department  # noqa: E402
+from routes_photo_checks import category_for_department, check_report_photos  # noqa: E402
+from intelligence import config  # noqa: E402
+from intelligence.clustering import haversine_km  # noqa: E402
 
 router = APIRouter()
 
@@ -191,6 +196,41 @@ def serialize_citizen_request(citizen_request: CitizenRequest) -> dict:
     }
 
 
+_IMAGE_ATTACHMENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def attach_photo_info(db: Session, reports: list[dict]) -> None:
+    """
+    Adds a `photos` list (id + fetch url) to each serialized report dict, in
+    place, so an officials' reports list can offer "show the photo" without a
+    second round-trip per report. PDFs are excluded -- only image evidence a
+    list like this can actually preview inline.
+
+    One batched query for the whole list rather than one per report, so a
+    cluster/village/asset reports page (which can hold hundreds of rows)
+    stays cheap regardless of how this function is called.
+    """
+    ids = [r["id"] for r in reports if r.get("id") is not None]
+    if not ids:
+        return
+    rows = (
+        db.query(ReportAttachment)
+        .filter(
+            ReportAttachment.linked_request_id.in_(ids),
+            ReportAttachment.content_type.in_(_IMAGE_ATTACHMENT_TYPES),
+        )
+        .order_by(ReportAttachment.id)
+        .all()
+    )
+    by_request: dict[int, list[dict]] = {}
+    for a in rows:
+        by_request.setdefault(a.linked_request_id, []).append(
+            {"id": a.id, "url": f"/report-attachment/{a.id}"}
+        )
+    for r in reports:
+        r["photos"] = by_request.get(r.get("id"), [])
+
+
 def _clean(form, key: str) -> str | None:
     value = form.get(key)
     if not isinstance(value, str):
@@ -316,6 +356,38 @@ def resolve_picked_location(db: Session, district: str, block: str, village: str
     }
 
 
+def _validate_pin(
+    form, village_lat: float, village_lon: float
+) -> tuple[float | None, float | None]:
+    """
+    Parse and validate the citizen's GPS pin against the picked village.
+
+    Both report_lat and report_lon must be present, finite (not NaN/Inf),
+    and within PIN_MAX_DISTANCE_KM of the village centroid returned by
+    resolve_picked_location().  Otherwise both are dropped -- a partial,
+    non-numeric, NaN or impossibly distant pin is never stored.
+
+    This runs ONLY on the intake (village-picked) form path.  The JSON
+    ingest path never calls it, so seeding scripts are unaffected.
+    """
+    from intelligence.clustering import haversine_km
+    from intelligence import config
+
+    try:
+        lat = float(_clean(form, "report_lat") or "")
+        lon = float(_clean(form, "report_lon") or "")
+    except (ValueError, TypeError):
+        return None, None
+
+    if not (math.isfinite(lat) and math.isfinite(lon)):
+        return None, None
+
+    if haversine_km(lat, lon, village_lat, village_lon) > config.PIN_MAX_DISTANCE_KM:
+        return None, None
+
+    return lat, lon
+
+
 async def save_attachments(form, request_id: int, db: Session) -> list[ReportAttachment]:
     """Persist evidence files, enforcing the CPGRAMS limits."""
     uploads = [
@@ -334,7 +406,7 @@ async def save_attachments(form, request_id: int, db: Session) -> list[ReportAtt
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     saved: list[ReportAttachment] = []
 
-    for upload in uploads:
+    for index, upload in enumerate(uploads):
         content_type = (upload.content_type or "").split(";")[0].strip().lower()
         if content_type not in ALLOWED_ATTACHMENT_TYPES:
             raise HTTPException(
@@ -364,6 +436,9 @@ async def save_attachments(form, request_id: int, db: Session) -> list[ReportAtt
             content_type=content_type,
             size_bytes=len(data),
         )
+        # Position in the form, so photo checks can pair this file with its
+        # capture_meta entry and burst_<index> frames. Not a column.
+        row.form_index = index
         db.add(row)
         saved.append(row)
 
@@ -467,13 +542,55 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
         location_raw = result["location_raw"]
         confidence = result["confidence_overall"]
 
+        precise_lat, precise_lon = None, None
+        pin_source = None
         if intake:
+            # The text pipeline can fail to classify code-switched or
+            # Latinized text (e.g. "Chat khrab hai bhot") into any category --
+            # and intelligence.clustering.cluster_all() silently drops any
+            # report with no issue_category, so it could never join a cluster
+            # no matter how many times a recompute ran. The intake form
+            # already forces a category choice through which department the
+            # citizen picked (fillDepartments() in report.js filters the
+            # department list by it), so recover it from there rather than
+            # leaving a real report stuck outside every cluster. Same
+            # fallback routes_photo_checks.check_report_photos already uses
+            # for judging a photo's category.
+            if not result["issue_category"]:
+                result["issue_category"] = category_for_department(intake["department"])
+
             # A village chosen from the dropdown outranks one guessed from the
             # text. This is the fix for reports that used to be stored with no
             # coordinates at all and could therefore never join a cluster.
             location_resolved = resolve_picked_location(
                 db, intake["district"], intake["block"], intake["village"]
             )
+            # Validate optional citizen-supplied GPS pin against village centroid.
+            # Kept strictly to the intake path; dropped if non-finite or >5km.
+            if location_resolved.get("lat") is not None and location_resolved.get("lon") is not None:
+                precise_lat, precise_lon = _validate_pin(
+                    form, location_resolved["lat"], location_resolved["lon"]
+                )
+                if precise_lat is not None and precise_lon is not None:
+                    pin_source = "citizen_gps"
+            # Parse and validate optional citizen-selected facility (intake path only).
+            facility_id = None
+            raw_fac = _clean(form, "facility_id")
+            if raw_fac is not None:
+                try:
+                    parsed_fid = int(raw_fac)
+                    fac = db.query(PublicFacility).filter(PublicFacility.id == parsed_fid).first()
+                    if fac and fac.category == result["issue_category"]:
+                        max_km = getattr(config, "FACILITY_MAX_DISTANCE_KM", 10.0)
+                        v_lat = location_resolved.get("lat")
+                        v_lon = location_resolved.get("lon")
+                        if v_lat is not None and v_lon is not None and fac.latitude is not None and fac.longitude is not None:
+                            dist_km = haversine_km(v_lat, v_lon, fac.latitude, fac.longitude)
+                            if dist_km <= max_km:
+                                facility_id = fac.id
+                except (ValueError, TypeError):
+                    facility_id = None
+
             # The picked village replaces whatever the extractor scraped out
             # of the sentence. Left as-is, a complaint that never named a
             # place stored fragments like "din se, bahut samasya" as its
@@ -497,6 +614,10 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             village=location_resolved.get("village"),
             latitude=location_resolved.get("lat"),
             longitude=location_resolved.get("lon"),
+            precise_lat=precise_lat,
+            precise_lon=precise_lon,
+            pin_source=pin_source,
+            facility_id=facility_id if intake else None,
             confidence=confidence,
             is_synthetic=result["is_synthetic"],
             department=intake["department"] if intake else None,
@@ -532,7 +653,31 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
 
         db.commit()
 
+        # Workstream C: check every photo (capture provenance, duplicates,
+        # edits, screen replay, road defects, damage grade). Evidence and
+        # flags only -- the report is already stored and stays stored.
+        photo_views = []
+        if attachments:
+            photo_views = await check_report_photos(
+                form,
+                attachments,
+                citizen_request,
+                village_lat=location_resolved.get("lat"),
+                village_lon=location_resolved.get("lon"),
+                text=original_text,
+                db=db,
+            )
+            db.commit()
+            db.refresh(citizen_request)
+
         payload = serialize_citizen_request(citizen_request)
+        # Echo the pin back so the receipt can confirm it was recorded.
+        # This response goes only to the citizen who just filed, not to the
+        # public dashboard. serialize_citizen_request() deliberately omits it.
+        payload["precise_lat"] = citizen_request.precise_lat
+        payload["precise_lon"] = citizen_request.precise_lon
+        # Echo chosen facility id to citizen only, omitted from serialize_citizen_request
+        payload["facility_id"] = citizen_request.facility_id
         payload["attachments"] = [
             {
                 "id": a.id,
@@ -542,6 +687,8 @@ async def create_citizen_report(request: Request, db: Session = Depends(get_db))
             }
             for a in attachments
         ]
+        payload["photo_checks"] = photo_views
+        payload["photo_trust"] = citizen_request.photo_trust
         # Echoed back so the receipt can confirm what was recorded. Read from
         # the validated input, not from the database -- nothing reads identity
         # back out of storage, including this endpoint.
