@@ -778,6 +778,33 @@ class HazardAlert(Base):
     sender = Column(Text)
     fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+class FloodEvent(Base):
+    """
+    Real historical flood-inundation extents for Maharashtra (satellite-
+    derived, 2013 and 2021), from NDEM (National Database of Emergency
+    Management) via the public no-login mirror at
+    github.com/ramSeraph/india_natural_disasters -- the same underlying
+    government data Bhuvan's own flood-hazard layer serves, verified live
+    2026-09-16 (FEATURE_ROADMAP.md #17) after Bhuvan's own WMS endpoint
+    timed out.
+
+    Stored as each event's real bounding box, not its exact polygon shape --
+    a conservative, honest approximation (distance to this box is a lower
+    bound on distance to the true flood extent), not the precise boundary.
+    Loaded once by backend/load_flood_inundation.py; this table never
+    changes at runtime.
+    """
+    __tablename__ = "flood_event"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    year = Column(Text, index=True)
+    bbox_xmin = Column(Float)
+    bbox_ymin = Column(Float)
+    bbox_xmax = Column(Float)
+    bbox_ymax = Column(Float)
+    source = Column(Text)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 class VillageBudgetPlan(Base):
     """
     Task 5: eGramSwaraj GPDP

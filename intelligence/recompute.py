@@ -523,6 +523,7 @@ def _score_members(
     school_condition_index: dict[int, dict] | None = None,
     jjm_scheme_index: dict[int, list[dict]] | None = None,
     mgnrega_index: dict[int, dict] | None = None,
+    flood_events: list[dict] | None = None,
     groups: list[dict] | None = None,
     now: datetime | None = None,
 ) -> dict:
@@ -594,6 +595,16 @@ def _score_members(
         mgnrega_evidence, mgnrega_text = realdata.mgnrega_catchment_evidence(
             nearby_villages, mgnrega_index or {}
         )
+
+    # Real historical flood-inundation exposure (NDEM 2013/2021 satellite
+    # extents, FEATURE_ROADMAP.md #17) -- applies to every category, unlike
+    # MGNREGA/JJM above, since a flood affects whatever is standing in it
+    # regardless of asset type. Evidence only, same caution as every other
+    # real-data source before its shape had been checked against live
+    # clusters.
+    flood_evidence, flood_text = realdata.flood_exposure_evidence(
+        lat, lon, flood_events or []
+    )
 
     # Evidence-only for now (see hazard_near's own docstring): corroborates a
     # possible emergency without moving the score, since the urgency-term
@@ -753,6 +764,8 @@ def _score_members(
         result["evidence"]["jjm_schemes"] = jjm_scheme_evidence
     if category in ("road", "water") and mgnrega_text:
         result["evidence"]["mgnrega"] = mgnrega_evidence
+    if flood_text:
+        result["evidence"]["flood_exposure"] = flood_evidence
     # Real UDISE+ grant vs. expenditure for this specific school -- separate
     # from infra_deficit's own school signal (classroom/electricity/water/
     # toilet condition), since "how much unspent money is sitting here" is a
@@ -865,6 +878,7 @@ def _build_assets(
     school_condition_index: dict[int, dict] | None = None,
     jjm_scheme_index: dict[int, list[dict]] | None = None,
     mgnrega_index: dict[int, dict] | None = None,
+    flood_events: list[dict] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -1124,6 +1138,7 @@ def _build_assets(
             school_condition_index=school_condition_index,
             jjm_scheme_index=jjm_scheme_index,
             mgnrega_index=mgnrega_index,
+            flood_events=flood_events,
             groups=None,
         )
         evidence = dict(result["evidence"])
@@ -1314,6 +1329,7 @@ def recompute(db, verbose: bool = True) -> dict:
     school_condition_index = realdata.load_school_condition_index(db)
     jjm_scheme_index = realdata.load_jjm_scheme_index(db)
     mgnrega_index = realdata.load_village_mgnrega_index(db)
+    flood_events = realdata.load_flood_event_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -1347,7 +1363,8 @@ def recompute(db, verbose: bool = True) -> dict:
         f"{len(school_condition_index)} UDISE+ school condition records, "
         f"{sum(len(v) for v in jjm_scheme_index.values())} real JJM schemes across "
         f"{len(jjm_scheme_index)} villages, "
-        f"{len(mgnrega_index)} villages with a real MGNREGA expenditure record"
+        f"{len(mgnrega_index)} villages with a real MGNREGA expenditure record, "
+        f"{len(flood_events)} real NDEM flood-inundation events (2013/2021)"
     )
 
     # --- Steps 1-3: embed, gate, cluster -----------------------------------
@@ -1447,6 +1464,7 @@ def recompute(db, verbose: bool = True) -> dict:
             hazard_alerts=hazard_alerts,
             jjm_scheme_index=jjm_scheme_index,
             mgnrega_index=mgnrega_index,
+            flood_events=flood_events,
             groups=groups,
         )
         result["evidence"].update(_photo_evidence(members))
@@ -1490,6 +1508,7 @@ def recompute(db, verbose: bool = True) -> dict:
         school_condition_index=school_condition_index,
         jjm_scheme_index=jjm_scheme_index,
         mgnrega_index=mgnrega_index,
+        flood_events=flood_events,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)

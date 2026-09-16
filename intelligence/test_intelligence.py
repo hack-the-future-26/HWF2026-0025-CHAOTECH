@@ -1152,6 +1152,51 @@ def test_mgnrega_index_and_catchment_evidence():
     check("mgnrega_catchment_evidence: catchment with no matched village returns (None, None)", ev3 is None and text3 is None)
 
 
+def test_flood_event_index_and_exposure_evidence():
+    class MockFloodRow:
+        def __init__(self, year, xmin, ymin, xmax, ymax):
+            self.year = year
+            self.bbox_xmin = xmin
+            self.bbox_ymin = ymin
+            self.bbox_xmax = xmax
+            self.bbox_ymax = ymax
+
+    class MockFloodQuery:
+        def __init__(self, items):
+            self.items = items
+        def all(self):
+            return self.items
+
+    class MockFloodDB:
+        def query(self, model):
+            return MockFloodQuery([
+                # A real-shaped small polygon bbox, centred near (16.70, 74.24).
+                MockFloodRow("2021", 74.235, 16.695, 74.245, 16.705),
+                MockFloodRow("2013", 74.500, 16.900, 74.510, 16.910),
+            ])
+
+    events = realdata.load_flood_event_index(MockFloodDB())
+    check("load_flood_event_index: returns every real row as a plain dict", len(events) == 2)
+    check("load_flood_event_index: None db returns []", realdata.load_flood_event_index(None) == [])
+
+    ev, text = realdata.flood_exposure_evidence(None, None, events)
+    check("flood_exposure_evidence: missing coordinates returns (None, None)", ev is None and text is None)
+
+    ev2, text2 = realdata.flood_exposure_evidence(16.70, 74.24, [])
+    check("flood_exposure_evidence: no events at all returns (None, None)", ev2 is None and text2 is None)
+
+    # Inside the first event's real bbox -- distance must be exactly 0.
+    ev3, text3 = realdata.flood_exposure_evidence(16.70, 74.24, events)
+    check("flood_exposure_evidence: a point inside a real bbox is found", ev3["events_found"] == 1)
+    check("flood_exposure_evidence: distance inside the bbox is 0.0", ev3["nearest_km"] == 0.0)
+    check("flood_exposure_evidence: names the real year", ev3["years"] == ["2021"])
+    check("flood_exposure_evidence: sentence names the distance", "0.0 km" in text3 or "0 km" in text3)
+
+    # Far from both real events -- outside FLOOD_EXPOSURE_RADIUS_KM.
+    ev4, text4 = realdata.flood_exposure_evidence(20.0, 74.0, events)
+    check("flood_exposure_evidence: a point far from every real event returns (None, None)", ev4 is None and text4 is None)
+
+
 def test_investment_only_counts_road_reports_as_demand():
     """
     Real bug, found live 2026-09-15: `works` in build_village_investment is
@@ -2259,6 +2304,7 @@ def main() -> None:
         test_amenity_lookup_uses_the_categorys_own_catchment_radius,
         test_jjm_scheme_index_and_catchment_evidence,
         test_mgnrega_index_and_catchment_evidence,
+        test_flood_event_index_and_exposure_evidence,
         test_investment_only_counts_road_reports_as_demand,
         test_school_investment_uses_unspent_grant_and_real_deficiency,
         test_budget_optimizer_knapsack_is_exact_not_greedy,

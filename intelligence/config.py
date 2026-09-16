@@ -409,3 +409,11 @@ FACILITY_MAX_DISTANCE_KM = 10.0
 # while maintaining sufficient spatial clarity for road and water spots on the map.
 ASSET_PUBLIC_COORD_DECIMALS = 3
 
+# How close (km) a real NDEM/Bhuvan-derived historical flood-inundation event
+# must be to count as exposure for a cluster/asset. Matches the road catchment
+# radius (CATCHMENT_RADIUS_KM["road"]) and the 5km used to verify this data
+# source against the real gazetteer before building it (FEATURE_ROADMAP.md
+# #17): 527 of 1,042 pilot villages have a real recorded flood event within
+# this distance.
+FLOOD_EXPOSURE_RADIUS_KM = 5.0
+

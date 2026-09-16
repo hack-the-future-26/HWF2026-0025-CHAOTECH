@@ -1497,6 +1497,112 @@ def hazard_near(
 
 
 # ---------------------------------------------------------------------------
+# Historical flood exposure (NDEM, real satellite-derived 2013/2021 extents)
+# ---------------------------------------------------------------------------
+
+
+def load_flood_event_index(db) -> list[dict]:
+    """
+    Every real NDEM flood-inundation event (2013/2021), as plain dicts --
+    loaded once per recompute() call, same pattern as every other real_*
+    index in this file. See backend/load_flood_inundation.py for the source.
+    """
+    if db is None:
+        return []
+    try:
+        from models import FloodEvent
+
+        return [
+            {
+                "year": r.year,
+                "xmin": r.bbox_xmin,
+                "ymin": r.bbox_ymin,
+                "xmax": r.bbox_xmax,
+                "ymax": r.bbox_ymax,
+            }
+            for r in db.query(FloodEvent).all()
+        ]
+    except Exception:
+        return []
+
+
+def _distance_to_bbox_km(lat: float, lon: float, ev: dict) -> float:
+    """
+    Real distance from (lat, lon) to the nearest point on a flood event's
+    bounding box -- 0.0 if the point falls inside it. A lower bound on the
+    true distance to the actual flood polygon, not an approximation that
+    could understate exposure (see FloodEvent's own docstring).
+    """
+    clamped_lat = min(max(lat, ev["ymin"]), ev["ymax"])
+    clamped_lon = min(max(lon, ev["xmin"]), ev["xmax"])
+    return haversine_km(lat, lon, clamped_lat, clamped_lon)
+
+
+def flood_exposure_evidence(
+    lat: float | None, lon: float | None, flood_events: list[dict]
+) -> tuple[dict | None, str | None]:
+    """
+    Real historical flood-inundation exposure near (lat, lon), from NDEM's
+    satellite-derived 2013/2021 flood extent record (FEATURE_ROADMAP.md
+    #17). Evidence only -- like groundwater, water testing, JJM schemes and
+    MGNREGA before it, this corroborates a real background risk without
+    moving infra_deficit, vulnerability, or any other score term; wiring a
+    historical-exposure signal into the score itself is a separate, later
+    decision.
+
+    Applies to every category, not just road/water -- a flood affects
+    whatever is standing in it, regardless of what kind of asset it is.
+
+    Returns (None, None) when nothing is within FLOOD_EXPOSURE_RADIUS_KM --
+    that means "no recorded 2013/2021 flood event this close," never "this
+    place cannot flood."
+    """
+    if lat is None or lon is None or not flood_events:
+        return None, None
+
+    # Cheap plain-degree pre-filter before the real (trig-based) haversine
+    # call below. flood_events is ~14,000 rows and this function runs once
+    # per cluster/asset (roughly 1,000 times a recompute) -- doing the trig
+    # call unconditionally measurably slowed recompute() when first wired in
+    # (confirmed live: a recompute that normally finishes in well under a
+    # minute took over two). ~111 km/degree of latitude, with a 1.5x margin
+    # so nothing genuinely within FLOOD_EXPOSURE_RADIUS_KM is ever dropped --
+    # this filter can only keep more candidates than the exact check needs,
+    # never fewer.
+    margin_deg = (config.FLOOD_EXPOSURE_RADIUS_KM / 111.0) * 1.5
+    candidates = [
+        ev for ev in flood_events
+        if ev["ymin"] - margin_deg <= lat <= ev["ymax"] + margin_deg
+        and ev["xmin"] - margin_deg <= lon <= ev["xmax"] + margin_deg
+    ]
+    if not candidates:
+        return None, None
+
+    near = [
+        (_distance_to_bbox_km(lat, lon, ev), ev["year"])
+        for ev in candidates
+    ]
+    near = [(d, y) for d, y in near if d <= config.FLOOD_EXPOSURE_RADIUS_KM]
+    if not near:
+        return None, None
+
+    years = sorted({y for _, y in near})
+    nearest_km = round(min(d for d, _ in near), 2)
+    evidence = {
+        "events_found": len(near),
+        "years": years,
+        "nearest_km": nearest_km,
+        "source": "NDEM satellite-derived flood inundation (2013, 2021)",
+    }
+    sentence = (
+        f"{len(near)} recorded flood-inundation event"
+        f"{'s' if len(near) != 1 else ''} ({', '.join(years)}) within "
+        f"{config.FLOOD_EXPOSURE_RADIUS_KM:.0f} km, nearest {nearest_km} km away"
+    )
+    return evidence, sentence
+
+
+# ---------------------------------------------------------------------------
 # GPDP District Summary (index.do)
 # ---------------------------------------------------------------------------
 

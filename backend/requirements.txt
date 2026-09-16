@@ -4,3 +4,4 @@ sqlalchemy
 requests
 python-multipart
 rapidfuzz
+pyarrow
