@@ -14,4 +14,4 @@
    separate deployments (e.g. frontend on Vercel, backend on Railway) --
    the one case where "same origin as the page" is no longer the backend.
    =========================================================================== */
-window.AWAAZIQ_API_BASE = "";
+window.AWAAZIQ_API_BASE = "https://idk-production-2d30.up.railway.app";
