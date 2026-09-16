@@ -18,7 +18,9 @@ from routes_gazetteer import router as gazetteer_router
 from routes_citizen_report import router as citizen_report_router
 from routes_dashboard import router as dashboard_router
 from routes_intelligence import router as intelligence_router
+from routes_photo_checks import router as photo_checks_router
 from routes_test import router as test_router
+from routes_villages import router as villages_router
 
 app = FastAPI()
 
@@ -34,6 +36,8 @@ app.include_router(citizen_report_router)
 app.include_router(dashboard_router)
 app.include_router(intelligence_router)
 app.include_router(gazetteer_router)
+app.include_router(villages_router)
+app.include_router(photo_checks_router)
 app.include_router(test_router)
 
 

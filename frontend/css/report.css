@@ -767,3 +767,17 @@ body.citizen { overflow: auto; height: auto; min-height: 100%; }
 .coverage-note__icon { font-size: 15px; line-height: 1.4; }
 .coverage-note__text { font-size: 12.5px; line-height: 1.5; color: #6b4d17; }
 .coverage-note__text strong { color: #3d2c0c; }
+
+/* ---------------------------------------------------------- pin map -- */
+.pin-map {
+  height: 220px;
+  border-radius: 6px;
+  background: #e8e8e8;
+  margin-bottom: 8px;
+}
+.pin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}

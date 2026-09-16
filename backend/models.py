@@ -27,6 +27,15 @@ class CitizenRequest(Base):
     village = Column(Text)
     latitude = Column(Float)
     longitude = Column(Float)
+    # Citizen-supplied GPS pin from the intake form's map control.  When
+    # present, these are the coordinates the citizen actually stood at or
+    # tapped on, rather than the village centroid the gazetteer resolves to.
+    # Nullable: the pin is optional, and every report filed before this
+    # feature exists has no pin.  The existing latitude/longitude columns
+    # stay the village-resolved fallback and continue to be set exactly as
+    # before.
+    precise_lat = Column(Float, nullable=True)
+    precise_lon = Column(Float, nullable=True)
     confidence = Column(Float)
     is_synthetic = Column(Boolean, default=False)
     # Which line department the complaint is routed to -- our equivalent of
@@ -41,6 +50,17 @@ class CitizenRequest(Base):
     cluster_id = Column(Integer, ForeignKey("demand_cluster.id"), nullable=True)
     # Registered citizen who filed the report, if authenticated.
     user_id = Column(Integer, ForeignKey("citizen_user.id"), nullable=True)
+    # Specific facility (school or hospital) chosen on the intake form.
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
+    # Source of the report's coordinates: "citizen_gps" or "synthetic_seed".
+    pin_source = Column(Text, nullable=True)
+    # Specific asset this report was grouped into, rebuilt on every recompute.
+    asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    # Workstream C: lowest photo authenticity (0.2-1) across this report's
+    # photos, and the photo flags that need an officer's eye (JSON list).
+    # NULL when no photo was attached. Never a reason to drop a report.
+    photo_trust = Column(Float, nullable=True)
+    review_flags = Column(Text, nullable=True)
 
 
 class CitizenRequestRaw(Base):
@@ -410,6 +430,9 @@ class WorkGroup(Base):
     asset_source = Column(Text)              # "udise", "pmgsy"
     asset_external_id = Column(Text)         # UDISE code, PMGSY work id
     asset_candidates = Column(Text)          # JSON: the ranked shortlist
+    # Whether this group's position comes from citizen GPS pins, village
+    # centroids, or a mix.  Lets the dashboard mark which pins are exact.
+    location_basis = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -513,4 +536,450 @@ class LgdVillage(Base):
     lgd_state_code = Column(Text)
     state_name = Column(Text)
 
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class MosdacRainfall(Base):
+    """
+    Gridded recent rainfall from ISRO MOSDAC's GSMaP Rain product (0.1°x0.1° grid,
+    hourly, IMD-gauge-corrected, covering India).
+
+    Used as an objective meteorological corroboration signal for road washout
+    and water shortage/drought complaints.  Keyed by 0.1° grid cell coordinates
+    (grid_lat, grid_lon) and window duration.
+    """
+
+    __tablename__ = "mosdac_rainfall"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    grid_lat = Column(Float, index=True)
+    grid_lon = Column(Float, index=True)
+    district = Column(Text, index=True)
+    rainfall_mm = Column(Float)
+    window_hours = Column(Float, default=72.0)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class NwdpGroundwater(Base):
+    """
+    Groundwater telemetry stations and recent water levels from India's
+    National Water Data Portal (NWDP / NWIC, Maharashtra Ground Water Dept).
+
+    Used as an objective hydrological corroboration signal for water scarcity
+    and drought complaints ("pani nahi aata").
+    """
+
+    __tablename__ = "nwdp_groundwater"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    station_name = Column(Text, index=True)
+    district = Column(Text, index=True)
+    tehsil = Column(Text)
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+    current_level_m = Column(Float)
+    previous_level_m = Column(Float, nullable=True)
+    trend = Column(Text)  # "falling", "rising", "stable"
+    recorded_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Asset(Base):
+    """
+    A specific, tangible asset (named school, health facility, road problem spot,
+    or water point) with its own priority score, breakdown, and evidence.
+    Rebuilt on every recompute pass.
+    """
+
+    __tablename__ = "asset"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_type = Column(Text, index=True)  # road, water, health, education
+    name = Column(Text)
+    name_basis = Column(Text)  # citizen_selected, demo_assigned, nearest_register, geosadak_segment, pmgsy_work, unnamed_pin, unresolved_village
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), nullable=True)
+    source = Column(Text, nullable=True)
+    external_id = Column(Text, nullable=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    location_basis = Column(Text)  # register_coordinates, citizen_gps_pin, synthetic_seed, village_centroid, mixed
+    primary_gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True)
+    village = Column(Text, index=True)
+    block = Column(Text, index=True)
+    district = Column(Text, index=True)
+    villages_served = Column(Text)  # JSON list of village names
+    report_count = Column(Integer, default=0)
+    distinct_reporters = Column(Integer, default=0)
+    priority_score = Column(Float, index=True)
+    breakdown = Column(Text)  # JSON text
+    evidence = Column(Text)  # JSON text
+    candidates = Column(Text, nullable=True)  # JSON text
+    is_demo = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class VillagePriority(Base):
+    """
+    Priority ranking for each revenue village in the gazetteer that has citizen
+    complaints. Driven by the village's highest-need asset.
+    Rebuilt on every recompute pass.
+    """
+
+    __tablename__ = "village_priority"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), index=True)
+    village = Column(Text, index=True)
+    block = Column(Text, index=True)
+    district = Column(Text, index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    population = Column(Integer, nullable=True)
+    report_count = Column(Integer, default=0)
+    counts_by_category = Column(Text)  # JSON
+    asset_count = Column(Integer, default=0)
+    priority_score = Column(Float, index=True)
+    top_asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    rank_in_district = Column(Integer, nullable=True)
+    # priority_score only ever reflects the village's single highest-scoring
+    # asset, so a real emergency at any OTHER asset in the village was
+    # invisible here (found live 2026-09-16: a photographed roof collapse at
+    # a school hidden behind a higher-scoring road in the same village).
+    # This flag is independent of priority_score/top_asset_id on purpose --
+    # it names the single most severe emergency-graded asset in the village,
+    # whether or not that asset is the one driving the ranking number.
+    has_urgent_asset = Column(Boolean, default=False)
+    urgent_asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    urgent_grade_label = Column(Text, nullable=True)  # crack | partial | collapse
+    is_demo = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PMGSYRoadSegment(Base):
+    """
+    Physical road segment from PMGSY GeoSadak (Road_DRRP layer).
+    Provides real line geometry, official road name, category, and agency ownership
+    for rural road infrastructure in Maharashtra.
+    """
+
+    __tablename__ = "pmgsy_road_segment"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    external_id = Column(Integer, index=True, nullable=True)  # ER_ID from shapefile
+    state_id = Column(Integer, default=21)
+    district_id = Column(Integer, index=True)
+    block_id = Column(Integer, index=True)
+    district = Column(Text, index=True)                       # "Kolhapur", "Nashik"
+    block = Column(Text, index=True, nullable=True)           # block name resolved from MasterData
+    drrp_road_code = Column(Text, nullable=True)              # DRRP_ROAD_ (e.g. "VR 18", "ODR-36")
+    road_name = Column(Text, nullable=True)                   # RoadName (e.g. "MDR 39 To Gaganbavda...")
+    road_category = Column(Text, nullable=True)               # RoadCatego (e.g. "RR(VR)", "MDR", "SH")
+    road_owner = Column(Text, nullable=True)                  # RoadOwner (e.g. "RWD", "PWD", "MRRDA")
+    start_lat = Column(Float)
+    start_lon = Column(Float)
+    end_lat = Column(Float)
+    end_lon = Column(Float)
+    points_json = Column(Text)                                # JSON list of [lat, lon] coordinates
+    point_count = Column(Integer, default=0)
+    min_lat = Column(Float, index=True)
+    max_lat = Column(Float, index=True)
+    min_lon = Column(Float, index=True)
+    max_lon = Column(Float, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SchoolCondition(Base):
+    """
+    Current (yearly) school condition, staffing and money from UDISE+ Know
+    Your School. Replaces village-wide 2011 Census facts with real,
+    current, per-school data.
+    """
+    __tablename__ = "school_condition"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    facility_id = Column(Integer, ForeignKey("public_facility.id"), index=True)
+    udise_code = Column(Text, index=True)
+    year_desc = Column(Text)                      # "2024-25"
+    teachers_regular = Column(Integer, nullable=True)
+    teachers_contract = Column(Integer, nullable=True)
+    teachers_part_time = Column(Integer, nullable=True)
+    classrooms_total = Column(Integer, nullable=True)
+    classrooms_good = Column(Integer, nullable=True)
+    classrooms_minor_repair = Column(Integer, nullable=True)
+    classrooms_major_repair = Column(Integer, nullable=True)
+    toilet_boys_functional = Column(Integer, nullable=True)  # count, from toiletbFun
+    toilet_girls_functional = Column(Integer, nullable=True)
+    drinking_water = Column(Boolean, nullable=True)
+    electricity = Column(Boolean, nullable=True)
+    boundary_wall_status = Column(Text, nullable=True)       # raw text, e.g. "7-Partial"
+    total_grant = Column(Float, nullable=True)
+    total_expenditure = Column(Float, nullable=True)
+    raw_json = Column(Text, nullable=True)         # both API responses, merged, for anything not modeled above
+    fetch_failed = Column(Boolean, default=False)  # true if this school could not be fetched after retries
+    fetched_at = Column(DateTime, nullable=True)
+
+
+class WaterTesting(Base):
+    """
+    Task 1: JJM Water Testing Data
+    """
+    __tablename__ = "water_testing"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fin_year = Column(Text)
+    district = Column(Text)
+    block = Column(Text)
+    gp_id = Column(Integer)
+    gp_name = Column(Text)
+    village_id = Column(Integer)
+    village_name = Column(Text)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True)
+    samples_tested = Column(Integer)
+    ph = Column(Integer)
+    frc = Column(Integer)
+    turbidity = Column(Integer)
+    tds = Column(Integer)
+    hardness = Column(Integer)
+    villages_not_tested = Column(Integer)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class RiverReading(Base):
+    """
+    Task 2: CWC River Levels Data
+    """
+    __tablename__ = "river_reading"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    station_code = Column(Text, index=True)
+    name = Column(Text)
+    lat = Column(Float)
+    lon = Column(Float)
+    datatype_code = Column(Text)
+    value = Column(Float)
+    observed_at = Column(DateTime)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class HazardAlert(Base):
+    """
+    Task 3: SACHET Disaster Alerts
+    """
+    __tablename__ = "hazard_alert"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    identifier = Column(Text, index=True, unique=True)
+    event = Column(Text)
+    severity = Column(Text)
+    urgency = Column(Text)
+    area_desc = Column(Text)
+    districts = Column(Text)  # Comma-separated list of mapped districts
+    effective = Column(DateTime)
+    expires = Column(DateTime)
+    sender = Column(Text)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class FloodEvent(Base):
+    """
+    Real historical flood-inundation extents for Maharashtra (satellite-
+    derived, 2013 and 2021), from NDEM (National Database of Emergency
+    Management) via the public no-login mirror at
+    github.com/ramSeraph/india_natural_disasters -- the same underlying
+    government data Bhuvan's own flood-hazard layer serves, verified live
+    2026-09-16 (FEATURE_ROADMAP.md #17) after Bhuvan's own WMS endpoint
+    timed out.
+
+    Stored as each event's real bounding box, not its exact polygon shape --
+    a conservative, honest approximation (distance to this box is a lower
+    bound on distance to the true flood extent), not the precise boundary.
+    Loaded once by backend/load_flood_inundation.py; this table never
+    changes at runtime.
+    """
+    __tablename__ = "flood_event"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    year = Column(Text, index=True)
+    bbox_xmin = Column(Float)
+    bbox_ymin = Column(Float)
+    bbox_xmax = Column(Float)
+    bbox_ymax = Column(Float)
+    source = Column(Text)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class VillageBudgetPlan(Base):
+    """
+    Task 5: eGramSwaraj GPDP
+    """
+    __tablename__ = "village_budget_plan"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), index=True)
+    financial_year = Column(Text)
+    work_name = Column(Text)
+    sector = Column(Text)
+    estimated_cost = Column(Float)
+    status = Column(Text)
+    source = Column(Text, default="gpdp_manual_capture")
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class GpdpDistrictSummary(Base):
+    """
+    District-level GPDP (Gram Panchayat Development Plan) planning totals
+    from eGramSwaraj's public dashboard (index.do). District-level only --
+    the dashboard does not expose per-village line items. Not wired into
+    scoring; see the ground rules in the task that added this table.
+    """
+    __tablename__ = "gpdp_district_summary"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    district = Column(Text, index=True)            # "Kolhapur" / "Nashik"
+    district_code = Column(Integer, index=True)     # 438 / 443
+    state_code = Column(Integer)                    # 27 (Maharashtra)
+    plan_year = Column(Text)                        # "2025-26" / "2026-27"
+    total_panchayats = Column(Integer, nullable=True)
+    panchayats_with_plan = Column(Integer, nullable=True)
+    approved_activities = Column(Integer, nullable=True)
+    gram_sabhas_conducted = Column(Integer, nullable=True)
+    estimated_outlay_lakh = Column(Float, nullable=True)
+    popular_activities_json = Column(Text, nullable=True)      # [{rank, name, count}]
+    underpicked_activities_json = Column(Text, nullable=True)  # [{rank, name, count}]
+    recent_activities_json = Column(Text, nullable=True)       # [{date, activity, location}]
+    data_as_of = Column(Text, nullable=True)        # the page's own "Data as on ..." string
+    fetch_failed = Column(Boolean, default=False)
+    fetched_at = Column(DateTime, nullable=True)
+
+
+class VillagePanchayatFinance(Base):
+    """
+    Real per-village-panchayat receipts and expenditure from PRIASoft
+    (RecExpReportNew.do), the Ministry of Panchayati Raj's actual panchayat
+    accounting system -- not the GPDP planning tool. Tied/untied 15th
+    Finance Commission grant components tracked separately, matching the
+    source report's own structure.
+    """
+    __tablename__ = "village_panchayat_finance"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True, index=True)
+    village_name = Column(Text)          # as PRIASoft names it, for the fuzzy-match audit trail
+    district = Column(Text)
+    fin_year = Column(Text)
+    scheme_code = Column(Text)
+    untied_opening_balance = Column(Float, nullable=True)
+    untied_receipts = Column(Float, nullable=True)
+    untied_payments = Column(Float, nullable=True)
+    untied_closing_balance = Column(Float, nullable=True)
+    tied_opening_balance = Column(Float, nullable=True)
+    tied_receipts = Column(Float, nullable=True)
+    tied_payments = Column(Float, nullable=True)
+    tied_closing_balance = Column(Float, nullable=True)
+    raw_json = Column(Text, nullable=True)   # the full real row, for anything not modeled above
+    fetched_at = Column(DateTime, nullable=True)
+
+
+class JjmVillageScheme(Base):
+    """
+    Real per-scheme JJM water-supply records from ejalshakti.gov.in's
+    village profile report (JJM/JJMReports/profiles/rpt_VillageProfile.aspx),
+    looked up by LGD village code -- a genuinely different report from
+    `load_jjm_water.py`'s Citizen Corner crawl, which only carries current
+    tap-connection coverage, never scheme identity, cost or status.
+
+    A village can have more than one scheme (multiple PWS/MVS works over
+    time), hence one row per scheme, not per village.
+
+    DELIBERATE OMISSION: the same report page also lists O&M staff names,
+    women's committee members, and water-quality sample collectors' names.
+    None of that is loaded -- this table holds only the scheme-level
+    financial/status fields, matching this project's standing rule against
+    storing individual-level data (REAL_DATA_RESEARCH.md §2.3).
+    """
+    __tablename__ = "jjm_village_scheme"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=False, index=True)
+    lgd_village_code = Column(Text, index=True)
+    jjm_village_id = Column(Text, nullable=True)
+    scheme_id = Column(Text, index=True)
+    scheme_name = Column(Text)
+    scheme_type = Column(Text, nullable=True)       # e.g. "PWS"
+    scheme_category = Column(Text, nullable=True)   # e.g. "Single village scheme"
+    work_order_date = Column(Text, nullable=True)   # kept as the source's own dd/mm/yyyy string
+    estimated_cost_lakh = Column(Float, nullable=True)
+    reported_expenditure_lakh = Column(Float, nullable=True)
+    status = Column(Text, nullable=True)
+    fetched_at = Column(DateTime, nullable=True)
+
+
+class VillageMgnregaExpenditure(Base):
+    """
+    Real per-village-panchayat MGNREGA expenditure and wage/material ratio from
+    the Ministry of Rural Development's official NREGA portal (gp_cummulative_report1.aspx).
+    Tracks total expenditure, wages paid, and material expenditure in Lakhs of rupees,
+    along with wage and material percentage shares.
+    """
+    __tablename__ = "village_mgnrega_expenditure"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gazetteer_id = Column(Integer, ForeignKey("gazetteer.id"), nullable=True, index=True)
+    village_name = Column(Text)          # as MGNREGA names it, for the fuzzy-match audit trail
+    district = Column(Text)
+    block = Column(Text)
+    fin_year = Column(Text)              # e.g. "2026-2027"
+    total_expenditure_lakh = Column(Float, nullable=True)
+    wages_lakh = Column(Float, nullable=True)
+    material_lakh = Column(Float, nullable=True)
+    wages_percent = Column(Float, nullable=True)
+    material_percent = Column(Float, nullable=True)
+    raw_json = Column(Text, nullable=True)   # full parsed row
+    fetched_at = Column(DateTime, nullable=True)
+
+
+
+
+class PhotoCheck(Base):
+    """
+    Workstream C: what the photo checks found for one attached photo.
+
+    One row per image attachment. The columns are the numbers other code
+    filters or aggregates on; `result` holds the full working (every check's
+    inputs and outputs) so an officer can see why a photo was flagged.
+
+    Capture coordinates are stored here, like the report pin, and are never
+    returned by a public endpoint -- only the distance to the village is.
+    """
+
+    __tablename__ = "photo_check"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    attachment_id = Column(Integer, ForeignKey("report_attachment.id"), unique=True, index=True)
+    linked_request_id = Column(Integer, ForeignKey("citizen_request.id"), index=True)
+
+    # C1 capture provenance
+    capture_method = Column(Text)                 # live_camera | file_upload
+    captured_at = Column(DateTime, nullable=True)
+    capture_lat = Column(Float, nullable=True)
+    capture_lon = Column(Float, nullable=True)
+    capture_accuracy_m = Column(Float, nullable=True)
+    capture_distance_km = Column(Float, nullable=True)
+    # C3 duplicate photo
+    phash = Column(Text, index=True)
+    dhash = Column(Text)
+    duplicate_of_attachment_id = Column(Integer, nullable=True)
+    # C4 edit detection, C7 screen replay
+    ela_score = Column(Float, nullable=True)
+    screen_replay_score = Column(Float, nullable=True)
+    # C5 road defect model, C6 damage grade
+    pothole_confidence = Column(Float, nullable=True)
+    crack_confidence = Column(Float, nullable=True)
+    defect_seen = Column(Boolean, nullable=True)
+    damage_grade = Column(Text, nullable=True)    # crack | partial | collapse
+    damage_confidence = Column(Float, nullable=True)
+    damage_structure = Column(Text, nullable=True)  # bridge | building
+    # Combined
+    authenticity = Column(Float)
+    verdict = Column(Text)                        # verified | partly_verified | needs_review
+    flags = Column(Text)                          # JSON list
+    annotated_name = Column(Text, nullable=True)  # boxes drawn, under uploads/
+    result = Column(Text)                         # JSON, full working
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

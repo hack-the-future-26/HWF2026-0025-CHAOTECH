@@ -22,6 +22,18 @@ ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "department": "TEXT",
         # Registered citizen who filed the report.
         "user_id": "INTEGER",
+        # GPS pin from the citizen intake form's map control.
+        "precise_lat": "FLOAT",
+        "precise_lon": "FLOAT",
+        # School or hospital picked by citizen on intake form.
+        "facility_id": "INTEGER",
+        # Pin source: citizen_gps or synthetic_seed.
+        "pin_source": "TEXT",
+        # Specific asset this report was grouped into.
+        "asset_id": "INTEGER",
+        # Workstream C photo checks: worst photo authenticity, review flags.
+        "photo_trust": "FLOAT",
+        "review_flags": "TEXT",
     },
     "demand_cluster": {
         "district": "TEXT",
@@ -46,11 +58,21 @@ ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "asset_source": "TEXT",
         "asset_external_id": "TEXT",
         "asset_candidates": "TEXT",
+        # Whether work group position comes from citizen GPS pins or centroids.
+        "location_basis": "TEXT",
     },
     "priority_score": {
         # The working behind each score term, so a number can be interrogated
         # rather than only read.
         "evidence": "TEXT",
+    },
+    "village_priority": {
+        # Urgency flag, independent of priority_score/top_asset_id -- names
+        # the village's most severe emergency-graded asset even when it
+        # isn't the one driving the ranking number.
+        "has_urgent_asset": "BOOLEAN",
+        "urgent_asset_id": "INTEGER",
+        "urgent_grade_label": "TEXT",
     },
 }
 
@@ -61,7 +83,18 @@ def existing_columns(connection, table: str) -> set[str]:
 
 
 def run_migrations(engine: Engine) -> list[str]:
-    """Add any missing columns. Returns what it changed, for logging."""
+    """
+    Add any missing columns. Returns what it changed, for logging.
+
+    SQLite-only: the queries above (PRAGMA table_info, sqlite_master) are
+    SQLite-specific syntax, and a non-SQLite database (e.g. a deployed
+    Supabase/Postgres DATABASE_URL) only ever gets built once, from
+    create_all(), so it already has every column current models.py
+    declares -- there is nothing for this function to add there.
+    """
+    if engine.dialect.name != "sqlite":
+        return []
+
     applied: list[str] = []
 
     with engine.begin() as connection:

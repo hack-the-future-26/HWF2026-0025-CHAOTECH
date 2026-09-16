@@ -105,17 +105,34 @@ CONFIDENCE_THRESHOLD = 0.75
 EQUITY_BOOST_POINTS = 10.0
 STRATEGIC_POINTS = 4.0
 URGENCY_POINTS = 3.0
+URGENCY_POINTS = 15.0
 FEASIBILITY_POINTS = 2.0
 COST_PENALTY_POINTS = 3.0
 
 # The four Gap Score terms are scaled into this many points so that the
 # theoretical maximum total lands exactly on 100:
 #     81 (gap) + 10 (equity) + 4 (strategic) + 3 (urgency) + 2 (feasibility)
+#     69 (gap) + 10 (equity) + 4 (strategic) + 15 (urgency) + 2 (feasibility)
 #   = 100, before any cost penalty.
 # Chosen over clamping at 100, which would have broken the property that the
 # nine breakdown terms sum to the score -- the one guarantee the whole
 # explainability story rests on.
 GAP_SCORE_MAX_POINTS = 81.0
+GAP_SCORE_MAX_POINTS = 69.0
+
+# Emergency grading multipliers on URGENCY_POINTS (Feature #7: bridge/building breakage)
+EMERGENCY_GRADE_COLLAPSE = 1.0
+EMERGENCY_GRADE_PARTIAL = 2.0 / 3.0
+EMERGENCY_GRADE_CRACK = 1.0 / 3.0
+
+# Emergency confidence signal contribution limits (none is decisive alone)
+EMERGENCY_CONF_WORDING_SINGLE = 0.40
+EMERGENCY_CONF_WORDING_CORROBORATED = 0.50
+EMERGENCY_CONF_BURST_MAX = 0.30
+EMERGENCY_CONF_HAZARD_SACHET = 0.20
+EMERGENCY_CONF_HAZARD_RIVER = 0.15
+EMERGENCY_CONF_HAZARD_MAX = 0.30
+EMERGENCY_CONF_PHOTO_MAX = 0.40
 
 # Equity: blocks with below-median connectivity/literacy get the boost.
 # Build plan Step 6 explicitly sanctions a small hardcoded lookup for MVP.
@@ -136,8 +153,9 @@ LOW_CONNECTIVITY_BLOCKS = {
     "Kalwan",
 }
 
-# Categories whose failure is monsoon-sensitive -> urgency offset applies.
-MONSOON_SENSITIVE_CATEGORIES = {"road", "water"}
+# MONSOON_SENSITIVE_CATEGORIES (the old flat-urgency mechanism) was removed
+# 2026-09-15 with Feature #7 -- urgency is emergency-only now, see
+# urgency_points() and emergency.py.
 
 # Strategic offset applies when a cluster plausibly clears an existing
 # scheme's population threshold (stand-in for the Scheme-Eligibility
@@ -145,8 +163,21 @@ MONSOON_SENSITIVE_CATEGORIES = {"road", "water"}
 # engine, just a population gate).
 STRATEGIC_POPULATION_THRESHOLD = 5_000
 
-# Feasibility: clusters nearer a taluka headquarters are cheaper to reach.
-FEASIBILITY_NEAR_HQ_KM = 15.0
+# Feasibility: continuous distance gradient to the nearest real TOWN (labour,
+# materials, contractors), not a government office -- an administrative HQ's
+# distance measures bureaucratic remoteness, not buildability. Full credit at
+# or below FEASIBILITY_NEAR_KM, zero at or above FEASIBILITY_FAR_KM, linear
+# between. FEASIBILITY_NEAR_KM=15 carries over the project's original
+# distance threshold; FEASIBILITY_FAR_KM has no published cost-distance study
+# behind it -- documented default (3x near), revisit if real data emerges.
+FEASIBILITY_NEAR_KM = 15.0
+FEASIBILITY_FAR_KM = 45.0
+
+# Blend weight for the real all-weather-road-connectivity signal alongside
+# distance. Kept modest: Census records only 12 of 942 villages in this
+# dataset as lacking an all-weather road, so this mostly matters for that
+# minority -- it should nudge, not dominate.
+FEASIBILITY_ROAD_WEIGHT = 0.3
 
 # Cost penalty scales with catchment size: a bigger, more spread-out fix
 # costs more per unit of benefit.
@@ -289,15 +320,100 @@ AMENITY_LOOKUP_RADIUS_KM = 5.0
 # never zeroes (§16.1).
 NO_REAL_DATA_CONFIDENCE_FACTOR = 0.85
 
+# Step 9's what-if re-ranking (WHATIF_POINTS_PER_CRORE, WHATIF_MAX_POINTS,
+# RUPEES_PER_CRORE) was removed 2026-09-15, replaced by
+# intelligence/budget_optimizer.py -- a real 0/1 knapsack allocation over
+# actual project costs, not a flat re-scoring simulation.
+
+
 # ---------------------------------------------------------------------------
-# Step 9 -- what-if
+# Feature 3 -- precise report location
 # ---------------------------------------------------------------------------
 
-# Extra strategic points granted to clusters in the district receiving a
-# positive budget delta, per this many rupees. Deliberately crude: this
-# models "more money for this district raises what is fundable there", not a
-# real capital-budgeting optimiser (research report SS16.3 puts constrained
-# optimisation at Phase 3+).
-WHATIF_POINTS_PER_CRORE = 0.4
-WHATIF_MAX_POINTS = 12.0
-RUPEES_PER_CRORE = 10_000_000
+# Maximum distance (km) a citizen-supplied GPS pin may sit from the picked
+# village's centroid.  Beyond this the pin is more likely a GPS glitch, a
+# phone left on a previous location, or a deliberate spoof than a genuine
+# position.  5 km is generous: the largest village extents in Kolhapur/Nashik
+# are roughly 2-3 km, and a citizen reporting a problem on the outskirts of
+# a neighbouring village would still be within this.
+PIN_MAX_DISTANCE_KM = 5.0
+
+
+# ---------------------------------------------------------------------------
+# Feature 6 & Feature 1 -- rainfall accumulation and burst detection window
+# ---------------------------------------------------------------------------
+
+# Lookback window for temporal burst detection and rainfall accumulation (hours).
+# 72 hours (3 days) aligns with the typical duration of an active monsoon
+# depression or intense precipitation event in western Maharashtra, long enough
+# to capture sustained severe rainfall and related complaints without letting
+# historical noise dilute the signal.  Aligned with Task 2's burst window so
+# "rainfall in the last 72h" directly corroborates "reports in the last 72h".
+BURST_WINDOW_HOURS = 72.0
+
+# Rate anomaly ceiling: a burst arrival rate 20x higher than historical baseline
+# saturates the velocity term at 1.0 (log-scaled).
+VELOCITY_RATIO_CEILING = 20.0
+
+# Exponential decay half-life for government record trust (years).
+# 10.0 years (owner decision 2026-09-14) ensures Census 2011 (15 years old)
+# retains meaningful trust (~35%) for slow-moving baseline facts, but yields
+# proportionally when actively contradicted by a corroborated high-severity burst.
+RECORD_TRUST_HALF_LIFE_YEARS = 10.0
+
+
+# ---------------------------------------------------------------------------
+# Village & Asset priority view
+# ---------------------------------------------------------------------------
+
+# Snapping distance (metres) between a citizen-placed GPS pin and a registered
+# public facility (school or hospital). GPS accuracy on standard smartphones
+# in rural areas routinely fluctuates between 10-30m, and school compounds
+# span several tens or hundreds of metres. 300m allows honest association with
+# the real asset without falsely capturing neighboring institutions.
+ASSET_PIN_SNAP_M = 300.0
+
+# Maximum distance (km) to look for the nearest public health facility when a
+# health report is filed without a specific facility or pin. Set to 8.0 km,
+# which matches the existing health catchment radius (CATCHMENT_RADIUS_KM["health"])
+# representing the outer service perimeter of rural Primary Health Centres (PHC)
+# and Sub-Centres under IPHS guidelines.
+HEALTH_NEAREST_MAX_KM = 8.0
+
+# Search radius (metres) around a village centroid for finding candidate schools
+# when an education report specifies neither a facility nor a precise pin.
+# 2,000m (2 km) aligns with RTE walking distance limits and covers typical
+# revenue village boundaries in Kolhapur and Nashik.
+SCHOOL_CANDIDATE_RADIUS_M = 2000.0
+
+# Maximum number of candidate schools to present in an unresolved school list.
+# Beyond 6 entries, the list creates cognitive fatigue for reviewing officials
+# rather than aiding decision-making.
+SCHOOL_CANDIDATE_MAX = 6
+
+# Distance threshold (metres) for single-linkage spatial clustering of road
+# and water complaints within a village. 250m matches WORK_GROUP_RADIUS_M:
+# large enough to merge complaints about the same broken culvert or water point,
+# small enough to keep distinct problem spots inside a village separate.
+ASSET_GROUP_RADIUS_M = 250.0
+
+# Maximum distance (km) allowed between a picked village centroid and a
+# citizen-selected facility from the intake form dropdown. If a citizen picks
+# a facility further than 10 km from their village, it is rejected as an intake
+# error or mismatch rather than misattributing distant infrastructure.
+FACILITY_MAX_DISTANCE_KM = 10.0
+
+# Number of decimal places to round pin-based asset coordinates in public API
+# responses. 3 decimal places corresponds to roughly ~110m resolution at
+# Maharashtra latitudes, preserving citizen privacy for personal GPS pins
+# while maintaining sufficient spatial clarity for road and water spots on the map.
+ASSET_PUBLIC_COORD_DECIMALS = 3
+
+# How close (km) a real NDEM/Bhuvan-derived historical flood-inundation event
+# must be to count as exposure for a cluster/asset. Matches the road catchment
+# radius (CATCHMENT_RADIUS_KM["road"]) and the 5km used to verify this data
+# source against the real gazetteer before building it (FEATURE_ROADMAP.md
+# #17): 527 of 1,042 pilot villages have a real recorded flood event within
+# this distance.
+FLOOD_EXPOSURE_RADIUS_KM = 5.0
+

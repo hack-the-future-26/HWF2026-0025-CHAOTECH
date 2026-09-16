@@ -99,6 +99,20 @@ def vulnerability_term(population_affected: int, settlement_count: int) -> float
     return min(1.0, 0.2 + 0.8 * ratio)
 
 
+def velocity_term(ratio: float) -> float:
+    """Log-scaled 0..1, same reasoning as population_term: one wild outlier can't blow the scale."""
+    if ratio <= 1.0:
+        return 0.0
+    return min(1.0, math.log1p(ratio) / math.log1p(config.VELOCITY_RATIO_CEILING))
+
+
+def record_freshness(vintage_years: float | None) -> float:
+    """None (unknown age, e.g. a live scrape) -> 1.0, assume fresh."""
+    if vintage_years is None:
+        return 1.0
+    return 0.5 ** (max(0.0, float(vintage_years)) / config.RECORD_TRUST_HALF_LIFE_YEARS)
+
+
 def gap_score(demand: float, population: float, infra: float, vulnerability: float) -> float:
     """Stage 1: weighted SUM of the four terms, 0..1."""
     return (
@@ -153,20 +167,58 @@ def strategic_points(population_affected: int) -> float:
     return 0.0
 
 
-def urgency_points(issue_category: str | None) -> float:
-    """Seasonality: roads and water fail hardest in monsoon (SS16.2)."""
-    if issue_category in config.MONSOON_SENSITIVE_CATEGORIES:
-        return config.URGENCY_POINTS
-    return 0.0
-
-
-def feasibility_points(distance_to_hq_km: float | None) -> float:
-    """Nearer a taluka headquarters is cheaper to actually reach and build."""
-    if distance_to_hq_km is None:
+def urgency_points(
+    grade: float | str | None = 0.0,
+    confidence: float = 0.0,
+    issue_category: str | None = None,
+) -> float:
+    """
+    Emergency urgency (Feature #7): bridge or building breakage only (including cracks).
+    Formula: URGENCY_POINTS * grade * confidence
+    grade: crack (1/3), partial damage (2/3), collapse (1.0).
+    confidence: [0, 1] scaled from independent signals (none decisive alone).
+    If no emergency signals fire, urgency is 0.0 -- never a guess.
+    """
+    if isinstance(grade, str) or grade is None:
+        # Legacy positional call urgency_points(issue_category) -> no emergency signals
         return 0.0
-    if distance_to_hq_km <= config.FEASIBILITY_NEAR_HQ_KM:
-        return config.FEASIBILITY_POINTS
-    return 0.0
+    if grade <= 0.0 or confidence <= 0.0:
+        return 0.0
+    val = config.URGENCY_POINTS * grade * min(1.0, max(0.0, confidence))
+    return round(val, 2)
+
+
+def feasibility_points(
+    distance_to_town_km: float | None,
+    road_connected_share: float | None = None,
+) -> float:
+    """
+    Continuous, not binary. Nearer a real town (labour, materials,
+    contractors) is cheaper to actually reach and build -- fading linearly
+    from full credit at FEASIBILITY_NEAR_KM to zero at FEASIBILITY_FAR_KM,
+    instead of the old hard cliff that gave identical credit at 14.9km and
+    zero at 15.1km.
+
+    Blended with a real all-weather-road-connectivity signal: a site already
+    reachable by road is genuinely cheaper to build in. Unknown road status
+    is treated as neutral (0.5), not a penalty -- absence of data is not
+    absence of access.
+    """
+    if distance_to_town_km is None:
+        return 0.0
+    near = config.FEASIBILITY_NEAR_KM
+    far = config.FEASIBILITY_FAR_KM
+    if distance_to_town_km <= near:
+        distance_fraction = 1.0
+    elif distance_to_town_km >= far:
+        distance_fraction = 0.0
+    else:
+        distance_fraction = (far - distance_to_town_km) / (far - near)
+
+    road_fraction = 0.5 if road_connected_share is None else road_connected_share
+    weight = config.FEASIBILITY_ROAD_WEIGHT
+    fraction = (1.0 - weight) * distance_fraction + weight * road_fraction
+    return config.FEASIBILITY_POINTS * fraction
 
 
 def cost_penalty_points(population_affected: int) -> float:
@@ -196,6 +248,10 @@ def score_cluster(
     block: str | None,
     distance_to_hq_km: float | None,
     extra_strategic_points: float = 0.0,
+    velocity: float = 0.0,
+    high_severity_share: float = 0.0,
+    infra_deficit_vintage_years: float | None = None,
+    vulnerability_vintage_years: float | None = None,
     # --- real government data, all optional ---------------------------------
     # Every one of these replaces a proxy above. They are optional so a caller
     # with no loaded data still gets a score, and so the fallback path stays
@@ -204,7 +260,12 @@ def score_cluster(
     real_vulnerability: float | None = None,
     real_reporting_deficit: float | None = None,
     scheme_eligible: bool | None = None,
-    real_hq_distance_km: float | None = None,
+    real_town_distance_km: float | None = None,
+    real_road_connected_share: float | None = None,
+    # --- emergency urgency (Feature #7) -------------------------------------
+    emergency_grade: float = 0.0,
+    emergency_confidence: float = 0.0,
+    emergency_grade_label: str | None = None,
 ) -> dict:
     """
     Full two-stage score for one cluster.
@@ -222,7 +283,9 @@ def score_cluster(
         real_vulnerability     <- settlement-size guess
         real_reporting_deficit <- hardcoded list of ten block names
         scheme_eligible        <- bare population threshold
-        real_hq_distance_km    <- our own straight-line distance
+        real_town_distance_km  <- our own straight-line distance to an
+                                   administrative HQ (feasibility's fallback
+                                   when no Census nearest-town record exists)
 
     When a value is absent the proxy still runs, but the cluster's confidence
     gate is multiplied by NO_REAL_DATA_CONFIDENCE_FACTOR, so a score built on
@@ -241,6 +304,15 @@ def score_cluster(
     if real_infra_deficit is not None:
         infra = max(0.0, min(1.0, real_infra_deficit))
         data_basis["infra_deficit"] = "government_records"
+        freshness = record_freshness(infra_deficit_vintage_years)
+        contradiction = velocity * high_severity_share
+        trust = 1.0 - (1.0 - freshness) * contradiction
+        proxy = infra_deficit_term(severities)
+        infra = max(0.0, min(1.0, trust * max(0.0, min(1.0, real_infra_deficit)) + (1.0 - trust) * proxy))
+        data_basis["infra_deficit"] = (
+            "government_records" if trust >= 0.95 else
+            f"blended:{trust:.0%}_government_{1-trust:.0%}_citizen_severity"
+        )
     else:
         infra = infra_deficit_term(severities)
         data_basis["infra_deficit"] = "proxy_reported_severity"
@@ -248,6 +320,15 @@ def score_cluster(
     if real_vulnerability is not None:
         vulnerability = max(0.0, min(1.0, real_vulnerability))
         data_basis["vulnerability"] = "census_deprivation"
+        freshness = record_freshness(vulnerability_vintage_years)
+        contradiction = velocity * high_severity_share
+        trust = 1.0 - (1.0 - freshness) * contradiction
+        proxy = vulnerability_term(population_affected, settlement_count)
+        vulnerability = max(0.0, min(1.0, trust * max(0.0, min(1.0, real_vulnerability)) + (1.0 - trust) * proxy))
+        data_basis["vulnerability"] = (
+            "census_deprivation" if trust >= 0.95 else
+            f"blended:{trust:.0%}_government_{1-trust:.0%}_citizen_vulnerability"
+        )
     else:
         vulnerability = vulnerability_term(population_affected, settlement_count)
         data_basis["vulnerability"] = "proxy_settlement_size"
@@ -292,12 +373,26 @@ def score_cluster(
     strategic += extra_strategic_points
 
     urgency = urgency_points(issue_category)
+    urgency = urgency_points(
+        grade=emergency_grade,
+        confidence=emergency_confidence,
+        issue_category=issue_category,
+    )
+    if urgency > 0.0:
+        lbl = emergency_grade_label or "emergency"
+        data_basis["urgency"] = f"emergency_{lbl}:{emergency_confidence:.0%}_confidence"
+    else:
+        data_basis["urgency"] = "no_emergency"
 
-    if real_hq_distance_km is not None:
-        feasibility = feasibility_points(real_hq_distance_km)
+    if real_town_distance_km is not None:
+        feasibility = feasibility_points(real_town_distance_km, real_road_connected_share)
         data_basis["feasibility"] = "census_recorded_distance"
     else:
-        feasibility = feasibility_points(distance_to_hq_km)
+        # No Census nearest-town record for this catchment -- fall back to
+        # our own straight-line distance to an administrative HQ, the only
+        # distance we can compute ourselves. Road-connectivity data doesn't
+        # apply here either, since it comes from the same missing records.
+        feasibility = feasibility_points(distance_to_hq_km, None)
         data_basis["feasibility"] = "computed_straight_line"
 
     cost_penalty = cost_penalty_points(population_affected)

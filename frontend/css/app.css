@@ -654,6 +654,22 @@ html, body {
    from the intake flow looking like every other row. */
 .rep--new { border-color: var(--amber); border-width: 2px; background: #fffaf0; }
 
+.rep__photobtn {
+  margin-top: 8px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  background: var(--navy-soft); color: #fff;
+  border: 1px solid var(--navy-soft); border-radius: 6px;
+  padding: 4px 9px; cursor: pointer;
+}
+.rep__photobtn:hover { background: var(--navy); border-color: var(--navy); }
+.rep__images {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.rep__image {
+  max-width: 140px; max-height: 140px; border-radius: 6px;
+  border: 1px solid var(--border); cursor: zoom-in; object-fit: cover;
+}
+
 .privacy {
   display: flex; gap: 9px; align-items: flex-start;
   background: var(--cream); border: 1px dashed var(--border);
@@ -806,6 +822,7 @@ html, body {
 }
 .dock__col {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 20px 22px;
   border-right: 1px solid var(--border);
   min-width: 0;
@@ -889,9 +906,10 @@ html, body {
 .app--railclosed { grid-template-columns: 0 1fr; }
 .app--railclosed .rail { overflow: hidden; border-right: none; }
 
-/* The dock covers most of the page: at cluster level the map only needs to
-   show where the cluster is, and the evidence below is what is being read. */
-.dock { height: 74%; }
+/* The dock takes most of the page, since the evidence below is what is being
+   read -- but not so much that the map above it becomes a strip (74% left
+   ~245px of map on a 1000px screen). */
+.dock { height: 62%; }
 
 /* -------------------------------------------- named assets in work groups -- */
 
@@ -908,3 +926,185 @@ html, body {
 .cand { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; font-size: 11px; }
 .cand__n { color: var(--navy); flex: 1; min-width: 0; }
 .cand__d { font-family: var(--mono); font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+
+/* ---------------------------------------------------- village & asset view -- */
+
+.mode-toggle {
+  position: absolute;
+  top: 58px;
+  left: 22px;
+  display: flex;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(27, 42, 74, 0.06);
+}
+.mode-toggle__btn {
+  border: 0;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--body);
+  cursor: pointer;
+  transition: all 160ms var(--ease);
+}
+.mode-toggle__btn:hover {
+  color: var(--navy);
+}
+.mode-toggle__btn--on,
+.mode-toggle__btn--on:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* `vector-effect: non-scaling-stroke` keeps the outline a constant on-screen
+   width. Without it, a CSS stroke-width beats the zoom-compensated attribute
+   set in applyZoomCompensation, so a 1px outline was multiplied by the map
+   zoom (up to ~80x at village level) into giant white discs that covered
+   the map and swallowed clicks. */
+.village-bubble {
+  cursor: pointer;
+  stroke: #fff;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  fill-opacity: 0.88;
+  transition: fill-opacity 140ms var(--ease), stroke 140ms var(--ease);
+}
+.village-bubble:hover {
+  fill-opacity: 1;
+  stroke: var(--navy);
+}
+/* Neighbours stay visible for context inside a village, but must not
+   intercept clicks meant for that village's asset pins. */
+.village-bubble--faded {
+  opacity: 0.15;
+  pointer-events: none;
+}
+/* The open village's own bubble would sit underneath its asset pins. */
+.village-bubble--open {
+  display: none;
+}
+
+/* The real PMGSY road under a road pin. Same non-scaling-stroke trick as the
+   bubbles: a constant 4px on screen at every zoom, with no per-zoom code. */
+.road-line {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 4px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.85;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease), stroke 200ms var(--ease);
+}
+.road-line--faded { opacity: 0.2; }
+.road-line--selected { stroke: var(--navy); opacity: 1; }
+
+.asset-pin {
+  cursor: pointer;
+  transition: opacity 200ms var(--ease);
+}
+.asset-pin--faded {
+  opacity: 0.22;
+}
+.asset-pin--selected .asset-circle {
+  stroke: var(--navy);
+  stroke-width: 3px;
+}
+.asset-circle {
+  stroke: #fff;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+.asset-icon {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+/* Non-top-3 labels appear only while the pin is hovered or selected. */
+.asset-label--hover { display: none; }
+.asset-pin:hover .asset-label--hover,
+.asset-pin--selected .asset-label--hover { display: block; }
+.asset-label {
+  font-family: var(--sans);
+  font-weight: 600;
+  fill: var(--navy);
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(247, 244, 236, 0.95);
+  stroke-linejoin: round;
+  text-anchor: middle;
+}
+
+.badge--demo {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: var(--amber-soft);
+  color: #7a5a22;
+  border: 1px solid rgba(192, 120, 30, 0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+/* Owner decision 2026-09-14: hide the per-item DEMO labels in the UI. The
+   data still carries is_demo (village_priority, asset), so deleting this one
+   rule brings every label back. */
+.badge--demo { display: none; }
+
+/* Village-level urgency flag -- deliberately independent of priority_score
+   (which only ever reflects the village's single highest-scoring asset), so
+   a real emergency at any OTHER asset in the village still shows up here. */
+.badge--urgent {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid rgba(200, 50, 50, 0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.dock__warn--urgent {
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--body);
+  background: var(--red-bg);
+  border: 1px solid rgba(200, 50, 50, 0.45);
+}
+.dock__warn--urgent:hover { background: rgba(200, 50, 50, 0.18); }
+.dock__warn--urgent b { color: var(--red); }
+
+.badge--name-basis {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--cream-deep);
+  color: var(--navy-soft);
+  border: 1px solid var(--border);
+}
+

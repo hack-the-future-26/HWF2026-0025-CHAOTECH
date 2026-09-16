@@ -83,6 +83,27 @@ class VillageInvestment:
 
     nearby_reports: int = 0
     works: list = field(default_factory=list)
+    # Real per-village receipts & expenditure from PRIASoft (the panchayat's
+    # own accounts, not scheme-specific like `works` above) -- see
+    # realdata.load_village_finance_index. None where PRIASoft has no
+    # record for this village; never a guessed 0.
+    finance: dict | None = None
+
+    @property
+    def unspent_grant_rupees(self) -> float | None:
+        """
+        Real money the panchayat received but hasn't spent, this financial
+        year -- untied + tied combined. This is a whole-panchayat signal,
+        not tied to any one scheme, unlike `sanctioned_cost_lakh` below
+        which is PMGSY-roads-only. None when there's no PRIASoft record for
+        this village, never 0 -- absence of data is not absence of an
+        unspent balance.
+        """
+        if not self.finance:
+            return None
+        untied = (self.finance.get("untied_receipts") or 0) - (self.finance.get("untied_payments") or 0)
+        tied = (self.finance.get("tied_receipts") or 0) - (self.finance.get("tied_payments") or 0)
+        return round(untied + tied, 2)
 
     @property
     def undelivered_works(self) -> list:
@@ -127,6 +148,9 @@ def build_village_investment(db) -> list[VillageInvestment]:
         sys.path.insert(0, str(backend))
 
     from models import CitizenRequest, Gazetteer, GovernmentProject  # noqa: E402
+    from . import realdata  # noqa: E402
+
+    finance_index = realdata.load_village_finance_index(db)
 
     works_by_village: dict[int, list] = {}
     unpinned = []
@@ -136,10 +160,16 @@ def build_village_investment(db) -> list[VillageInvestment]:
             continue
         works_by_village.setdefault(work.matched_gazetteer_id, []).append(work)
 
+    # Road-only: `works` above is PMGSY road works exclusively, so counting a
+    # water/health/education complaint as "demand" for a road work being
+    # undelivered nearby was comparing two different things. Bug found and
+    # fixed 2026-09-15.
     reports = [
         r
         for r in db.query(CitizenRequest).all()
-        if r.latitude is not None and r.longitude is not None
+        if r.latitude is not None
+        and r.longitude is not None
+        and r.issue_category == "road"
     ]
 
     villages = [
@@ -170,6 +200,7 @@ def build_village_investment(db) -> list[VillageInvestment]:
                 longitude=village.longitude,
                 nearby_reports=nearby,
                 works=works,
+                finance=finance_index.get(village.id),
             )
         )
 
@@ -179,6 +210,139 @@ def build_village_investment(db) -> list[VillageInvestment]:
 
 def summarise(rows: list[VillageInvestment]) -> dict[str, list[VillageInvestment]]:
     buckets: dict[str, list[VillageInvestment]] = {
+        "funded_undelivered": [],
+        "demanded_unfunded": [],
+        "funded_not_demanded": [],
+        "no_mismatch": [],
+    }
+    for row in rows:
+        buckets[row.classify()].append(row)
+    return buckets
+
+
+@dataclass
+class SchoolInvestment:
+    """
+    A school's own demand-versus-investment picture -- kept as its own type,
+    not folded into VillageInvestment, because "funded" means something
+    different here: not a PMGSY work status string, but real UDISE+ money
+    (total_grant vs total_expenditure) sitting unspent at a school with a
+    real, currently-recorded physical deficiency. Same three-way question as
+    roads and water, answered from a genuinely different real data shape --
+    keeping it separate keeps that honest rather than implying they're the
+    same kind of "funded".
+    """
+
+    facility_id: int
+    name: str
+    village: str | None
+    district: str | None
+    latitude: float
+    longitude: float
+
+    nearby_reports: int = 0
+    total_grant: float | None = None
+    total_expenditure: float | None = None
+    # Real UDISE+ 2024-25 deficit, 0..1, from realdata.school_condition_deficit.
+    # None means no UDISE+ record for this school, never "no deficiency".
+    infra_deficit: float | None = None
+
+    @property
+    def unspent_grant_rupees(self) -> float | None:
+        """
+        Real grant received minus real amount spent, this UDISE+ year. None
+        when either figure is missing -- never a guessed 0.
+        """
+        if self.total_grant is None or self.total_expenditure is None:
+            return None
+        return round(self.total_grant - self.total_expenditure, 2)
+
+    def classify(self) -> str:
+        has_demand = self.nearby_reports > LOW_DEMAND_REPORTS
+        unspent = self.unspent_grant_rupees
+        # "Funded but undelivered" for a school means real money is sitting
+        # unspent AND a real physical problem is still on record this same
+        # year -- not just "received a grant", which most schools do.
+        funded_and_broken = bool(unspent and unspent > 0 and (self.infra_deficit or 0) > 0)
+
+        if has_demand and funded_and_broken:
+            return "funded_undelivered"
+        if has_demand and not funded_and_broken:
+            return "demanded_unfunded"
+        if not has_demand and funded_and_broken:
+            return "funded_not_demanded"
+        return "no_mismatch"
+
+
+def build_school_investment(db) -> list[SchoolInvestment]:
+    """
+    Joins UDISE+ school condition/money data with education-category citizen
+    reports. Only schools with either a report nearby or real unspent grant
+    money AND a real deficiency are returned, same "keep it readable" rule
+    build_village_investment already uses.
+    """
+    import sys
+    from pathlib import Path
+
+    backend = Path(__file__).resolve().parent.parent / "backend"
+    if str(backend) not in sys.path:
+        sys.path.insert(0, str(backend))
+
+    from models import CitizenRequest, PublicFacility  # noqa: E402
+    from . import realdata  # noqa: E402
+
+    school_index = realdata.load_school_condition_index(db)
+
+    reports = [
+        r
+        for r in db.query(CitizenRequest).all()
+        if r.issue_category == "education"
+        and r.latitude is not None
+        and r.longitude is not None
+    ]
+
+    results = []
+    for fac in db.query(PublicFacility).filter(PublicFacility.category == "education").all():
+        if fac.latitude is None or fac.longitude is None:
+            continue
+
+        # A citizen-selected facility is exact; anything within the same
+        # radius roads/water use for "demand nearby" is the honest fallback
+        # for reports that never named a specific school.
+        nearby = sum(
+            1
+            for r in reports
+            if getattr(r, "facility_id", None) == fac.id
+            or haversine_km(fac.latitude, fac.longitude, r.latitude, r.longitude) <= DEMAND_RADIUS_KM
+        )
+
+        row = school_index.get(fac.id)
+        deficit_value, _ = realdata.school_condition_deficit(fac.id, school_index)
+
+        if nearby == 0 and not row:
+            continue
+
+        results.append(
+            SchoolInvestment(
+                facility_id=fac.id,
+                name=fac.name,
+                village=fac.village,
+                district=fac.district,
+                latitude=fac.latitude,
+                longitude=fac.longitude,
+                nearby_reports=nearby,
+                total_grant=(row or {}).get("total_grant"),
+                total_expenditure=(row or {}).get("total_expenditure"),
+                infra_deficit=deficit_value,
+            )
+        )
+
+    results.sort(key=lambda s: (-(s.unspent_grant_rupees or 0), -s.nearby_reports))
+    return results
+
+
+def summarise_schools(rows: list[SchoolInvestment]) -> dict[str, list[SchoolInvestment]]:
+    buckets: dict[str, list[SchoolInvestment]] = {
         "funded_undelivered": [],
         "demanded_unfunded": [],
         "funded_not_demanded": [],
