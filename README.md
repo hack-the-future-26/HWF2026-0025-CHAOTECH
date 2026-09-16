@@ -11,11 +11,30 @@ For transparency and reference, screenshots of our private Git repository and th
 
 ---
 
-# ComplainBox — P1 + P2 + P3
+# ComplainBox / AwaazIQ — P1 + P2 + P3 + P4
+
+## 🔗 Live deployment
+
+| | |
+|---|---|
+| **Officials dashboard + citizen intake** | https://frontend-psi-seven-99.vercel.app/ |
+| **Backend API (interactive docs)** | https://idk-production-2d30.up.railway.app/docs |
+
+Frontend on Vercel, FastAPI backend on Railway, Postgres on Supabase, loaded with
+the full dataset below. `index.html` is the officials dashboard, `report.html` the
+citizen intake form.
+
+Two limits that are honest about what a deployed copy can do: the 150 MB YOLO
+weight file for road-defect detection is over GitHub's file limit and is not in
+this repo, so C5 reports "not available on this server"; and C6's vision check
+routes through a gateway on a developer machine, so it is a local-demo feature.
+Neither ever rejects a complaint — both degrade to a lower-weight signal.
+
+---
 
 Status against `Build-Plan-4-Person-Team.pdf`, covering **P1 (AI/NLP Intake Pipeline)**,
-**P2 (Data & Backend Infrastructure)** and **P3 (Intelligence Engine)**.
-P4 (Frontend/Demo) has not been started — `frontend/` does not exist yet.
+**P2 (Data & Backend Infrastructure)**, **P3 (Intelligence Engine)** and
+**P4 (Frontend/Demo)**.
 
 Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outside this scope &nbsp; ❌ not started
 
@@ -23,15 +42,17 @@ Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outsi
 
 | | |
 |---|---|
-| Database | SQLite at `backend/hackathon.db` (WAL mode) |
+| Database | SQLite at `backend/hackathon.db` (WAL mode) locally; Postgres/Supabase in the deployment |
 | `gazetteer` | **1,042** places — 747 Kolhapur + 284 Nashik villages/towns (OpenStreetMap) + 11 taluka HQs |
 | ↳ with real Census population | **948** (91%) |
 | ↳ with a block assigned | **1,042** (100%, nearest-HQ approximation — see below) |
-| `citizen_request` | **1,001** — 1,000 synthetic + 1 real test submission |
-| ↳ with coordinates | **990** (98%) |
-| ↳ with an issue category | **1,001** (100%) |
-| ↳ assigned to a cluster | **722** (72%) |
-| `demand_cluster` / `priority_score` | **113 / 113** — scores range 35.18 – 86.13 |
+| `citizen_request` | **2,117** — 1,000 synthetic + 1,117 real submissions |
+| ↳ with coordinates | **1,829** (86%) |
+| ↳ with an issue category | **2,048** (97%) |
+| ↳ assigned to a cluster | **1,502** (71%) |
+| `demand_cluster` / `priority_score` | **118 / 118** — scores range 18.69 – 56.89 |
+| `village_priority` | **443** villages scored |
+| `public_facility` / `asset` | **10,464** / **819** |
 | Test coverage | **162 assertions across 7 suites, all passing** |
 
 ## How to run
@@ -41,8 +62,11 @@ Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outsi
 cd backend
 uvicorn main:app --reload --port 8000
 
-# 2. Internal dev console — open in a browser
-frontend-test/index.html
+# 2. The app — served by that same process
+#    http://localhost:8000/app/index.html    officials dashboard
+#    http://localhost:8000/app/report.html   citizen intake
+#
+#    frontend-test/index.html is the older internal dev console.
 ```
 
 Data-loading scripts (already run; re-run only to rebuild the database). **Run in this order:**
@@ -244,26 +268,29 @@ Each of these was found by auditing the running system against the database, not
 - **`equity` uses a 10-block hardcoded list**, explicitly sanctioned by the build plan for MVP,
   not derived from real connectivity/literacy data.
 - **Blocks are geometric approximations**, not official taluka boundaries.
-- **28% of reports are in no cluster.** That is correct behaviour, not a gap: a lone
+- **29% of reports are in no cluster.** That is correct behaviour, not a gap: a lone
   uncorroborated report in a sparse area is not yet a demand signal, and forcing it into a
   cluster would claim corroboration that does not exist.
-- **Not deployed.** The API runs locally only.
+- **Road-defect detection (C5) is absent from the deployment.** Its 150 MB weight file
+  exceeds GitHub's limit, so the hosted API reports the check as unavailable rather than
+  silently scoring without it.
+- **Structure-damage grading (C6) is a local-demo feature.** It calls a vision model through
+  a gateway on a developer machine, which a hosted server cannot reach.
 
 Every one of these is listed with its replacement in
 [`intelligence/WEIGHTS.md`](intelligence/WEIGHTS.md#summary-of-every-simplification-in-one-place).
 
-## Interface Contract deviations (read before P4 integrates)
+## Interface Contract deviations
 
 - **`language_detected` values**: the contract shows `"hi-Deva"`-style codes, and the
   implementation returns exactly those — `hi-Deva` / `mr-Deva` / `hi-Latn` / `mixed` / `en`.
   (An earlier README claimed the opposite; it was wrong.)
 - **`location_resolved` keys** are `lat`/`lon`, matching the contract.
 - **`cluster_id`** is an integer, not the `"CL-042"` string form shown in the contract's example.
-  P4 should format it for display.
+  The frontend formats it for display.
 
 ## What's left that genuinely needs a human
 
 1. **Record real voice clips** and run them through `asr.py` (P1 Step 2).
-2. **Deploy to Railway or Render** (P2 Step 9) — needs an account and a `docker build`.
-3. **P4 — the entire frontend**: map, dashboard, score-breakdown chart, Cluster A vs B view,
-   what-if slider, citizen feedback screen. Every API it needs is live and returning real data.
+2. **Host the road-defect weights.** The deployed API needs the 150 MB file to come from
+   object storage before C5 can run there; the check is wired and works locally.
