@@ -1,0 +1,227 @@
+/* ===========================================================================
+   AwaazIQ — "How it works" button + explainer modal.
+
+   Shares the dashboard's tokens (cream ground, navy type, amber as the one
+   accent that means "signal"). Declared with fallbacks so the same file also
+   works on report.html and photo-lab.html, which load different stylesheets
+   and do not all define the palette.
+   =========================================================================== */
+
+.xpbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 2px 9px 3px;
+  border: 1px solid var(--border, #e2dcc6);
+  border-radius: 999px;
+  background: var(--paper, #fff);
+  color: var(--body, #64687a);
+  font-family: var(--mono, Consolas, monospace);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  line-height: 1.6;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* The question mark is decorative, so it is drawn rather than typed -- a
+   literal "?" in the label would be read out by screen readers as part of
+   the button name. */
+.xpbtn::before {
+  content: "?";
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--amber-soft, #f3dfb8);
+  color: var(--amber, #c0781e);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.xpbtn:hover {
+  background: var(--navy, #1b2a4a);
+  border-color: var(--navy, #1b2a4a);
+  color: #fff;
+}
+
+.xpbtn:hover::before {
+  background: var(--amber, #c0781e);
+  color: #fff;
+}
+
+.xpbtn:focus-visible {
+  outline: 2px solid var(--amber, #c0781e);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- modal -- */
+
+.xp {
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* above the dock (30), compare (45) and loader (60) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 24, 38, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.xp--open { opacity: 1; }
+
+.xp__card {
+  width: min(760px, 100%);
+  max-height: min(86vh, 900px);
+  overflow-y: auto;
+  background: var(--cream, #f7f4ec);
+  border: 1px solid var(--border, #e2dcc6);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(20, 24, 38, 0.3);
+  padding: 26px 30px 30px;
+  transform: translateY(8px);
+  transition: transform 0.18s ease;
+}
+
+.xp--open .xp__card { transform: translateY(0); }
+
+.xp__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.xp__title {
+  flex: 1;
+  font-family: var(--serif, Georgia, serif);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--navy, #1b2a4a);
+  line-height: 1.25;
+}
+
+.xp__close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border, #e2dcc6);
+  border-radius: 50%;
+  background: var(--paper, #fff);
+  color: var(--navy, #1b2a4a);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.xp__close:hover { background: var(--navy, #1b2a4a); color: #fff; }
+
+.xp__lede {
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--navy-soft, #34425d);
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border, #e2dcc6);
+}
+
+.xp__sec { margin-top: 20px; }
+
+.xp__h {
+  margin-bottom: 9px;
+  color: var(--muted, #8b8e9e);
+}
+
+.xp__p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--body, #64687a);
+  margin-top: 9px;
+}
+
+.xp__p b, .xp__v b { color: var(--navy, #1b2a4a); }
+
+.xp__p code, .xp__v code {
+  font-family: var(--mono, Consolas, monospace);
+  font-size: 11.5px;
+  background: var(--cream-deep, #efeadd);
+  border: 1px solid var(--border, #e2dcc6);
+  border-radius: 3px;
+  padding: 1px 5px;
+  /* Provenance labels are long single tokens; let them wrap rather than
+     stretch the card on a phone. */
+  overflow-wrap: anywhere;
+}
+
+/* Provenance table: the term on the left, where its number came from on the
+   right. Collapses to stacked rows on narrow screens. */
+.xp__rows {
+  border: 1px solid var(--border, #e2dcc6);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--paper, #fff);
+}
+
+.xp__row {
+  display: grid;
+  grid-template-columns: 218px 1fr;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border, #e2dcc6);
+}
+
+.xp__row:last-child { border-bottom: none; }
+
+.xp__k {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--navy, #1b2a4a);
+  line-height: 1.45;
+}
+
+.xp__v {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--body, #64687a);
+}
+
+/* The weight/points chip next to a term name. */
+.xp-w {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--amber-soft, #f3dfb8);
+  color: var(--amber, #c0781e);
+  font-family: var(--mono, Consolas, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.xp__list {
+  margin: 4px 0 0 18px;
+  padding: 0;
+}
+
+.xp__list li {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--body, #64687a);
+  margin-bottom: 4px;
+}
+
+@media (max-width: 620px) {
+  .xp { padding: 12px; }
+  .xp__card { padding: 20px 18px 24px; max-height: 92vh; }
+  .xp__title { font-size: 18px; }
+  .xp__row { grid-template-columns: 1fr; gap: 4px; }
+}

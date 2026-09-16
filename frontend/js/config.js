@@ -14,13 +14,13 @@
    separate deployments (e.g. frontend on Vercel, backend on Railway) --
    the one case where "same origin as the page" is no longer the backend.
    =========================================================================== */
-/* Deployed frontend (Vercel) has no backend on its own origin, so it needs
-   the Railway URL. Local dev must NOT get it -- setting this unconditionally
-   sends `python main.py` + file:// sessions to the deployed backend and makes
-   localhost look broken. Hostname is the only thing that distinguishes them,
-   since the same file ships to both. */
-window.AWAAZIQ_API_BASE = ["localhost", "127.0.0.1", "0.0.0.0", ""].includes(
-  window.location.hostname
-)
-  ? ""
-  : "https://idk-production-2d30.up.railway.app";
+/* Only the Vercel deployment has no backend on its own origin, so only it
+   needs the Railway URL. Everything else -- localhost, a LAN IP, and the
+   ngrok phone demo (FastAPI serving this file itself at /app) -- is already
+   same-origin with a backend, and must keep the fallback. Hence an explicit
+   allowlist rather than "not localhost": ngrok's hostname isn't localhost
+   either, and sending the phone demo to the deployed backend silently swaps
+   out the very server you're trying to test. */
+window.AWAAZIQ_API_BASE = /\.vercel\.app$/.test(window.location.hostname)
+  ? "https://idk-production-2d30.up.railway.app"
+  : "";

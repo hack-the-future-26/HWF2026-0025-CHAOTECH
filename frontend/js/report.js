@@ -34,9 +34,10 @@
   // The phone demo is served by FastAPI at /app through an HTTPS tunnel. In
   // that case use the page's own origin, so browser permissions and API calls
   // share one secure origin. Local development keeps the separate API port.
-  const defaultApi = location.protocol === "https:"
-    ? location.origin
-    : "http://127.0.0.1:8001";
+  const defaultApi =
+    (location.pathname.indexOf("/app/") === 0 || location.protocol === "https:")
+      ? location.origin
+      : "http://127.0.0.1:8001";
   const API = (params.get("api") || window.AWAAZIQ_API_BASE || defaultApi).replace(/\/$/, "");
 
   // Carry ?api= across to the dashboard, so pointing this page at a
