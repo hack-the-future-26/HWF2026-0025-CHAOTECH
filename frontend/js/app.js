@@ -21,7 +21,16 @@
   // The API port is configurable so the dashboard works whether the backend
   // was started on the README's 8000 or anything else: ?api=http://host:port
   const params = new URLSearchParams(location.search);
-  const API = (params.get("api") || window.AWAAZIQ_API_BASE || "http://127.0.0.1:8001").replace(/\/$/, "");
+  // FastAPI serves this page itself at /app (the ngrok phone demo, and any
+  // "uvicorn then open localhost:8000/app" run), and in that case the API is
+  // this very origin. Falling through to a fixed 127.0.0.1 port there asks a
+  // phone to call its own loopback, which is why the dashboard looked dead on
+  // the tunnel while report.html -- which already had this rule -- worked.
+  const servedByApi = location.pathname.indexOf("/app/") === 0;
+  const defaultApi = (servedByApi || location.protocol === "https:")
+    ? location.origin
+    : "http://127.0.0.1:8001";
+  const API = (params.get("api") || window.AWAAZIQ_API_BASE || defaultApi).replace(/\/$/, "");
 
   const PILOT_STATE = "Maharashtra";
   const TOPO_URL = "data/india.topo.json";
@@ -350,6 +359,13 @@
     ["cost_penalty",  "Cost penalty",           "scaled by catchment population"],
   ];
 
+  // Attaches a "How it works" button to an .eyebrow heading. d3's .call()
+  // hands the selection through untouched, so this chains onto the existing
+  // .text(...) without restructuring any of the render code below.
+  const xp = (key) => (sel) => {
+    if (window.Explain) window.Explain.attach(sel, key);
+  };
+
   function rankOf(cluster) {
     const ordered = clusters
       .slice()
@@ -606,6 +622,10 @@
             `Phone numbers and self-stated names are stripped at ingestion, and no ` +
             `citizen identity is stored at all — so this is what the state can see: ` +
             `what was reported and from where, never by whom.`);
+    // The privacy guarantee is itself a feature worth explaining, so the
+    // reports column gets its own explainer rather than relying on the
+    // score panel next to it.
+    priv.select(".privacy__text").call(xp("citizen-reports"));
 
     if (!reportsArr.length) {
       target.append("div").attr("class", "ev__none").text("No citizen reports recorded.");
@@ -771,7 +791,7 @@
 
     /* -- column 1: the nine terms, each opening onto its evidence -- */
     const sec = cols.append("div").attr("class", "dock__col");
-    sec.append("div").attr("class", "eyebrow").text("Why this score");
+    sec.append("div").attr("class", "eyebrow").text("Why this score").call(xp("priority-score"));
     sec.append("div").attr("class", "dock__hint")
       .text("Nine independently-sourced terms, summing to the score exactly. " +
             "Click any term to see the record it was computed from.");
@@ -831,7 +851,7 @@
 
     /* -- column 3: the reports, then the counterfactual -- */
     const right = cols.append("div").attr("class", "dock__col");
-    right.append("div").attr("class", "eyebrow").text("Who reported this");
+    right.append("div").attr("class", "eyebrow").text("Who reported this").call(xp("citizen-reports"));
     right.append("div").attr("class", "dock__hint")
       .text("The individual citizen reports corroborated into this cluster.");
     const repsBody = right.append("div").text("Loading reports…")
@@ -999,7 +1019,7 @@
 
     /* -- Col 1: Why this score (driven by top asset) -- */
     const col1 = cols.append("div").attr("class", "dock__col");
-    col1.append("div").attr("class", "eyebrow").text("Why this score");
+    col1.append("div").attr("class", "eyebrow").text("Why this score").call(xp("priority-score"));
     col1.append("div").attr("class", "dock__hint")
       .html(topAsset.name
         ? `Driven by its highest-need asset: <b>${topAsset.name}</b>`
@@ -1009,7 +1029,7 @@
 
     /* -- Col 2: Fix first inside this village -- */
     const col2 = cols.append("div").attr("class", "dock__col");
-    col2.append("div").attr("class", "eyebrow").text("Fix first inside this village");
+    col2.append("div").attr("class", "eyebrow").text("Fix first inside this village").call(xp("fix-first"));
     col2.append("div").attr("class", "dock__hint")
       .text("Ranked assets in this village. Click any asset to inspect its evidence.");
 
@@ -1037,7 +1057,7 @@
 
     /* -- Col 3: Reports -- */
     const col3 = cols.append("div").attr("class", "dock__col");
-    col3.append("div").attr("class", "eyebrow").text("Citizen reports");
+    col3.append("div").attr("class", "eyebrow").text("Citizen reports").call(xp("citizen-reports"));
     col3.append("div").attr("class", "dock__hint")
       .text(`Individual citizen grievances from ${vData.name}.`);
 
@@ -1086,7 +1106,7 @@
 
     /* -- Col 1: Nine-term breakdown -- */
     const col1 = cols.append("div").attr("class", "dock__col");
-    col1.append("div").attr("class", "eyebrow").text("Why this score");
+    col1.append("div").attr("class", "eyebrow").text("Why this score").call(xp("priority-score"));
     col1.append("div").attr("class", "dock__hint")
       .text("Nine independently-sourced terms for this specific asset.");
 
@@ -1094,7 +1114,7 @@
 
     /* -- Col 2: Facts & provenance -- */
     const col2 = cols.append("div").attr("class", "dock__col");
-    col2.append("div").attr("class", "eyebrow").text("Asset facts & provenance");
+    col2.append("div").attr("class", "eyebrow").text("Asset facts & provenance").call(xp("priority-score"));
     col2.append("div").attr("class", "dock__hint")
       .text("Registers, location provenance, and scheme records behind this asset.");
 
@@ -1199,7 +1219,7 @@
 
     /* -- Col 3: Reports -- */
     const col3 = cols.append("div").attr("class", "dock__col");
-    col3.append("div").attr("class", "eyebrow").text("Reports for this asset");
+    col3.append("div").attr("class", "eyebrow").text("Reports for this asset").call(xp("citizen-reports"));
     col3.append("div").attr("class", "dock__hint")
       .text(`The individual citizen grievances grouped into this asset.`);
 

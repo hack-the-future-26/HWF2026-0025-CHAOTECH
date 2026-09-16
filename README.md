@@ -6,17 +6,6 @@ specific school, hospital, road spot or water point, and ranks what to fix first
 9-part priority score built mostly from government records. Photos attached to a complaint
 are checked for authenticity and analysed by the team's pothole/crack model.
 
-As discussed with a member of the official hackathon team, we are now consolidating and pushing the completed work together through this single PR to the official hackathon repository, with `main` as the base branch.
-
-For transparency and reference, screenshots of our private Git repository and the development progress have also been attached to this PR.
-
-![Private repo – main branch file structure](private_repo_main.png)
-![Private repo – branches overview](private_repo_branches.png)
-
----
-
-# ComplainBox / AwaazIQ — P1 + P2 + P3 + P4
-
 ## 🔗 Live deployment
 
 | | |
@@ -27,6 +16,11 @@ For transparency and reference, screenshots of our private Git repository and th
 Frontend on Vercel, FastAPI backend on Railway, Postgres on Supabase, loaded with
 the full dataset below. `index.html` is the officials dashboard, `report.html` the
 citizen intake form.
+
+Every feature on the dashboard carries a **How it works** button: it opens what that
+feature computes and which government dataset each input came from, including which
+inputs are still proxies rather than real data. The scoring explainer lists all nine
+terms with their sources.
 
 Two limits that are honest about what a deployed copy can do: the 150 MB YOLO
 weight file for road-defect detection is over GitHub's file limit and is not in
@@ -75,17 +69,19 @@ Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outsi
 ## How to run
 
 ```bash
-# 1. Backend API (from backend/) — the frontend expects port 8001
+# 1. Backend API (from backend/)
 cd backend
-python -m uvicorn main:app --host 127.0.0.1 --port 8001
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 
-# 2. The app — served by that same process
-#    http://localhost:8000/app/index.html    officials dashboard
-#    http://localhost:8000/app/report.html   citizen intake
+# 2a. Simplest: the same process also serves the app, same-origin.
+#     http://localhost:8000/app/index.html    officials dashboard
+#     http://localhost:8000/app/report.html   citizen intake
 #
-#    frontend-test/index.html is the older internal dev console.
-# 2. Frontend (from the repo root), served on localhost so the live camera works
-python -m http.server 5500 --bind 127.0.0.1 --directory frontend
+# 2b. Or serve the frontend separately, with the API on 8001 instead:
+#     python -m uvicorn main:app --host 127.0.0.1 --port 8001
+#     python -m http.server 5500 --bind 127.0.0.1 --directory frontend
+#
+#     frontend-test/index.html is the older internal dev console.
 ```
 
 Then open:

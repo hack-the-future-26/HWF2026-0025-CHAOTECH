@@ -11,7 +11,16 @@
   "use strict";
 
   const params = new URLSearchParams(location.search);
-  const API = (params.get("api") || window.AWAAZIQ_API_BASE || "http://127.0.0.1:8001").replace(/\/$/, "");
+  // FastAPI serves this page itself at /app (the ngrok phone demo, and any
+  // "uvicorn then open localhost:8000/app" run), and in that case the API is
+  // this very origin. Falling through to a fixed 127.0.0.1 port there asks a
+  // phone to call its own loopback, which is why the dashboard looked dead on
+  // the tunnel while report.html -- which already had this rule -- worked.
+  const servedByApi = location.pathname.indexOf("/app/") === 0;
+  const defaultApi = (servedByApi || location.protocol === "https:")
+    ? location.origin
+    : "http://127.0.0.1:8001";
+  const API = (params.get("api") || window.AWAAZIQ_API_BASE || defaultApi).replace(/\/$/, "");
   if (params.get("api")) {
     const q = `?api=${encodeURIComponent(API)}`;
     ["homeLink", "dashLink"].forEach((id) => { document.getElementById(id).href = `index.html${q}`; });

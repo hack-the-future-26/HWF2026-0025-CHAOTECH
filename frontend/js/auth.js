@@ -19,9 +19,10 @@
   // The HTTPS phone build is served from FastAPI at /app. Use that same
   // origin for authentication rather than trying to fetch localhost on the
   // phone itself. Local development keeps the separate API port.
-  const defaultApi = location.protocol === "https:"
-    ? location.origin
-    : "http://127.0.0.1:8001";
+  const defaultApi =
+    (location.pathname.indexOf("/app/") === 0 || location.protocol === "https:")
+      ? location.origin
+      : "http://127.0.0.1:8001";
   const API = (params.get("api") || window.AWAAZIQ_API_BASE || defaultApi).replace(/\/$/, "");
   const TOKEN_KEY = "awaaziq_citizen_token";
 

@@ -428,7 +428,7 @@
     host.innerHTML =
       `<div style="display:flex;align-items:center;gap:14px">` +
       `<button class="btn" id="investClose" style="flex:0 0 110px">&larr; BACK</button>` +
-      `<div><div style="font-weight:700;font-size:16px">Demand vs investment` +
+      `<div><div style="font-weight:700;font-size:16px" id="investTitle">Demand vs investment` +
       `${district ? " — " + district : " — all districts"}</div>` +
       `<div style="color:#888;font-size:12px">Citizen demand joined to real PMGSY sanctioned works. ` +
       `Demand side is ${data.demand_side}.</div></div></div>` +
@@ -466,6 +466,12 @@
       `${data.unpinned_works} more sanctioned works could not be pinned to a village we know, ` +
       `and are counted separately rather than dropped.</div>`;
 
+    // innerHTML has just been rebuilt, so the explainer button is attached
+    // here rather than baked into the template string above.
+    const investTitleEl = document.getElementById("investTitle");
+    if (investTitleEl && window.Explain) {
+      window.Explain.attach(investTitleEl, "demand-investment");
+    }
     document.getElementById("investClose").onclick = () => { host.hidden = true; };
   }
 

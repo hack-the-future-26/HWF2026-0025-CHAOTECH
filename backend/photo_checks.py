@@ -93,7 +93,8 @@ DAMAGE_MODEL_PATH = os.getenv("AWAAZIQ_DAMAGE_MODEL")
 # direct provider API key before real deployment; nothing else in this
 # function needs to change to do that.
 VLM_DAMAGE_ENABLED = os.getenv("AWAAZIQ_VLM_DAMAGE_MODEL", "1") == "1"
-VLM_MODEL = os.getenv("AWAAZIQ_VLM_MODEL", "antigravity/gemini-3.7-flash-medium")
+# Provider-qualified OmniRoute model ID for the vision damage check.
+VLM_MODEL = os.getenv("AWAAZIQ_VLM_MODEL", "antigravity/claude-opus-4-6-thinking")
 VLM_TIMEOUT_SECONDS = int(os.getenv("AWAAZIQ_VLM_TIMEOUT", "25"))
 
 # C1: a photo captured further than this from the chosen village is flagged.
@@ -578,6 +579,20 @@ _model = None
 _model_lock = threading.Lock()
 _model_error: str | None = None
 
+# Outcome of the most recent C6 vision-LLM call, for /photo-checks/model.
+# C6 is allowed to answer "nothing here" and is allowed to fail, and both
+# end as None to the caller -- this is the only place the difference shows.
+_vlm_last: dict | None = None
+
+
+def vlm_status() -> dict:
+    return {
+        "enabled": VLM_DAMAGE_ENABLED,
+        "model": VLM_MODEL,
+        "timeout_seconds": VLM_TIMEOUT_SECONDS,
+        "last_call": _vlm_last,
+    }
+
 
 def model_info() -> dict:
     return {
@@ -590,6 +605,7 @@ def model_info() -> dict:
         "classes": {0: "crack", 1: "pothole"},
         "architecture": "YOLOv8 detector (Ultralytics 8.4.7), 25.9M parameters",
         "load_error": _model_error,
+        "vlm": vlm_status(),
     }
 
 
@@ -788,7 +804,21 @@ def vlm_grade_damage(img: Image.Image) -> dict | None:
     for this prototype -- see the module-level note by VLM_MODEL). Swapping
     to a direct provider API key later only touches this function.
     """
+    global _vlm_last
+
+    def _note(outcome: str, **detail):
+        """Record why this call produced no grade, without changing that it
+        produces none. Every branch below returns None for the same reason it
+        always did -- a C6 failure must never fail a report -- but 'the
+        gateway is down' and 'the model looked and saw no damaged structure'
+        used to be the same silent None, which made the whole path
+        undebuggable from outside."""
+        global _vlm_last
+        _vlm_last = {"outcome": outcome, "model": VLM_MODEL,
+                     "at": datetime.now(timezone.utc).isoformat(), **detail}
+
     if not VLM_DAMAGE_ENABLED:
+        _note("disabled")
         return None
     tmp_path = None
     try:
@@ -813,10 +843,16 @@ def vlm_grade_damage(img: Image.Image) -> dict | None:
             json.dump(body, tmp)
             tmp_path = tmp.name
 
+        # On Windows `shell=True` with an argument *list* only passes the
+        # first element reliably to the PowerShell shim. Build one quoted
+        # command instead, so the JSON file reaches OmniRoute intact.
+        command = (
+            "omniroute api chat post-api-v1-chat-completions "
+            f'--body "@{tmp_path}" --output json'
+        )
         proc = subprocess.run(
-            ["omniroute", "api", "chat", "post-api-v1-chat-completions",
-             "--body", f"@{tmp_path}", "--output", "json"],
-            shell=True,  # required on Windows so the omniroute .cmd shim resolves
+            command,
+            shell=True,  # required on Windows so the omniroute shim resolves
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -824,23 +860,39 @@ def vlm_grade_damage(img: Image.Image) -> dict | None:
             timeout=VLM_TIMEOUT_SECONDS,
         )
         if proc.returncode != 0:
+            _note("gateway_failed", returncode=proc.returncode,
+                  stderr=(proc.stderr or "")[-400:], stdout=(proc.stdout or "")[-400:])
             return None
         stdout = proc.stdout or ""
         brace = stdout.find("{")
         if brace == -1:
+            _note("no_json_in_output", stdout=stdout[-400:])
             return None
         response = json.loads(stdout[brace:])
+        if "choices" not in response:
+            # OmniRoute reports upstream trouble (cooldown, 429, bad slug) as a
+            # normal exit code with an error body, so this is the usual shape
+            # of a real outage -- not an exception.
+            _note("gateway_error_body", body=str(response)[:400])
+            return None
         content = response["choices"][0]["message"]["content"]
         cbrace = content.find("{")
         cend = content.rfind("}")
         if cbrace == -1 or cend == -1:
+            _note("model_reply_not_json", content=content[:400])
             return None
         parsed = json.loads(content[cbrace:cend + 1])
 
         structure = parsed.get("structure")
         grade = parsed.get("grade")
         if structure not in ("bridge", "building") or grade not in GRADE_VALUE:
+            # The prompt explicitly offers "none"/"none" for a photo with no
+            # damaged structure in it, so this is the model answering well,
+            # not malfunctioning. Same None to the caller, different reason.
+            _note("no_damaged_structure", structure=structure, grade=grade,
+                  reasoning=parsed.get("reasoning"))
             return None
+        _note("graded", structure=structure, grade=grade)
         return {
             "structure": structure,
             "grade": grade,
@@ -848,8 +900,12 @@ def vlm_grade_damage(img: Image.Image) -> dict | None:
             "reasoning": parsed.get("reasoning"),
             "model": VLM_MODEL,
         }
-    except Exception:
+    except subprocess.TimeoutExpired:
+        _note("timeout", seconds=VLM_TIMEOUT_SECONDS)
+        return None
+    except Exception as exc:
         # Never a reason to fail the report -- wording-only grading still runs.
+        _note("exception", error=f"{type(exc).__name__}: {exc}"[:400])
         return None
     finally:
         if tmp_path:

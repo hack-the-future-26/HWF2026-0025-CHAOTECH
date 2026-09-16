@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>AwaazIQ — Development Intelligence</title>
 <link rel="stylesheet" href="css/app.css?v=village11" />
+<link rel="stylesheet" href="css/explainers.css?v=1" />
 </head>
 <body>
 
@@ -29,12 +30,16 @@
     <button class="btn btn--primary" id="btnRecompute" style="flex:0 0 auto;padding:9px 16px">
       RUN CLUSTERING
     </button>
+    <button class="xpbtn" type="button"
+            onclick="Explain.open('clustering')">How it works</button>
   </header>
 
   <aside class="rail" id="rail">
     <div class="rail__head">
       <div class="rail__title">
         <span class="eyebrow">Priority ranking</span>
+        <button class="xpbtn" type="button"
+                onclick="Explain.open('priority-score')">How it works</button>
         <span class="rail__count" id="railCount"></span>
       </div>
       <div class="chips" id="chips"></div>
@@ -46,6 +51,8 @@
     </div>
     <div class="rail__foot">
       <button class="btn" id="btnInvest" style="flex:1">DEMAND vs INVESTMENT</button>
+      <button class="xpbtn" type="button" style="flex:0 0 auto"
+              onclick="Explain.open('demand-investment')">How it works</button>
     </div>
   </aside>
 
@@ -65,6 +72,8 @@
       <div class="eyebrow legend__title">Priority score</div>
       <div class="legend__ramp"></div>
       <div class="legend__scale"><span>30</span><span>50</span><span>70+</span></div>
+      <button class="xpbtn" type="button" style="margin:0 0 6px"
+              onclick="Explain.open('data-sources')">What data is loaded</button>
       <div class="legend__note" id="legendNote">
         Bubble size = population affected. Colour = priority score.
       </div>
@@ -75,6 +84,8 @@
     <section class="sheet" id="sheet" aria-label="Budget allocation optimizer">
       <div class="sheet__head">
         <span class="sheet__title">Given this budget, what should actually be funded?</span>
+        <button class="xpbtn" type="button"
+                onclick="Explain.open('budget-optimizer')">How it works</button>
         <button class="sheet__close" id="sheetClose" aria-label="Close">&times;</button>
       </div>
       <div class="sheet__controls">
@@ -123,6 +134,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script src="js/config.js?v=1"></script>
+<script src="js/explainers.js?v=1"></script>
 <script src="js/app.js?v=village11"></script>
 <script src="js/panels.js?v=village11"></script>
 </body>
