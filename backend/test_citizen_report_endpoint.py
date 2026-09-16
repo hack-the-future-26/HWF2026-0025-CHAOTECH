@@ -309,6 +309,10 @@ def run():
     passed += va_passed
     total += va_total
 
+    mr_passed, mr_total = test_my_reports_endpoint(client)
+    passed += mr_passed
+    total += mr_total
+
     print(f"Result: {passed}/{total} checks passed")
     if passed != total:
         sys.exit(1)
@@ -520,6 +524,87 @@ def test_village_and_asset_endpoints(client) -> tuple[int, int]:
     assert_check("unknown village ID returns 404", res_404_v.status_code == 404, f"got {res_404_v.status_code}")
     res_404_a = client.get("/assets/99999999")
     assert_check("unknown asset ID returns 404", res_404_a.status_code == 404, f"got {res_404_a.status_code}")
+
+    print()
+    return passed, total
+
+
+def test_my_reports_endpoint(client: HttpClient) -> tuple[int, int]:
+    """
+    Real bug, confirmed by reading routes_auth.py and fixed 2026-09-16:
+    get_my_reports() referenced DemandCluster.title, PriorityScore.rank and
+    PriorityScore.final_score -- none of which exist -- so GET
+    /citizen/my-reports raised AttributeError for any signed-in citizen with
+    a clustered report. Exercises the exact crash scenario against the real
+    live database rather than a mock, using an existing clustered report
+    (this repo's own README/test convention: run against the populated
+    hackathon.db, back it up first).
+    """
+    print("=== GET /citizen/my-reports tests ===")
+    passed = 0
+    total = 0
+
+    def assert_check(name: str, cond: bool, fail_msg: str = ""):
+        nonlocal passed, total
+        total += 1
+        if cond:
+            print(f"PASS: {name}")
+            passed += 1
+        else:
+            print(f"FAIL: {name} - {fail_msg}")
+
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    row = con.execute(
+        "SELECT user_id FROM citizen_request "
+        "WHERE user_id IS NOT NULL AND cluster_id IS NOT NULL LIMIT 1"
+    ).fetchone()
+    if row is None:
+        con.close()
+        assert_check(
+            "found a real clustered report with a signed-in user to test against",
+            False,
+            "no such row in the live database -- run intelligence.recompute first",
+        )
+        return passed, total
+
+    import secrets
+    token = secrets.token_urlsafe(32)
+    con.execute(
+        "INSERT INTO user_session (token, user_id, created_at) VALUES (?, ?, datetime('now'))",
+        (token, row["user_id"]),
+    )
+    con.commit()
+    con.close()
+
+    try:
+        res = client.get("/citizen/my-reports", headers={"Authorization": f"Bearer {token}"})
+        assert_check(
+            "GET /citizen/my-reports does not crash for a signed-in citizen with a clustered report",
+            res.status_code == 200,
+            f"got {res.status_code}: {res.text[:300]}",
+        )
+        data = res.json() if res.status_code == 200 else {}
+        reports = data.get("reports", [])
+        clustered = [r for r in reports if r.get("status") == "clustered"]
+        assert_check("at least one report comes back clustered", len(clustered) > 0)
+        if clustered:
+            cluster_info = clustered[0].get("cluster") or {}
+            assert_check(
+                "cluster info uses real fields (issue_category, priority_rank, priority_score)",
+                {"cluster_id", "issue_category", "priority_rank", "priority_score"} <= cluster_info.keys(),
+                f"got keys {list(cluster_info.keys())}",
+            )
+            assert_check(
+                "priority_rank is a real positive integer, not null",
+                isinstance(cluster_info.get("priority_rank"), int) and cluster_info["priority_rank"] > 0,
+                f"got {cluster_info.get('priority_rank')!r}",
+            )
+    finally:
+        con = sqlite3.connect(DB_PATH)
+        con.execute("DELETE FROM user_session WHERE token = ?", (token,))
+        con.commit()
+        con.close()
 
     print()
     return passed, total

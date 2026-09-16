@@ -246,6 +246,15 @@ def get_my_reports(
     """
     Returns all grievances filed by the authenticated citizen, ordered by most recent,
     with their live cluster status and rank.
+
+    Real bug fixed 2026-09-16 (confirmed via PROJECT_COMPLETE_AUDIT.md): this used to
+    reference DemandCluster.title, PriorityScore.rank and PriorityScore.final_score --
+    none of which exist on either model -- so this endpoint raised AttributeError the
+    moment a signed-in citizen with a clustered report called it. issue_category is the
+    real, existing field every other cluster-facing view labels a cluster with;
+    priority_rank is computed the same way GET /clusters itself ranks clusters (by
+    priority_score descending across ALL clusters, via the same _latest_score_by_cluster
+    helper), so a citizen's rank always matches what an official sees.
     """
     reports = (
         db.query(CitizenRequest)
@@ -253,6 +262,18 @@ def get_my_reports(
         .order_by(CitizenRequest.created_at.desc())
         .all()
     )
+
+    from routes_dashboard import _latest_score_by_cluster
+
+    scores_by_cluster = _latest_score_by_cluster(db)
+    ranked_cluster_ids = [
+        cluster_id
+        for cluster_id, _ in sorted(
+            scores_by_cluster.items(),
+            key=lambda pair: pair[1].priority_score,
+            reverse=True,
+        )
+    ]
 
     results = []
     for r in reports:
@@ -266,17 +287,17 @@ def get_my_reports(
             status = "clustered"
             cl = db.query(DemandCluster).filter(DemandCluster.id == r.cluster_id).first()
             if cl:
-                latest_score = (
-                    db.query(PriorityScore)
-                    .filter(PriorityScore.cluster_id == cl.id)
-                    .order_by(PriorityScore.computed_at.desc())
-                    .first()
+                latest_score = scores_by_cluster.get(cl.id)
+                rank = (
+                    ranked_cluster_ids.index(cl.id) + 1
+                    if cl.id in ranked_cluster_ids
+                    else None
                 )
                 cluster_info = {
                     "cluster_id": cl.id,
-                    "title": cl.title,
-                    "priority_rank": latest_score.rank if latest_score else None,
-                    "priority_score": latest_score.final_score if latest_score else None,
+                    "issue_category": cl.issue_category,
+                    "priority_rank": rank,
+                    "priority_score": latest_score.priority_score if latest_score else None,
                 }
 
         attachments_count = (
