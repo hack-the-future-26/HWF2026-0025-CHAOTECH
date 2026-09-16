@@ -19,16 +19,51 @@ Status: ✅ done · 🔨 being built · 📝 designed, not started · ⏸ parked
 | 6 | **Fake-complaint defence** (see below) | 📝 Designed; build prompt not written yet | `PHOTO_VERIFICATION_RESEARCH.md` |
 | 7 | **Emergency urgency** (owner's definition, see below) | 📝 Needs one decision | this file, below |
 | 8 | **Stale-record discount (trust-blend)**: trust an old government record less when a burst of recent reports contradicts it | 📝 Unblocked (half-life = 10 years decided) | `STALE_INFRA_DEFICIT_RESEARCH.md` §2 |
-| 9 | **Fresher or live government data**: JJM water testing, CWC river levels, SACHET alerts loaded; wired into evidence 2026-09-15 | ✅ Loaded (Tasks 1-3, commits 4b880f2/ea4cd95/aac9de9) + wired as evidence-only corroboration (see below); eMARG blocked by CAPTCHA; **JJM scheme money (Task 4) was never attempted** — no commit, no table, not reported either way | `BUILD_PROMPT_DATA_PIPELINES_REMAINING.md` |
+| 9 | **Fresher or live government data**: JJM water testing, CWC river levels, SACHET alerts loaded; wired into evidence 2026-09-15. **JJM scheme money** (2,183 rows) and **MGNREGA expenditure** (119 rows, 75 assets) wired into road/water evidence 2026-09-16 | ✅ Loaded (Tasks 1-3, commits 4b880f2/ea4cd95/aac9de9) + wired as evidence-only corroboration; eMARG still blocked by CAPTCHA | `BUILD_PROMPT_DATA_PIPELINES_REMAINING.md` |
 | 10 | **Satellite confirmation (Planet Labs)**, disasters only | ⛔ Needs the Planet Education & Research application (university email) | `STALE_INFRA_DEFICIT_RESEARCH.md` §2A |
-| 11 | **Silent Need Detector** (equity term): flag villages that likely need help but under-report, instead of the current flat BharatNet-only proxy | 📝 Designed; not in Workstream B yet, no build prompt written | `SILENT_NEED_DETECTOR_RESEARCH.md` |
+| 11 | **Silent Need Detector** (equity term): flag villages that likely need help but under-report, instead of the current flat BharatNet-only proxy | 📝 Researched properly 2026-09-16, owner decided to leave as-is. See below | this file, below, and `features.md` |
 | 12 | **District-level GPDP investment totals** (panchayats, approved activities, ₹ outlay, popular/under-picked activities) | ✅ Loaded (99f97e4), real, tested. Deliberately **not** wired into scoring — a district total can't be honestly split to a village or asset. No UI/API shows it yet: there is no district-level view to put it in (see #15 in "Ruled out" below) | `BUILD_PROMPT_GPDP_DISTRICT_SUMMARY.md` |
 | 13 | **Whole-village GPDP budget plan** (per-village works, sector, cost — CAPTCHA, human-assisted) | 🔨 Capture tool built (5064c7f) but never run: `village_budget_plan` has 0 rows. **The tool also skipped the prompt's required Step 0** (test whether one captcha covers many villages or only one) — it does a fresh `page.goto()` before every village, so it silently assumes the worst case (441 solves) without ever checking the cheaper alternative | `BUILD_PROMPT_DATA_PIPELINES_REMAINING.md` Task 5 |
 | 14 | **PRIASoft village-panchayat receipt & expenditure** (real ₹ in/out per village, tied/untied 15th Finance Commission grant, no CAPTCHA) | ✅ Loaded (040b3b0), verified live and against the db 2026-09-15: 4,826 rows, Kolhapur matched 1,366/2,050 (66.6%), Nashik 651/2,776 (23.5% — genuine, Nashik's own gazetteer only has 289 villages vs 1,298 PRIASoft names there, not a bug). **Wired into `intelligence/investment.py` and `GET /investment-alignment` 2026-09-15**: every village row now carries its real unspent-grant balance (`unspent_grant_rupees`, whole-panchayat, independent of PMGSY roads) — 685 of 968 villages shown on the panel have a real PRIASoft record. Not folded into the existing funded/demanded classification (that logic has its own known bug, see the white-space table below) — exposed as its own real field alongside it | `BUILD_PROMPT_PRIASOFT_RECEIPT_EXPENDITURE.md` |
 | 16 | **UDISE+ school condition → education infra_deficit** | ✅ Wired 2026-09-15: a specific school's own 2024-25 classroom/electricity/water/toilet condition now overrides the village-wide 2011 Census signal for that exact school (215 of 220 real education assets use it after a recompute); falls back to Census only for the 5 "unresolved" assets with no specific facility matched. New `intelligence/realdata.py::school_condition_deficit`, tests in `test_intelligence.py`. (Numbered #16, not #15, to avoid confusion with the research PDF's own feature #15 referenced in row #12 above.) | `BUILD_PROMPT_UDISE_SCHOOL_DATA.md` |
-| 17 | **Disaster/monsoon flood-exposure layer**: historical flood-inundation evidence per village/cluster, distinct from #9's real-time CWC/SACHET hazard corroboration | 📝 Data source verified live 2026-09-16, not built. See below | this file, below |
+| 17 | **Disaster/monsoon flood-exposure layer**: historical flood-inundation evidence per village/cluster, distinct from #9's real-time CWC/SACHET hazard corroboration | ✅ Built and wired 2026-09-16 (`flood_event` table, `flood_exposure_evidence()`, evidence-only, all categories) — 449 of 819 real assets carry it. See below | this file, below |
 
-### #17 Flood exposure — verified live, not yet built (2026-09-16)
+### #11 Silent Need Detector — researched properly, left as-is (2026-09-16)
+
+`SILENT_NEED_DETECTOR_RESEARCH.md`'s own claim that literacy joins to
+villages "by the same join key... same pattern as `load_demographic_data.py`"
+is wrong — checked the actual precedent (`load_village_amenities.py`) and
+it joins by fuzzy name matching, since `Gazetteer` has no census-code
+column. A real, live, no-login literacy source was found anyway
+(`censusindia.gov.in`'s per-district Primary Census Abstract files,
+verified by downloading Nashik's real 1,984-row file).
+
+That's the fixable half. The actual point of the feature — comparing real
+report volume against an expected baseline — needs genuine citizen
+reporting behavior to calibrate against, and this project doesn't have
+enough of it: 1,000 of 2,014 reports are explicitly synthetic, and of the
+other 1,014, only 67 carry a real citizen GPS pin. A baseline built on
+this would be calibrated on where test scripts dropped fake reports, not
+real digital-divide behavior.
+
+Also checked at the owner's request: would BharatNet + literacy even be
+*sufficient* to prove a village can't report, if the data problem were
+solved? No — BharatNet measures fibre to the panchayat office, not
+villagers' phones; literacy measures general reading/writing, not digital
+literacy. Checked for a better connectivity signal: TRAI's public data is
+circle-level (too coarse); a real village-level TRAI+India Post telecom
+survey just launched but has no public data yet; DoT's Tarang Sanchar is
+a one-address lookup tool, no bulk API; OpenCelliD is real but
+crowdsourced, so it's thinnest exactly in the poor villages this feature
+targets — the same rural-crowdsourcing bias already rejected for OSM.
+
+**Decision: leave `real_reporting_capacity_deficit` as the flat BharatNet
+proxy.** The underlying methodology is real, published research
+(Kontokosta et al., NYU, 20M+ NYC 311 requests) — the blocker is data
+volume and signal quality, not the idea. Revisit if real report volume
+grows or the new TRAI survey publishes. Full detail in `features.md`.
+
+### #17 Flood exposure — built 2026-09-16 (verified live first, same day)
 
 Owner's pitch: add a "Monsoon Exposure" / "Flood Hazard" evidence term
 sourced from Bhuvan + NASA GPM rainfall, on top of the existing
@@ -64,17 +99,26 @@ calendar prediction window from a weighted score. This only claims "this
 place has historically flooded" — a fact already sitting in real data,
 not a forecast.
 
-**Real cost if picked up**: not a small add-on. It is a new scoring term
-touching the same 9-term, sum-to-100 architecture that Feature #7
-(Emergency Urgency) had to renegotiate points for — needs a real decision
-on whether flood exposure is a new term, folds into `real_vulnerability`,
-or extends `realdata.hazard_near()`'s existing (currently evidence-only)
-CWC/SACHET corroboration with a historical-frequency signal alongside the
-real-time one. Owner decided 2026-09-16 not to build now; v1 scope if
-picked up later is flood exposure alone (the verified NDEM data, no live
-API calls needed — one-time download + local lookup, same pattern as the
-PMGSY/JJM/UDISE+ loaders), with GPM rainfall deferred until someone
-actually completes an Earthdata signup.
+**What actually got built, same day, after the owner approved v1 scope
+(flood exposure alone, GPM rainfall deferred)**: a new `flood_event`
+table (`backend/load_flood_inundation.py`) loaded with all 14,434 real
+2013/2021 events, each stored as its real bounding box (a conservative
+lower bound on distance to the true polygon, not the exact shape — no new
+geometry-library dependency needed). `intelligence/realdata.py`'s new
+`flood_exposure_evidence(lat, lon, flood_events)` follows the same
+evidence-only pattern as groundwater/JJM/MGNREGA: does not move
+`infra_deficit`, `vulnerability`, or any other score term. Threaded
+through `_score_members()`/`_build_assets()`/`recompute()`, applied to
+**every category** (unlike MGNREGA/JJM, which are road/water-scoped,
+flood risk affects whatever is standing in it). Verified live: 449 of 819
+real assets across all four categories now carry it.
+
+**Real performance cost found and fixed the same day**: checking against
+all 14,434 events for every one of ~1,000 clusters/assets slowed a
+recompute from its normal well-under-a-minute to over two minutes,
+confirmed live. Fixed with a cheap plain-degree bounding check before the
+real (trig-based) haversine distance — a strict superset filter, never
+drops a real candidate — which brought it back to ~52s.
 
 ## The project's white space (research PDF §9), checked against the code 2026-09-14
 
