@@ -57,9 +57,11 @@ def list_villages(
     rows = query.order_by(VillagePriority.rank_in_district.asc(), VillagePriority.priority_score.desc()).all()
 
     top_asset_ids = [r.top_asset_id for r in rows if r.top_asset_id is not None]
+    urgent_asset_ids = [r.urgent_asset_id for r in rows if r.urgent_asset_id is not None]
     assets_by_id = {}
-    if top_asset_ids:
-        assets = db.query(Asset).filter(Asset.id.in_(top_asset_ids)).all()
+    wanted_ids = set(top_asset_ids) | set(urgent_asset_ids)
+    if wanted_ids:
+        assets = db.query(Asset).filter(Asset.id.in_(wanted_ids)).all()
         assets_by_id = {a.id: a for a in assets}
 
     out = []
@@ -72,6 +74,15 @@ def list_villages(
                 "name": top_asset.name,
                 "asset_type": top_asset.asset_type,
                 "priority_score": top_asset.priority_score,
+            }
+        urgent_asset = assets_by_id.get(r.urgent_asset_id)
+        urgent_asset_data = None
+        if urgent_asset:
+            urgent_asset_data = {
+                "id": urgent_asset.id,
+                "name": urgent_asset.name,
+                "asset_type": urgent_asset.asset_type,
+                "grade_label": r.urgent_grade_label,
             }
         counts_by_category = json.loads(r.counts_by_category) if r.counts_by_category else {}
         out.append({
@@ -87,6 +98,11 @@ def list_villages(
             "counts_by_category": counts_by_category,
             "asset_count": r.asset_count,
             "top_asset": top_asset_data,
+            # Independent of priority_score/top_asset -- names the village's
+            # most severe emergency-graded asset even when it isn't the one
+            # driving the ranking number (§ village-priority urgency flag).
+            "has_urgent_asset": bool(r.has_urgent_asset),
+            "urgent_asset": urgent_asset_data,
             "is_demo": r.is_demo,
         })
     return out
@@ -163,6 +179,10 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
 
     counts_by_category = json.loads(vp.counts_by_category) if vp.counts_by_category else {}
 
+    urgent_asset_data = next(
+        (a for a in assets_list if a["id"] == vp.urgent_asset_id), None
+    ) if vp.urgent_asset_id else None
+
     return {
         "gazetteer_id": vp.gazetteer_id,
         "name": vp.village,
@@ -178,6 +198,14 @@ def get_village(gazetteer_id: int, db: Session = Depends(get_db)):
         "is_demo": vp.is_demo,
         "assets": assets_list,
         "top_asset": top_asset_data,
+        # Independent of priority_score/top_asset -- names the village's
+        # most severe emergency-graded asset even when it isn't the one
+        # driving the ranking number.
+        "has_urgent_asset": bool(vp.has_urgent_asset),
+        "urgent_asset": (
+            {**urgent_asset_data, "grade_label": vp.urgent_grade_label}
+            if urgent_asset_data else None
+        ),
         "reports": serialized_reports,
     }
 

@@ -967,6 +967,9 @@
     titles.append("div").attr("class", "dock__sub")
       .text(`${vData.block ? vData.block + " block · " : ""}${vData.district} district · ${vData.asset_count || (vData.assets || []).length} assets`);
     head.append("div").attr("class", "dock__spacer");
+    if (vData.has_urgent_asset) {
+      head.append("span").attr("class", "badge--urgent").text("⚠ Urgent");
+    }
     head.append("div").attr("class", "dock__score")
       .text((vData.priority_score ?? 0).toFixed(2));
     head.append("div").attr("class", "dock__scoreof").text("/ 100");
@@ -976,6 +979,22 @@
       .attr("aria-label", "Close detail")
       .html("&times;")
       .on("click", () => navigate("district", { state: nav.state, district: nav.district }));
+
+    // Independent of priority_score/top_asset on purpose: the score above is
+    // driven by whichever single asset ranks highest, so a real emergency at
+    // a DIFFERENT asset in this village would otherwise never appear here.
+    if (vData.has_urgent_asset && vData.urgent_asset) {
+      const ua = vData.urgent_asset;
+      const warn = dock.insert("div", ".dock__cols")
+        .attr("class", "dock__warn dock__warn--urgent")
+        .style("cursor", "pointer")
+        .on("click", () => navigate("asset", { asset: ua, village: vData, state: nav.state, district: nav.district }));
+      warn.append("b").text(`⚠ Urgent: ${ua.grade_label} damage detected. `);
+      warn.append("span").text(
+        `${ua.name} (${ua.asset_type}) has a real emergency-graded photo or report, ` +
+        "even though it isn't this village's top-ranked asset. Click to open it."
+      );
+    }
 
     const cols = dock.append("div").attr("class", "dock__cols");
 
@@ -1331,9 +1350,12 @@
         if (counts.water) cParts.push(`${counts.water} water`);
         const cStr = cParts.length ? ` · ${cParts.join(", ")}` : "";
         const demoStr = d.is_demo ? ` <span class="badge--demo">demo data</span>` : "";
+        // Independent of priority_score, which only reflects this village's
+        // single highest-scoring asset -- see renderVillagePanel's own note.
+        const urgentStr = d.has_urgent_asset ? ` <span class="badge--urgent">⚠ Urgent</span>` : "";
 
         showTip(e, `
-          <div class="tooltip__title">${d.name}${demoStr}</div>
+          <div class="tooltip__title">${d.name}${demoStr}${urgentStr}</div>
           <div class="tooltip__row"><span>Priority score</span><span class="tooltip__score">${(d.priority_score ?? 0).toFixed(2)}</span></div>
           <div class="tooltip__row"><span>District rank</span><b>#${d.rank_in_district || "—"}</b></div>
           <div class="tooltip__row"><span>Reports</span><b>${d.report_count}${cStr}</b></div>

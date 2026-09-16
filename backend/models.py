@@ -642,6 +642,16 @@ class VillagePriority(Base):
     priority_score = Column(Float, index=True)
     top_asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
     rank_in_district = Column(Integer, nullable=True)
+    # priority_score only ever reflects the village's single highest-scoring
+    # asset, so a real emergency at any OTHER asset in the village was
+    # invisible here (found live 2026-09-16: a photographed roof collapse at
+    # a school hidden behind a higher-scoring road in the same village).
+    # This flag is independent of priority_score/top_asset_id on purpose --
+    # it names the single most severe emergency-graded asset in the village,
+    # whether or not that asset is the one driving the ranking number.
+    has_urgent_asset = Column(Boolean, default=False)
+    urgent_asset_id = Column(Integer, ForeignKey("asset.id"), nullable=True)
+    urgent_grade_label = Column(Text, nullable=True)  # crack | partial | collapse
     is_demo = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

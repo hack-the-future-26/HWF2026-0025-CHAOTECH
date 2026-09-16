@@ -1199,6 +1199,33 @@ def _build_villages(
             priority_score = 0.0
             top_asset_id = None
 
+        # priority_score/top_asset_id only ever reflect the village's single
+        # highest-scoring asset, so a real emergency at any OTHER asset was
+        # invisible here (found live 2026-09-16: a photographed roof collapse
+        # at a school hidden behind a higher-scoring road in the same
+        # village). Computed independently of the ranking above -- the
+        # asset with the worst genuine emergency grade, whether or not it is
+        # the one driving priority_score.
+        urgent_asset_id = None
+        urgent_grade_label = None
+        best_urgent_rank: tuple[int, float] | None = None
+        for a in v_assets:
+            if not a.evidence:
+                continue
+            try:
+                ev = json.loads(a.evidence)
+            except (TypeError, ValueError):
+                continue
+            label = (ev.get("emergency") or {}).get("grade_label")
+            if not label:
+                continue
+            confidence = (ev.get("emergency") or {}).get("confidence") or 0.0
+            rank = (_GRADE_ORDER.get(label, 0), confidence)
+            if best_urgent_rank is None or rank > best_urgent_rank:
+                best_urgent_rank = rank
+                urgent_asset_id = a.id
+                urgent_grade_label = label
+
         counts_by_cat = dict(Counter(r.get("issue_category") for r in v_reports if r.get("issue_category")))
         is_demo = all(bool(r.get("is_synthetic")) for r in v_reports)
 
@@ -1216,6 +1243,9 @@ def _build_villages(
             priority_score=priority_score,
             top_asset_id=top_asset_id,
             rank_in_district=None,
+            has_urgent_asset=urgent_asset_id is not None,
+            urgent_asset_id=urgent_asset_id,
+            urgent_grade_label=urgent_grade_label,
             is_demo=is_demo,
         )
         created_villages.append(vp)

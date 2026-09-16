@@ -66,6 +66,14 @@ ADDED_COLUMNS: dict[str, dict[str, str]] = {
         # rather than only read.
         "evidence": "TEXT",
     },
+    "village_priority": {
+        # Urgency flag, independent of priority_score/top_asset_id -- names
+        # the village's most severe emergency-graded asset even when it
+        # isn't the one driving the ranking number.
+        "has_urgent_asset": "BOOLEAN",
+        "urgent_asset_id": "INTEGER",
+        "urgent_grade_label": "TEXT",
+    },
 }
 
 
