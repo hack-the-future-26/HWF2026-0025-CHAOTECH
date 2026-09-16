@@ -1779,4 +1779,51 @@ def village_mgnrega_evidence(gazetteer_id: int, index: dict[int, dict]) -> tuple
     return row, sentence
 
 
+def mgnrega_catchment_evidence(
+    villages: list[dict], index: dict[int, dict]
+) -> tuple[dict | None, str | None]:
+    """
+    Aggregate real MGNREGA (rural employment guarantee) expenditure across a
+    cluster's whole catchment, not just one village -- same pattern as
+    jjm_scheme_catchment_evidence and water_testing_catchment_evidence.
+
+    Evidence only, same as every other corroboration source wired in
+    alongside this one (groundwater, water testing, JJM schemes, hazard
+    alerts): it does not move infra_deficit or any other score term.
+    Wiring a real government-works spending signal into the score itself is
+    a separate, later decision (see BUILD_PROMPT_MGNREGA_LOADER.md's own
+    ground rule 4), same as it was for every other real-data source before
+    its evidence shape had been checked against live clusters first.
+
+    Returns (None, None) when no village in the catchment has a matched
+    MGNREGA record -- most won't yet, since only 119 real rows are loaded
+    so far.
+    """
+    if not index:
+        return None, None
+    matched = [index[v["gazetteer_id"]] for v in villages if v.get("gazetteer_id") in index]
+    if not matched:
+        return None, None
+
+    total = sum(m.get("total_expenditure_lakh") or 0.0 for m in matched)
+    wages = sum(m.get("wages_lakh") or 0.0 for m in matched)
+    material = sum(m.get("material_lakh") or 0.0 for m in matched)
+    fin_years = sorted({m["fin_year"] for m in matched if m.get("fin_year")})
+
+    evidence = {
+        "villages_matched": len(matched),
+        "villages_in_catchment": len(villages),
+        "total_expenditure_lakh": round(total, 2),
+        "wages_lakh": round(wages, 2),
+        "material_lakh": round(material, 2),
+        "fin_years": fin_years,
+    }
+    sentence = (
+        f"{len(matched)} of {len(villages)} catchment villages have a real MGNREGA "
+        f"record ({fin_years[-1] if fin_years else 'unknown year'}): "
+        f"Rs {total:,.2f} lakh total expenditure "
+        f"(Rs {wages:,.2f} lakh wages, Rs {material:,.2f} lakh material)"
+    )
+    return evidence, sentence
+
 

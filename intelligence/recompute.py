@@ -522,6 +522,7 @@ def _score_members(
     facility_id: int | None = None,
     school_condition_index: dict[int, dict] | None = None,
     jjm_scheme_index: dict[int, list[dict]] | None = None,
+    mgnrega_index: dict[int, dict] | None = None,
     groups: list[dict] | None = None,
     now: datetime | None = None,
 ) -> dict:
@@ -581,6 +582,18 @@ def _score_members(
         )
         if jjm_scheme_text:
             infra_evidence["jjm_scheme_corroboration"] = jjm_scheme_text
+
+    # MGNREGA funds rural public works (roads, embankments, water
+    # conservation structures) -- scoped to road and water the same way
+    # hazard_near is, since those are the two categories MGNREGA's own
+    # spending is actually about. Evidence only, same caution as every
+    # other real-data source before its shape had been checked against
+    # live clusters (BUILD_PROMPT_MGNREGA_LOADER.md ground rule 4).
+    mgnrega_evidence, mgnrega_text = (None, None)
+    if category in ("road", "water"):
+        mgnrega_evidence, mgnrega_text = realdata.mgnrega_catchment_evidence(
+            nearby_villages, mgnrega_index or {}
+        )
 
     # Evidence-only for now (see hazard_near's own docstring): corroborates a
     # possible emergency without moving the score, since the urgency-term
@@ -738,6 +751,8 @@ def _score_members(
         result["evidence"]["water_testing"] = wt_text
     if category == "water" and jjm_scheme_text:
         result["evidence"]["jjm_schemes"] = jjm_scheme_evidence
+    if category in ("road", "water") and mgnrega_text:
+        result["evidence"]["mgnrega"] = mgnrega_evidence
     # Real UDISE+ grant vs. expenditure for this specific school -- separate
     # from infra_deficit's own school signal (classroom/electricity/water/
     # toilet condition), since "how much unspent money is sitting here" is a
@@ -849,6 +864,7 @@ def _build_assets(
     hazard_alerts: list[dict] | None = None,
     school_condition_index: dict[int, dict] | None = None,
     jjm_scheme_index: dict[int, list[dict]] | None = None,
+    mgnrega_index: dict[int, dict] | None = None,
     db=None,
 ) -> list[Asset]:
     valid_reports = [
@@ -1107,6 +1123,7 @@ def _build_assets(
             facility_id=facility_id,
             school_condition_index=school_condition_index,
             jjm_scheme_index=jjm_scheme_index,
+            mgnrega_index=mgnrega_index,
             groups=None,
         )
         evidence = dict(result["evidence"])
@@ -1296,6 +1313,7 @@ def recompute(db, verbose: bool = True) -> dict:
     hazard_alerts = realdata.load_hazard_alerts_index(db)
     school_condition_index = realdata.load_school_condition_index(db)
     jjm_scheme_index = realdata.load_jjm_scheme_index(db)
+    mgnrega_index = realdata.load_village_mgnrega_index(db)
 
     # Named public assets, so a work group can say "Z.P.SCHOOL DABHADI"
     # instead of "Dabhadi". Empty until load_udise_schools.py has been run,
@@ -1328,7 +1346,8 @@ def recompute(db, verbose: bool = True) -> dict:
         f"{len(river_readings)} CWC river readings, {len(hazard_alerts)} SACHET alerts, "
         f"{len(school_condition_index)} UDISE+ school condition records, "
         f"{sum(len(v) for v in jjm_scheme_index.values())} real JJM schemes across "
-        f"{len(jjm_scheme_index)} villages"
+        f"{len(jjm_scheme_index)} villages, "
+        f"{len(mgnrega_index)} villages with a real MGNREGA expenditure record"
     )
 
     # --- Steps 1-3: embed, gate, cluster -----------------------------------
@@ -1427,6 +1446,7 @@ def recompute(db, verbose: bool = True) -> dict:
             river_readings=river_readings,
             hazard_alerts=hazard_alerts,
             jjm_scheme_index=jjm_scheme_index,
+            mgnrega_index=mgnrega_index,
             groups=groups,
         )
         result["evidence"].update(_photo_evidence(members))
@@ -1469,6 +1489,7 @@ def recompute(db, verbose: bool = True) -> dict:
         hazard_alerts=hazard_alerts,
         school_condition_index=school_condition_index,
         jjm_scheme_index=jjm_scheme_index,
+        mgnrega_index=mgnrega_index,
         db=db,
     )
     villages = _build_villages(reports, assets, gazetteer, db=db)

@@ -1098,6 +1098,60 @@ def test_jjm_scheme_index_and_catchment_evidence():
     check("jjm_scheme_catchment_evidence: an all-completed catchment reports no unspent money", "completed" in all_done[1])
 
 
+def test_mgnrega_index_and_catchment_evidence():
+    class MockMgnregaRow:
+        def __init__(self, gazetteer_id, fin_year, total, wages, material, w_pct, m_pct):
+            self.id = gazetteer_id
+            self.gazetteer_id = gazetteer_id
+            self.village_name = "Test Village"
+            self.district = "Kolhapur"
+            self.block = "Test Block"
+            self.fin_year = fin_year
+            self.total_expenditure_lakh = total
+            self.wages_lakh = wages
+            self.material_lakh = material
+            self.wages_percent = w_pct
+            self.material_percent = m_pct
+            self.fetched_at = None
+
+    class MockMgnregaQuery:
+        def __init__(self, items):
+            self.items = items
+        def filter(self, *a, **k):
+            return self
+        def order_by(self, *a, **k):
+            return self
+        def all(self):
+            return self.items
+
+    class MockMgnregaDB:
+        def query(self, model):
+            return MockMgnregaQuery([
+                MockMgnregaRow(101, "2025-2026", 5.37, 1.24, 4.12, 23.0, 77.0),
+                MockMgnregaRow(202, "2025-2026", 2.0, 1.0, 1.0, 50.0, 50.0),
+            ])
+
+    index = realdata.load_village_mgnrega_index(MockMgnregaDB())
+    check("load_village_mgnrega_index: keys by gazetteer_id", set(index.keys()) == {101, 202})
+    check("load_village_mgnrega_index: None db returns {}", realdata.load_village_mgnrega_index(None) == {})
+
+    ev, text = realdata.mgnrega_catchment_evidence([], {})
+    check("mgnrega_catchment_evidence: empty index returns (None, None)", ev is None and text is None)
+
+    villages = [{"gazetteer_id": 101}, {"gazetteer_id": 999}]
+    ev2, text2 = realdata.mgnrega_catchment_evidence(villages, index)
+    check("mgnrega_catchment_evidence: matches exactly the one real village in the catchment", ev2["villages_matched"] == 1)
+    check(
+        "mgnrega_catchment_evidence: real total expenditure carried through unmodified",
+        math.isclose(ev2["total_expenditure_lakh"], 5.37),
+        f"{ev2['total_expenditure_lakh']}",
+    )
+    check("mgnrega_catchment_evidence: sentence names the fin year", "2025-2026" in text2)
+
+    ev3, text3 = realdata.mgnrega_catchment_evidence([{"gazetteer_id": 999}], index)
+    check("mgnrega_catchment_evidence: catchment with no matched village returns (None, None)", ev3 is None and text3 is None)
+
+
 def test_investment_only_counts_road_reports_as_demand():
     """
     Real bug, found live 2026-09-15: `works` in build_village_investment is
@@ -2204,6 +2258,7 @@ def main() -> None:
         test_village_investment_unspent_grant,
         test_amenity_lookup_uses_the_categorys_own_catchment_radius,
         test_jjm_scheme_index_and_catchment_evidence,
+        test_mgnrega_index_and_catchment_evidence,
         test_investment_only_counts_road_reports_as_demand,
         test_school_investment_uses_unspent_grant_and_real_deficiency,
         test_budget_optimizer_knapsack_is_exact_not_greedy,
