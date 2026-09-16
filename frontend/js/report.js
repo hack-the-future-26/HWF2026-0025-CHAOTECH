@@ -31,7 +31,13 @@
   "use strict";
 
   const params = new URLSearchParams(location.search);
-  const API = (params.get("api") || "http://127.0.0.1:8001").replace(/\/$/, "");
+  // The phone demo is served by FastAPI at /app through an HTTPS tunnel. In
+  // that case use the page's own origin, so browser permissions and API calls
+  // share one secure origin. Local development keeps the separate API port.
+  const defaultApi = location.protocol === "https:"
+    ? location.origin
+    : "http://127.0.0.1:8001";
+  const API = (params.get("api") || window.AWAAZIQ_API_BASE || defaultApi).replace(/\/$/, "");
 
   // Carry ?api= across to the dashboard, so pointing this page at a
   // non-default backend doesn't silently send officials to another one.
@@ -75,6 +81,50 @@
   let villageCoords = {};            // village name -> {lat, lon}
   let pinMap = null, pinMarker = null;
   let reportLat = null, reportLon = null;
+
+  /* --------------------------------------------------------- permissions -- */
+
+  function setNotificationHint(message) {
+    el("notificationHint").textContent = message;
+  }
+
+  function refreshNotificationControl() {
+    const button = el("btnEnableNotifications");
+    if (!("Notification" in window)) {
+      button.hidden = true;
+      setNotificationHint("This browser does not support notifications.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      button.disabled = true;
+      setNotificationHint("Notifications need an HTTPS link on a phone. The current HTTP link cannot show the permission prompt.");
+      return;
+    }
+    if (Notification.permission === "granted") {
+      button.disabled = true;
+      button.textContent = "Notifications enabled";
+      setNotificationHint("This browser can show AwaazIQ report updates.");
+    } else if (Notification.permission === "denied") {
+      button.disabled = true;
+      setNotificationHint("Notifications are blocked. Enable them in this site's browser settings, then reload.");
+    } else {
+      setNotificationHint("Allow notifications to see a confirmation after you submit a report.");
+    }
+  }
+
+  async function requestNotifications() {
+    if (!("Notification" in window) || !window.isSecureContext) {
+      refreshNotificationControl();
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    refreshNotificationControl();
+    if (permission === "granted") {
+      new Notification("AwaazIQ notifications enabled", {
+        body: "You will receive a confirmation after filing a report while this app is open.",
+      });
+    }
+  }
 
   /* ------------------------------------------------------------- my ids -- */
 
@@ -493,6 +543,11 @@
     }
 
     renderSteps(saved, hasPhotos);
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Report registered", {
+        body: `Your AwaazIQ report #${saved.id} has been registered.`,
+      });
+    }
     rememberReport(saved.id);
     renderMine();
     setTimeout(() => {
@@ -812,9 +867,20 @@
     loadFacilities();
   });
   el("btnGeolocate").addEventListener("click", () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      el("pinHint").textContent = "This browser cannot access your location. You can still tap the map.";
+      return;
+    }
+    if (!window.isSecureContext) {
+      el("pinHint").textContent = "Phone location needs HTTPS. Open the HTTPS demo link, then tap this button again.";
+      return;
+    }
+    el("pinHint").textContent = "Requesting your current location...";
     navigator.geolocation.getCurrentPosition(
-      (pos) => setPin(pos.coords.latitude, pos.coords.longitude),
+      (pos) => {
+        setPin(pos.coords.latitude, pos.coords.longitude);
+        el("pinHint").textContent = "Current phone location selected for this prototype.";
+      },
       () => { /* silently fail — the map tap is the primary path */ }
     );
   });
@@ -879,6 +945,8 @@
     if (e.key === "Enter") { e.preventDefault(); el("trackGo").click(); }
   });
 
+  el("btnEnableNotifications").addEventListener("click", requestNotifications);
+  refreshNotificationControl();
   loadDistricts();
   loadDepartments();
   // Restores a signed-in citizen on reload, so the profile is already on

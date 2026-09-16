@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>AwaazIQ — Report a problem</title>
 <link rel="stylesheet" href="css/app.css?v=village11" />
-<link rel="stylesheet" href="css/report.css?v=village11" />
+<link rel="stylesheet" href="css/report.css?v=phone-prototype1" />
 <link rel="stylesheet" href="css/photo-checks.css?v=village11" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
       integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
@@ -48,6 +48,10 @@
 <main class="wrap">
 
   <section class="hero">
+    <button type="button" class="btn btn--ghost btn--sm" id="btnEnableNotifications">
+      Enable report notifications
+    </button>
+    <p class="f__hint" id="notificationHint" aria-live="polite"></p>
     <h1 class="hero__title">Report a problem in your area</h1>
     <p class="hero__lead">
       Describe the problem in Hindi, Marathi, English or a mix of them —
@@ -266,8 +270,9 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="js/config.js?v=1"></script>
 <script src="js/photo-checks.js?v=village11"></script>
 <script src="js/camera-capture.js?v=village11"></script>
-<script src="js/report.js?v=village11"></script>
+<script src="js/report.js?v=phone-prototype1"></script>
 </body>
 </html>

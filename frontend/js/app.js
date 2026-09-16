@@ -21,7 +21,7 @@
   // The API port is configurable so the dashboard works whether the backend
   // was started on the README's 8000 or anything else: ?api=http://host:port
   const params = new URLSearchParams(location.search);
-  const API = (params.get("api") || "http://127.0.0.1:8001").replace(/\/$/, "");
+  const API = (params.get("api") || window.AWAAZIQ_API_BASE || "http://127.0.0.1:8001").replace(/\/$/, "");
 
   const PILOT_STATE = "Maharashtra";
   const TOPO_URL = "data/india.topo.json";

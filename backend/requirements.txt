@@ -8,3 +8,4 @@ pyarrow
 beautifulsoup4
 python-dateutil
 pycryptodome
+psycopg2-binary

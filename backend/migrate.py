@@ -83,7 +83,18 @@ def existing_columns(connection, table: str) -> set[str]:
 
 
 def run_migrations(engine: Engine) -> list[str]:
-    """Add any missing columns. Returns what it changed, for logging."""
+    """
+    Add any missing columns. Returns what it changed, for logging.
+
+    SQLite-only: the queries above (PRAGMA table_info, sqlite_master) are
+    SQLite-specific syntax, and a non-SQLite database (e.g. a deployed
+    Supabase/Postgres DATABASE_URL) only ever gets built once, from
+    create_all(), so it already has every column current models.py
+    declares -- there is nothing for this function to add there.
+    """
+    if engine.dialect.name != "sqlite":
+        return []
+
     applied: list[str] = []
 
     with engine.begin() as connection:

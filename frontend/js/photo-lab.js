@@ -11,7 +11,7 @@
   "use strict";
 
   const params = new URLSearchParams(location.search);
-  const API = (params.get("api") || "http://127.0.0.1:8001").replace(/\/$/, "");
+  const API = (params.get("api") || window.AWAAZIQ_API_BASE || "http://127.0.0.1:8001").replace(/\/$/, "");
   if (params.get("api")) {
     const q = `?api=${encodeURIComponent(API)}`;
     ["homeLink", "dashLink"].forEach((id) => { document.getElementById(id).href = `index.html${q}`; });

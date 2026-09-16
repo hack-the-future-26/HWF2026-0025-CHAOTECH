@@ -57,6 +57,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # Every number that decides a flag lives here, with the reason for its value.
 
 MODEL_PATH = Path(os.getenv("AWAAZIQ_POTHOLE_MODEL", REPO_ROOT / "models" / "pothole_best.pt"))
+# The 150MB weight file is git-ignored (over GitHub's 100MB limit) and a
+# deployed server has no other way to receive it. If a real hosted copy
+# (e.g. a Supabase Storage object URL) is set here, get_model() downloads it
+# once into MODEL_PATH's place before first use -- optional, local dev is
+# unaffected since this stays unset there.
+MODEL_DOWNLOAD_URL = os.getenv("AWAAZIQ_POTHOLE_MODEL_URL")
 # The model was trained at 1024 px; evaluation (models/README.md) shows it
 # finds noticeably more potholes at its native size than at 640.
 MODEL_IMGSZ = int(os.getenv("AWAAZIQ_POTHOLE_IMGSZ", "1024"))
@@ -587,6 +593,32 @@ def model_info() -> dict:
     }
 
 
+def _download_model_if_configured() -> None:
+    """
+    One-time fetch of the real weight file from AWAAZIQ_POTHOLE_MODEL_URL
+    when it isn't already sitting at MODEL_PATH -- the deploy-time escape
+    hatch for a file too big to commit. Downloads to a temp file first and
+    renames into place, so a crash mid-download never leaves a corrupt
+    partial file that looks present on the next request.
+    """
+    if not MODEL_DOWNLOAD_URL or MODEL_PATH.is_file():
+        return
+    import requests
+
+    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = MODEL_PATH.with_suffix(".pt.download")
+    try:
+        with requests.get(MODEL_DOWNLOAD_URL, stream=True, timeout=120) as resp:
+            resp.raise_for_status()
+            with open(tmp_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                    f.write(chunk)
+        tmp_path.rename(MODEL_PATH)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+
 def get_model():
     """Load the team's detector once. None (with a reason) when unavailable."""
     global _model, _model_error
@@ -595,6 +627,12 @@ def get_model():
     with _model_lock:
         if _model is not None:
             return _model
+        if not MODEL_PATH.is_file():
+            try:
+                _download_model_if_configured()
+            except Exception as exc:
+                _model_error = f"download failed: {type(exc).__name__}: {exc}"
+                return None
         if not MODEL_PATH.is_file():
             _model_error = f"model file not found at {MODEL_PATH}"
             return None
