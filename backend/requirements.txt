@@ -5,3 +5,6 @@ requests
 python-multipart
 rapidfuzz
 pyarrow
+beautifulsoup4
+python-dateutil
+pycryptodome

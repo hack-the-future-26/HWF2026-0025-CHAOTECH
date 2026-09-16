@@ -25,7 +25,7 @@ directly below describe the project as it stands now.
 
 Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outside this scope &nbsp; ❌ not started
 
-## Current state at a glance (15 September 2026)
+## Current state at a glance (16 September 2026)
 
 | | |
 |---|---|
@@ -33,12 +33,12 @@ Legend: ✅ done and verified &nbsp; ⚠️ partial / blocked on something outsi
 | `gazetteer` | **1,042** places in Kolhapur and Nashik |
 | Named facilities | **10,464** (9,352 UDISE schools + 1,112 health facilities) |
 | PMGSY road works | **552** |
-| `citizen_request` | **1,000** sample (demo) reports |
-| ↳ assigned to a cluster | **652** |
-| `demand_cluster` / `priority_score` | **102** — scores range 24.85 – 70.08 |
-| Specific assets / villages ranked | **813** assets across **444** villages |
-| Photo checks (Workstream C) | C1–C7 built; the pothole model is evaluated in [`models/README.md`](models/README.md) |
-| Test coverage | intelligence **96/96** · backend endpoint **65/65** · pipeline **46/46** · photo checks **57/57** |
+| `citizen_request` | **2,031** total (**1,000** flagged `is_synthetic`, the rest real/test intake) |
+| ↳ assigned to a cluster | **1,502** |
+| `demand_cluster` / `priority_score` | **118** — scores range 18.69 – 56.89 |
+| Specific assets / villages ranked | **819** assets across **443** villages |
+| Photo checks (Workstream C) | C1–C7 built, including a live vision-LLM building/bridge damage model (C6) — see "Photo checks" below |
+| Test coverage | intelligence **291/291** · backend endpoint **66/66** · pipeline **46/46** · photo checks **65/65** |
 
 ## How to run
 
@@ -68,10 +68,20 @@ is over GitHub's 100 MB limit). Get the file from the team and place it there, o
 `AWAAZIQ_POTHOLE_MODEL`. Without it every other check still runs and the model check says
 "not available".
 
-Python packages beyond `backend/requirements.txt` and `pipeline/requirements.txt`:
-`ultralytics`, `torch`, `imagehash`, `scipy`, `pillow`, `numpy`, `py7zr` (for the LGD loader).
+**Building/bridge damage model (C6).** This one real check is prototype-stage only: it calls
+a vision-LLM through a local OmniRoute gateway (`AWAAZIQ_VLM_DAMAGE_MODEL=1` by default,
+model set by `AWAAZIQ_VLM_MODEL`) rather than a dedicated hosted model/API key, since that's
+what was available to demo with. Swap the gateway call and model out for a real provider key
+before any actual deployment. Set `AWAAZIQ_VLM_DAMAGE_MODEL=0` to disable it — every other
+check still runs, and the grading falls back to a lower-confidence proxy signal.
 
-Data-loading scripts (re-run only to rebuild the database). **Run in this order:**
+Python packages beyond `backend/requirements.txt` and `pipeline/requirements.txt`:
+`ultralytics`, `torch`, `imagehash`, `scipy`, `pillow`, `numpy` (Workstream C photo checks),
+`py7zr` (LGD hierarchy loader).
+
+Data-loading scripts (re-run only to rebuild the database). **Run in this order** — this is
+the complete list as of 16 September 2026; several were added well after the original
+hackathon build and are easy to miss if you're going by memory:
 
 ```bash
 cd backend
@@ -85,7 +95,18 @@ python load_bharatnet.py           # BharatNet fibre status
 python load_udise_schools.py       # UDISE school register
 python load_health_facilities.py   # NIC health facilities
 python load_pmgsy_works.py         # PMGSY sanctioned road works
+python load_pmgsy_geosadak.py      # PMGSY GeoSadak road line geometry + official names
 python load_jjm_water.py           # JJM tap coverage (cached in jjm_cache.json)
+python load_jjm_water_testing.py   # real current JJM water-quality testing coverage (needs pycryptodome, the site's own AES-encrypted dropdowns)
+python load_jjm_village_schemes.py # real JJM scheme cost/status per village (needs LGD hierarchy loaded first)
+python load_udise_school_data.py   # real 2024-25 UDISE+ classroom/teacher/grant condition (needs the UDISE register loaded first)
+python load_mgnrega_expenditure.py # real MGNREGA panchayat expenditure
+python load_priasoft_receipt_expenditure.py  # real village panchayat receipts/expenditure (15th Finance Commission)
+python load_cwc_river_levels.py    # live CWC river-level readings
+python load_sachet_alerts.py       # live SACHET disaster alerts
+python load_nwdp_groundwater.py    # real groundwater telemetry
+python load_gpdp_district_summary.py  # real district-level GPDP investment totals
+python load_flood_inundation.py    # real NDEM 2013/2021 satellite flood-inundation extents
 python seed_synthetic_data.py      # 1,000 sample reports, flagged is_synthetic
 python assign_synthetic_assets.py  # attach sample reports to real schools/hospitals
 
@@ -93,16 +114,21 @@ cd ..
 python -m intelligence.recompute   # cluster + score everything (~1 min)
 ```
 
+One confirmed dead end, not run: `load_mosdac_rainfall.py` requires an ISRO MOSDAC account
+with human email approval, has no public bulk endpoint, and correctly leaves its table at 0
+rows rather than fabricating anything (see `FEATURE_ROADMAP.md` #5).
+
 Tests:
 
 ```bash
 # from the repo root
-python -m intelligence.test_intelligence  # 96 checks (scoring, assets, C2 distinct accounts)
+python -m intelligence.test_intelligence  # 291 checks (scoring, assets, C2 distinct accounts, real-data evidence)
 cd pipeline && python test_pipeline.py    # 46 end-to-end cases
 
 # from backend/
-python test_photo_checks.py               # 57 checks for C1–C7 (uses a throw-away database)
-python test_citizen_report_endpoint.py    # 65 checks — writes to hackathon.db, back it up first
+python test_photo_checks.py               # 65 checks for C1–C7, including the vision-LLM damage model
+python test_citizen_report_endpoint.py    # 66 checks — writes to hackathon.db, back it up first
+python test_assign_synthetic_assets.py    # 4 checks
 ```
 
 After pulling changes that add columns, run `python create_tables.py` once in `backend/`.
