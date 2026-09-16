@@ -14,4 +14,13 @@
    separate deployments (e.g. frontend on Vercel, backend on Railway) --
    the one case where "same origin as the page" is no longer the backend.
    =========================================================================== */
-window.AWAAZIQ_API_BASE = "https://idk-production-2d30.up.railway.app";
+/* Deployed frontend (Vercel) has no backend on its own origin, so it needs
+   the Railway URL. Local dev must NOT get it -- setting this unconditionally
+   sends `python main.py` + file:// sessions to the deployed backend and makes
+   localhost look broken. Hostname is the only thing that distinguishes them,
+   since the same file ships to both. */
+window.AWAAZIQ_API_BASE = ["localhost", "127.0.0.1", "0.0.0.0", ""].includes(
+  window.location.hostname
+)
+  ? ""
+  : "https://idk-production-2d30.up.railway.app";
